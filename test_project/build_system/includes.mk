@@ -28,6 +28,8 @@ BUILD_SYS_DIR = $(abspath $(TOP_DIR)/build_system/)
 EXAMPLE_NAME = filter
 ANASYMOD_DIR = C:/Inicio_dev/anasymod
 
+VIVADO_SCRIPTS = $(ANASYMOD_DIR)/vivado_scripts/ilaProbesGen.tcl
+
 MSDSL_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/msdsl/)
 MSDSL_LIB_DIR = $(MSDSL_INSTALL_DIR)/src
 MSDSL_INC_DIR = $(MSDSL_INSTALL_DIR)/include
@@ -72,8 +74,22 @@ SIM_TIME = 100ns
 DEBUG_LEVEL = all
 
 #########################################
+# Emulation options
+#########################################
+
+bit_file = $(BUILD_PRJ_DIR)/$(PROJECT_NAME).runs/impl_1/top.bit
+ltx_file = $(BUILD_PRJ_DIR)/$(PROJECT_NAME).runs/impl_1/top.ltx
+device_name = $(PART)
+vio_name = vio_0_i
+ila_name = u_ila_0
+output = $(BUILD_DIR)/ila.csv
+probe_file = $(BUILD_PRJ_DIR)/probe_config.txt
+reset = rst_1
+
+#########################################
 # Build target specific tcl args
 #########################################
 TCL_ARGS_CREATE_PROJECT = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(PART) $(BUILD_INC_DIR) $(BUILD_LIB_DIR) $(BUILD_MODEL_DIR) $(BUILD_IP_DIR) $(SOURCE_CONST_DIR) $(SOURCE_DIR) $(TOP) $(SOURCE_SIM_TB_DIR) $(SVREAL_LIB_DIR) $(SVREAL_INC_DIR) $(MSDSL_LIB_DIR) $(MSDSL_INC_DIR) $(EMUFLOW_EXAMPLE_TOP)
 TCL_ARGS_GEN_BITSTREAM = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(NUM_CORES)
 TCL_ARGS_SIM = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(SIM_TB) $(TOP_INST) $(SIM_TIME) $(DEBUG_LEVEL) $(DT)
+TCL_ARGS_EMU = $(bit_file) $(ltx_file) $(device_name) $(vio_name) $(ila_name) $(output) $(probe_file) $(reset)

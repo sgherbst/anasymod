@@ -47,7 +47,7 @@ read_verilog  [ glob $SVREAL_INC_DIR/*.*v ]
 read_verilog  [ glob $MSDSL_LIB_DIR/*.*v ]
 read_verilog  [ glob $MSDSL_INC_DIR/*.*v ]
 
-read_verilog  [ glob EMUFLOW_EXAMPLE_TOP ]
+read_verilog  [ glob $EMUFLOW_EXAMPLE_TOP ]
 
 read_verilog  [ glob $BUILD_MODEL_DIR/*.*v ]
 read_verilog  [ glob $SOURCE_DIR/*.*v ]

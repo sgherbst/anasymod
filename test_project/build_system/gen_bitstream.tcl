@@ -38,52 +38,18 @@ foreach {signal} $mb_sigs {
 	lappend mb_sigs_widths [get_property fp_width [get_nets $signal]]
 }
 
-#puts single:$sb_sigs
-#puts multi:$mb_sigs
-#puts mb_sigs_exponents:$mb_sigs_exponents
-#puts mb_sigs_widths:$mb_sigs_widths
-
-# Add double quotes around each element in lists
-set sb_sigs_q [list]
-set mb_sigs_q [list]
-set mb_sigs_exponents_q [list]
-set mb_sigs_widths_q [list]
-
-foreach {item} $sb_sigs {
-	puts $item
-	lappend sb_sigs_q [subst {"$item"}]
-}
-
-foreach {item} $mb_sigs {
-	lappend mb_sigs_q [subst {"$item"}]
-}
-
-foreach {item} $mb_sigs_exponents {
-	lappend mb_sigs_exponents_q [subst {"$item"}]
-}
-
-foreach {item} $mb_sigs_widths {
-	lappend mb_sigs_widths_q [subst {"$item"}]
-}
-
-set $sb_sigs_q [join $sb_sigs_q " "]
-set $mb_sigs_q [join $mb_sigs_q " "]
-
-
-puts single:$sb_sigs_q
-puts multi:$mb_sigs_q
-puts mb_sigs_exponents:$mb_sigs_exponents_q
-puts mb_sigs_widths:$mb_sigs_widths_q
+puts single:$sb_sigs
+puts multi:$mb_sigs
+puts mb_sigs_exponents:$mb_sigs_exponents
+puts mb_sigs_widths:$mb_sigs_widths
 
 #TBD: Add check for empty string elements and replace with None!
 #TBD: Change format into python dict 
 set outputFile [open "$BUILD_PRJ_DIR/probe_config.txt" w]
-puts $outputFile "{"
-puts $outputFile [concat "   " "\"SB\":" "\[" [join $sb_sigs ", "] "\],"]
-puts $outputFile [concat "   " "\"MB\":" "\[" [join $mb_sigs ", "] "\],"]
-puts $outputFile [concat "   " "\"MB_EXPONENT\":" "\[" [join $mb_sigs_exponents ", "] "\],"]
-puts $outputFile [concat "   " "\"MB_WIDTH\":" "\[" [join $mb_sigs_widths ", "] "\]"]
-puts $outputFile "}"
+puts $outputFile [concat "SB:" $sb_sigs]
+puts $outputFile [concat "MB:" $mb_sigs]
+puts $outputFile [concat "MB_EXPONENT:" $mb_sigs_exponents]
+puts $outputFile [concat "MB_WIDTH:" $mb_sigs_widths]
 close $outputFile
 
 close_design

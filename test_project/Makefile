@@ -33,6 +33,9 @@ gen_bitstream:
 simulate:
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/run_xsim.tcl -tclargs $(TCL_ARGS_SIM)
 
+emulate:
+    $(VIVADO_BATCH) -mode batch -source $(VIVADO_SCRIPTS) -tclargs $(TCL_ARGS_EMU)
+
 #########################################
 # cleaning commands
 #########################################
