@@ -86,14 +86,14 @@ puts $outputFile [concat "   " "\"MB_WIDTH\":" "\[" [join $mb_sigs_widths ", "] 
 puts $outputFile "}"
 close $outputFile
 
-#close_design
+close_design
 #exit
 
 # Run implementation and generate bitstream
-
-#reset_run impl_1
-#launch_runs impl_1 -to_step write_bitstream -jobs $NUM_CORES
-#wait_on_run impl_1
+#open_project $BUILD_PRJ_DIR/$PROJECT_NAME.xpr
+reset_run impl_1
+launch_runs impl_1 -to_step write_bitstream -jobs $NUM_CORES
+wait_on_run impl_1
 
 #close_project
 

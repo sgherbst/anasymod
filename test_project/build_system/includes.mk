@@ -26,15 +26,17 @@ BUILD_SYS_DIR = $(abspath $(TOP_DIR)/build_system/)
 # external tool,lib paths
 #########################################
 EXAMPLE_NAME = filter
+ANASYMOD_DIR = C:/Inicio_dev/anasymod
 
-MSDSL_INSTALL_DIR = C:/Inicio_dev/msdsl
+MSDSL_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/msdsl/)
 MSDSL_LIB_DIR = $(MSDSL_INSTALL_DIR)/src
 MSDSL_INC_DIR = $(MSDSL_INSTALL_DIR)/include
 
-EMU_INSTALL_DIR = C:/Inicio_dev/anasymod/emuflow
+EMU_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/emuflow/)
 EMUFLOW_GEN = $(EMU_INSTALL_DIR)/tests/$(EXAMPLE_NAME)/gen.py
+EMUFLOW_EXAMPLE_TOP = $(EMU_INSTALL_DIR)/tests/$(EXAMPLE_NAME)/tb.sv
 
-SVREAL_INSTALL_DIR = C:/Inicio_dev/svreal
+SVREAL_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/svreal/)
 SVREAL_LIB_DIR = $(SVREAL_INSTALL_DIR)/src
 SVREAL_INC_DIR = $(SVREAL_INSTALL_DIR)/include
 
@@ -72,6 +74,6 @@ DEBUG_LEVEL = all
 #########################################
 # Build target specific tcl args
 #########################################
-TCL_ARGS_CREATE_PROJECT = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(PART) $(BUILD_INC_DIR) $(BUILD_LIB_DIR) $(BUILD_MODEL_DIR) $(BUILD_IP_DIR) $(SOURCE_CONST_DIR) $(SOURCE_DIR) $(TOP) $(SOURCE_SIM_TB_DIR) $(SVREAL_LIB_DIR) $(SVREAL_INC_DIR) $(MSDSL_LIB_DIR) $(MSDSL_INC_DIR)
+TCL_ARGS_CREATE_PROJECT = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(PART) $(BUILD_INC_DIR) $(BUILD_LIB_DIR) $(BUILD_MODEL_DIR) $(BUILD_IP_DIR) $(SOURCE_CONST_DIR) $(SOURCE_DIR) $(TOP) $(SOURCE_SIM_TB_DIR) $(SVREAL_LIB_DIR) $(SVREAL_INC_DIR) $(MSDSL_LIB_DIR) $(MSDSL_INC_DIR) $(EMUFLOW_EXAMPLE_TOP)
 TCL_ARGS_GEN_BITSTREAM = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(NUM_CORES)
 TCL_ARGS_SIM = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(SIM_TB) $(TOP_INST) $(SIM_TIME) $(DEBUG_LEVEL) $(DT)

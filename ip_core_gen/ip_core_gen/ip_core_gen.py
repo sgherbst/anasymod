@@ -3,8 +3,8 @@ from os.path import dirname, join, exists, isfile
 from os import makedirs
 from argparse import ArgumentParser
 
-from msdsl.files import get_full_path, get_dir, get_file
-from msdsl.util import call_python
+from emuflow.files import get_full_path
+from emuflow.util import call_python
 
 class Template_gen():
     """
@@ -216,8 +216,8 @@ def main():
     # parse command line arguments
     parser = ArgumentParser()
 
-    parser.add_argument('-i', '--input', type=str, default=get_dir('tests', 'hello'))
-    parser.add_argument('-o', '--output', type=str, default=get_dir('build'))
+    parser.add_argument('-i', '--input', type=str, default=None)
+    parser.add_argument('-o', '--output', type=str, default=None)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--float', action='store_true')
 

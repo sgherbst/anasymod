@@ -15,6 +15,8 @@ set SVREAL_LIB_DIR [lindex $argv 11]
 set SVREAL_INC_DIR [lindex $argv 12]
 set MSDSL_LIB_DIR [lindex $argv 13]
 set MSDSL_INC_DIR [lindex $argv 14]
+set EMUFLOW_EXAMPLE_TOP [lindex $argv 15]
+
 
 #puts PROJECT_NAME:$PROJECT_NAME
 #puts BUILD_PRJ_DIR:$BUILD_PRJ_DIR
@@ -31,6 +33,7 @@ set MSDSL_INC_DIR [lindex $argv 14]
 #puts SVREAL_INC_DIR:$SVREAL_INC_DIR
 #puts MSDSL_LIB_DIR:$MSDSL_LIB_DIR
 #puts MSDSL_INC_DIR:$MSDSL_INC_DIR
+#puts EMUFLOW_EXAMPLE_TOP:$EMUFLOW_EXAMPLE_TOP
 
 create_project $PROJECT_NAME -dir $BUILD_PRJ_DIR -force -part $PART
 
@@ -43,6 +46,8 @@ read_verilog  [ glob $SVREAL_LIB_DIR/*.*v ]
 read_verilog  [ glob $SVREAL_INC_DIR/*.*v ]
 read_verilog  [ glob $MSDSL_LIB_DIR/*.*v ]
 read_verilog  [ glob $MSDSL_INC_DIR/*.*v ]
+
+read_verilog  [ glob EMUFLOW_EXAMPLE_TOP ]
 
 read_verilog  [ glob $BUILD_MODEL_DIR/*.*v ]
 read_verilog  [ glob $SOURCE_DIR/*.*v ]
