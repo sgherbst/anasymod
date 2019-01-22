@@ -1,0 +1,9 @@
+[submodule "emuflow"]
+	path = emuflow
+	url = https://github.com/sgherbst/emuflow.git
+[submodule "msdsl"]
+	path = msdsl
+	url = https://github.com/sgherbst/msdsl.git
+[submodule "svreal"]
+	path = svreal
+	url = https://github.com/sgherbst/svreal.git

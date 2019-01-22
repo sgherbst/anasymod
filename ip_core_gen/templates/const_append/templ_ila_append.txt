@@ -1,0 +1,37 @@
+
+
+# start auto-generated code for ILA
+
+create_debug_core {{subst.inst_name}} ila
+
+{% for propname, propvalue in subst.ila_prop.items() -%}
+    set_property {{propname}} {{ propvalue }} [get_debug_cores {{ subst.inst_name }}]
+{% endfor -%}
+
+set_property port_width {{ subst.width_ila_clk }} [get_debug_ports {{ subst.inst_name }}/clk]
+connect_debug_port {{ subst.inst_name }}/clk [get_nets [list {{ subst.conn_ila_clk }}]]
+
+{%- set probe = probe0 -%}
+{% for probename, probevalue in subst.probes.items() -%}
+    {% if probename != 'probe0' %}
+create_debug_port {{ subst.inst_name }} probe
+    {%- endif %}
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports {{ subst.inst_name }}/{{probename}}]
+set_property port_width {{probevalue.width}} [get_debug_ports {{ subst.inst_name }}/{{probename}}]
+connect_debug_port {{ subst.inst_name }}/{{ probename }} [get_nets [list
+    {%- if probevalue.width != '1' %}
+    {%- for idx in range(probevalue.width|int) -%}
+        {{ '{' }}{{ probevalue.conn }}[{{ idx }}]{{'}'}}
+    {%- endfor %}
+    {%- else -%}
+        {{ probevalue.conn }}
+    {%- endif -%}
+]]
+{%- endfor %}
+
+{%- for propname, propvalue in subst.dbg_hub_prop.items() %}
+set_property {{propname}} {{ propvalue }} [get_debug_cores dbg_hub]
+{%- endfor %}
+connect_debug_port dbg_hub/clk [get_nets {{ subst.conn_dbg_clk }}]
+
+# end auto-generated code for ILA

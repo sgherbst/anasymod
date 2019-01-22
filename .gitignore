@@ -1,0 +1,7 @@
+test_project/build
+test_project/.cache
+test_project/.idea
+test_project/.Xil
+ip_core_gen/.idea
+ip_core_gen/*.egg-info
+ip_core_gen/ip_core_gen/__pycache__
