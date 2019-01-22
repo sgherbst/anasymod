@@ -19,17 +19,10 @@ module top (
         .clk(clk)
     );
 
-	`ifdef SIMULATION_TARGET
-		initial begin
-			rst = 1'b1;
-			#3000 rst = 1'b0;
-		end
-	`else
-		vio vio_i (
-			.clk(clk),
-			.rst(rst)
-		);
-	`endif
+    vio vio_i (
+	    .clk(clk),
+		.rst(rst)
+	);
 
 endmodule
 

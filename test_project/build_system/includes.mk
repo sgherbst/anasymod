@@ -1,4 +1,31 @@
 #########################################
+# Example-specific settings
+#########################################
+
+EXAMPLE_NAME = filter
+DT = 1e-7
+
+#########################################
+# User-specific settings
+#########################################
+
+ifndef ANASYMOD_DIR
+ANASYMOD_DIR = $(abspath ..)
+endif
+
+ifndef VIVADO_INSTALL_PATH
+VIVADO_INSTALL_PATH = C:/Inicio/tools/64/Xilinx-18.2.0.0/Vivado/2018.2
+endif
+
+ifndef PYTHON
+PYTHON = C:/Inicio/tools/64/Anaconda3-5.2.0.1/python
+endif
+
+ifndef GTKWAVE
+GTKWAVE = C:/gtkwave64/bin/gtkwave
+endif
+
+#########################################
 # project structure
 #########################################
 
@@ -21,22 +48,20 @@ BUILD_PRJ_DIR = $(abspath $(BUILD_DIR)/$(PROJECT_NAME)/)
 
 BUILD_SYS_DIR = $(abspath $(TOP_DIR)/build_system/)
 
-
 #########################################
 # external tool,lib paths
 #########################################
-EXAMPLE_NAME = filter
-ANASYMOD_DIR = C:/Inicio_dev/anasymod
 
-VIVADO_SCRIPTS = $(ANASYMOD_DIR)/vivado_scripts/ilaProbesGen.tcl
+VIVADO_SCRIPTS = $(ANASYMOD_DIR)/vivado_scripts
 
 MSDSL_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/msdsl/)
 MSDSL_LIB_DIR = $(MSDSL_INSTALL_DIR)/src
 MSDSL_INC_DIR = $(MSDSL_INSTALL_DIR)/include
 
 EMU_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/emuflow/)
-EMUFLOW_GEN = $(EMU_INSTALL_DIR)/tests/$(EXAMPLE_NAME)/gen.py
-EMUFLOW_EXAMPLE_TOP = $(EMU_INSTALL_DIR)/tests/$(EXAMPLE_NAME)/tb.sv
+EMUFLOW_TEST_FOLDER = $(EMU_INSTALL_DIR)/tests/$(EXAMPLE_NAME)
+EMUFLOW_GEN = $(EMUFLOW_TEST_FOLDER)/gen.py
+EMUFLOW_EXAMPLE_TOP = $(EMUFLOW_TEST_FOLDER)/tb.sv
 
 SVREAL_INSTALL_DIR = $(abspath $(ANASYMOD_DIR)/svreal/)
 SVREAL_LIB_DIR = $(SVREAL_INSTALL_DIR)/src
@@ -44,7 +69,6 @@ SVREAL_INC_DIR = $(SVREAL_INSTALL_DIR)/include
 
 IP_CORE_GEN = $(SOURCE_DIR)/ip_templ_gen/templ_gen.py
 
-VIVADO_INSTALL_PATH = C:/Xilinx/Vivado/2017.3
 VIVADO_BATCH = $(VIVADO_INSTALL_PATH)/bin/vivado.bat -nolog -nojournal
 VIVADO_BOARD_FILES = $(VIVADO_INSTALL_PATH)/data/boards/board_files
 
@@ -60,12 +84,6 @@ TOP_INST = top_i
 GEN_IPS = $(subst gen_,,$(basename $(notdir $(wildcard $(abspath $(BUILD_IP_TEMPL_DIR))/*.tcl))))
 
 #########################################
-# Gerneral options
-#########################################
-
-DT = 1e-7
-
-#########################################
 # Simulation options
 #########################################
 
@@ -77,19 +95,27 @@ DEBUG_LEVEL = all
 # Emulation options
 #########################################
 
-bit_file = $(BUILD_PRJ_DIR)/$(PROJECT_NAME).runs/impl_1/top.bit
-ltx_file = $(BUILD_PRJ_DIR)/$(PROJECT_NAME).runs/impl_1/top.ltx
-device_name = $(PART)
-vio_name = vio_0_i
-ila_name = u_ila_0
-output = $(BUILD_DIR)/ila.csv
-probe_file = $(BUILD_PRJ_DIR)/probe_config.txt
-reset = rst_1
+BIT_FILE = $(BUILD_PRJ_DIR)/$(PROJECT_NAME).runs/impl_1/top.bit
+LTX_FILE = $(BUILD_PRJ_DIR)/$(PROJECT_NAME).runs/impl_1/top.ltx
+PART_HW_DEV = xc7z020_1
+VIO_INST_NAME = vio_i/vio_0_i
+ILA_INST_NAME = u_ila_0
+ILA_OUTPUT_CSV = $(BUILD_DIR)/ila_output.csv
+ILA_PROBE_FILE = $(BUILD_PRJ_DIR)/probe_config.txt
+ILA_RST_PROBE = rst
+VIO_RST_PROBE = vio_i/rst
+
+#########################################
+# Viewing options
+#########################################
+
+ILA_OUTPUT_VCD = $(BUILD_DIR)/ila_output.vcd
 
 #########################################
 # Build target specific tcl args
 #########################################
+
 TCL_ARGS_CREATE_PROJECT = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(PART) $(BUILD_INC_DIR) $(BUILD_LIB_DIR) $(BUILD_MODEL_DIR) $(BUILD_IP_DIR) $(SOURCE_CONST_DIR) $(SOURCE_DIR) $(TOP) $(SOURCE_SIM_TB_DIR) $(SVREAL_LIB_DIR) $(SVREAL_INC_DIR) $(MSDSL_LIB_DIR) $(MSDSL_INC_DIR) $(EMUFLOW_EXAMPLE_TOP)
 TCL_ARGS_GEN_BITSTREAM = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(NUM_CORES)
 TCL_ARGS_SIM = $(PROJECT_NAME) $(BUILD_PRJ_DIR) $(SIM_TB) $(TOP_INST) $(SIM_TIME) $(DEBUG_LEVEL) $(DT)
-TCL_ARGS_EMU = $(bit_file) $(ltx_file) $(device_name) $(vio_name) $(ila_name) $(output) $(probe_file) $(reset)
+TCL_ARGS_EMU = $(BIT_FILE) $(LTX_FILE) $(PART_HW_DEV) $(VIO_INST_NAME) $(ILA_INST_NAME) $(ILA_OUTPUT_CSV) $(ILA_PROBE_FILE) $(ILA_RST_PROBE) $(VIO_RST_PROBE)

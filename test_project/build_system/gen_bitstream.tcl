@@ -12,9 +12,9 @@ open_project $BUILD_PRJ_DIR/$PROJECT_NAME.xpr
 
 # Run synthesis
 
-#reset_run synth_1
-#launch_runs synth_1 -jobs $NUM_CORES
-#wait_on_run synth_1
+reset_run synth_1
+launch_runs synth_1 -jobs $NUM_CORES
+wait_on_run synth_1
 
 
 # Extract debug nets + net props for waveform viewing from design and store in file
