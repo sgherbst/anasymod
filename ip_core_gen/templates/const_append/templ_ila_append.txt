@@ -21,10 +21,10 @@ set_property port_width {{probevalue.width}} [get_debug_ports {{ subst.inst_name
 connect_debug_port {{ subst.inst_name }}/{{ probename }} [get_nets [list
     {%- if probevalue.width != '1' %}
     {%- for idx in range(probevalue.width|int) -%}
-        {{ '{' }}{{ probevalue.conn }}[{{ idx }}]{{'}'}}
+        {{ ' {' }}{{ probevalue.conn }}[{{ idx }}]{{'}'}}
     {%- endfor %}
     {%- else -%}
-        {{ probevalue.conn }}
+        {{' '}}{{ probevalue.conn }}
     {%- endif -%}
 ]]
 {%- endfor %}

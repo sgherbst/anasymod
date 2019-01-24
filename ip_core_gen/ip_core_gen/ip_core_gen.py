@@ -122,7 +122,7 @@ class ILA_gen(Template_gen):
         self.subst_dict['probes']['probe1']['conn'] = r"flyback_i/v_cs"
         self.subst_dict['probes']['probe1']['width'] = r"25"
     """
-    def __init__(self, project_root, inst_name, constr_name, template_dir=r"const_append", template_name=r"templ_ila_append.txt", ip_name=r"ila"):
+    def __init__(self, project_root, inst_name, constr_name, template_dir=r"const_append", template_name=r"templ_ila_append.txt"):
         Template_gen.__init__(self, project_root, template_dir, template_name)
 
         self.constr_name = constr_name
@@ -133,14 +133,13 @@ class ILA_gen(Template_gen):
 
 
         # IP Core specific properties
-        self.subst_dict['ip_name'] = ip_name
         self.subst_dict['inst_name'] = inst_name
 
         self.subst_dict['ila_prop'] = {}
         self.subst_dict['ila_prop']['ALL_PROBE_SAME_MU'] = r"true"
         self.subst_dict['ila_prop']['ALL_PROBE_SAME_MU_CNT'] = r"1"
         self.subst_dict['ila_prop']['C_ADV_TRIGGER'] = r"false"
-        self.subst_dict['ila_prop']['C_DATA_DEPTH'] = r"16384"
+        self.subst_dict['ila_prop']['C_DATA_DEPTH'] = r"1024"
         self.subst_dict['ila_prop']['C_EN_STRG_QUAL'] = r"false"
         self.subst_dict['ila_prop']['C_INPUT_PIPE_STAGES'] = r"0"
         self.subst_dict['ila_prop']['C_TRIGIN_EN'] = r"false"
@@ -152,53 +151,10 @@ class ILA_gen(Template_gen):
         self.subst_dict['dbg_hub_prop']['C_USER_SCAN_CHAIN'] = r"1"
 
         self.subst_dict['probes'] = {}
-        #self.subst_dict['probes']['probe0'] = {}
-        #self.subst_dict['probes']['probe0']['conn'] = r"flyback_i/i_mag"
-        #self.subst_dict['probes']['probe0']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe1'] = {}
-        #self.subst_dict['probes']['probe1']['conn'] = r"flyback_i/v_cs"
-        #self.subst_dict['probes']['probe1']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe2'] = {}
-        #self.subst_dict['probes']['probe2']['conn'] = r"flyback_i/v_in"
-        #self.subst_dict['probes']['probe2']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe3'] = {}
-        #self.subst_dict['probes']['probe3']['conn'] = r"flyback_i/v_out"
-        #self.subst_dict['probes']['probe3']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe4'] = {}
-        #self.subst_dict['probes']['probe4']['conn'] = r"flyback_i/v_vcc"
-        #self.subst_dict['probes']['probe4']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe5'] = {}
-        #self.subst_dict['probes']['probe5']['conn'] = r"flyback_i/v_vs"
-        #self.subst_dict['probes']['probe5']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe6'] = {}
-        #self.subst_dict['probes']['probe6']['conn'] = r"flyback_i/v_zcd"
-        #self.subst_dict['probes']['probe6']['width'] = r"25"
-
-        #self.subst_dict['probes']['probe7'] = {}
-        #self.subst_dict['probes']['probe7']['conn'] = r"flyback_i/gate"
-        #self.subst_dict['probes']['probe7']['width'] = r"1"
-
-        #self.subst_dict['probes']['probe8'] = {}
-        #self.subst_dict['probes']['probe8']['conn'] = r"ila_samp_en"
-        #self.subst_dict['probes']['probe8']['width'] = r"1"
-
-        #self.subst_dict['probes']['probe9'] = {}
-        #self.subst_dict['probes']['probe9']['conn'] = r"ila_trigger"
-        #self.subst_dict['probes']['probe9']['width'] = r"1"
-
-        #self.subst_dict['probes']['probe10'] = {}
-        #self.subst_dict['probes']['probe10']['conn'] = r"flyback_i/rst"
-        #self.subst_dict['probes']['probe10']['width'] = r"1"
 
         self.subst_dict['conn_dbg_clk'] = r"dbg_clk"
         self.subst_dict['width_ila_clk'] = r"1"
-        self.subst_dict['conn_ila_clk'] = r"clkgen_i/clk_wiz_0_i/inst/clk_out3"
+        self.subst_dict['conn_ila_clk'] = r"clkgen_i/clk_wiz_0_i/inst/clk_out1"
 
 
     def generate(self):
@@ -207,6 +163,9 @@ class ILA_gen(Template_gen):
         print(output)
         with open(self.source_path, 'r') as fh:
             content = fh.read()
+
+        if not exists(dirname(self.build_path)):
+            makedirs(dirname(self.build_path))
 
         with open(self.build_path, 'w') as fh:
             fh.write(content)
