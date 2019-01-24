@@ -10,7 +10,7 @@ include $(BUILD_SYS_DIR)/includes.mk
 all: create_sources create_project gen_bitstream
 
 gen_models: $(EMUFLOW_GEN)
-	@mkdir -p $(BUILD_MODEL_DIR)
+	mkdir -p $(BUILD_MODEL_DIR)
 	$(PYTHON) $(EMUFLOW_GEN) -o $(BUILD_MODEL_DIR)
 	
 gen_templates: $(IP_CORE_GEN)
@@ -19,22 +19,18 @@ gen_templates: $(IP_CORE_GEN)
 create_sources: gen_templates gen_models
 	$(MAKE) -f $(BUILD_SYS_DIR)/make_create_sources.mk
 
-create_project: create_project_pm
-
-create_project_pm:
+create_project:
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/create_project.tcl -tclargs $(TCL_ARGS_CREATE_PROJECT)
 
-create_project_npm:
-
 gen_bitstream:
-	#$(VIVADO_BATCH) -mode tcl -source $(BUILD_SYS_DIR)/gen_bitstream.tcl -tclargs $(TCL_ARGS_GEN_BITSTREAM)
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/gen_bitstream.tcl -tclargs $(TCL_ARGS_GEN_BITSTREAM)
 
-simulate:
-	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/run_xsim.tcl -tclargs $(TCL_ARGS_SIM)
-
 emulate:
-    $(VIVADO_BATCH) -mode batch -source $(VIVADO_SCRIPTS) -tclargs $(TCL_ARGS_EMU)
+	$(VIVADO_BATCH) -mode batch -source $(VIVADO_SCRIPTS)/ilaProbesGen.tcl -tclargs $(TCL_ARGS_EMU)
+	$(PYTHON) $(VIVADO_SCRIPTS)/wave.py --csv $(ILA_OUTPUT_CSV) --probes $(ILA_PROBE_FILE) --output $(ILA_OUTPUT_VCD)
+
+view:
+	$(GTKWAVE) $(ILA_OUTPUT_VCD) $(EMUFLOW_TEST_FOLDER)/view.gtkw
 
 #########################################
 # cleaning commands

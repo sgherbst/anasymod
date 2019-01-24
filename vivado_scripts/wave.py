@@ -28,21 +28,26 @@ def main():
             signal_lookup[signal] = k
 
     # build up a list of signals and exponents
-    probe_signals = []
+    # TODO: make formatting less fragile
+
     with open(args.probes, 'r') as f:
-        for line in f:
-            contents = line.split(',')
+        f.readline()
+        line2 = f.readline()
+        line3 = f.readline()
 
-            if len(contents) != 2:
-                continue
+    line2_str = 'MB:'
+    assert line2.startswith(line2_str)
+    line2 = line2[len(line2_str):]
+    probe_names = [elem.strip() for elem in line2.split()]
 
-            probe_signal = (contents[0].strip(), int(contents[1].strip()))
-            probe_signals.append(probe_signal)
+    line3_str = 'MB_EXPONENT:'
+    assert line3.startswith(line3_str)
+    line3 = line3[len(line3_str):]
+    probe_exponents = [int(elem.strip()) for elem in line3.split()]
+
+    probe_signals = list(zip(probe_names, probe_exponents))
 
     # get the ILA data for each of the probed signals
-
-    # probe_data = {probe_signal[0]: np.genfromtxt(args.probes, delimiter =',', usecols=signal_lookup[probe_signal[0]])
-    #               for probe_signal in probe_signals}
 
     probe_data = {}
     for probe_signal in probe_signals:
