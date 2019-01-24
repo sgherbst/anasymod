@@ -18,11 +18,11 @@ VIVADO_INSTALL_PATH = C:/Inicio/tools/64/Xilinx-18.2.0.0/Vivado/2018.2
 endif
 
 ifndef PYTHON
-PYTHON = C:/Inicio/tools/64/Anaconda3-5.2.0.1/python
+PYTHON = C:/Inicio/tools/64/Anaconda3-5.2.0.1/python.exe
 endif
 
 ifndef GTKWAVE
-GTKWAVE = C:/gtkwave64/bin/gtkwave
+GTKWAVE = C:/Inicio/tools/common/gtkwave-3.3.65.0/bin/gtkwave.exe
 endif
 
 #########################################
