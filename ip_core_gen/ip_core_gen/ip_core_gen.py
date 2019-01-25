@@ -161,14 +161,14 @@ class ILA_gen(Template_gen):
         template = self.env.get_template(self.template_name)
         output = template.render(subst=self.subst_dict)
         print(output)
-        with open(self.source_path, 'r') as fh:
-            content = fh.read()
+        #with open(self.source_path, 'r') as fh:
+            #content = fh.read()
 
         if not exists(dirname(self.build_path)):
             makedirs(dirname(self.build_path))
 
-        with open(self.build_path, 'w') as fh:
-            fh.write(content)
+        with open(self.build_path, 'a') as fh:
+            #fh.write(content)
             fh.write(output)
 
 def main():

@@ -20,9 +20,13 @@ create_sources: gen_templates gen_models
 	$(MAKE) -f $(BUILD_SYS_DIR)/make_create_sources.mk
 
 create_project:
+	rm -rf $(BUILD_CONST_DIR)
+	cp  -rf $(SOURCE_CONST_DIR) $(BUILD_CONST_DIR)
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/create_project.tcl -tclargs $(TCL_ARGS_CREATE_PROJECT)
 
 gen_bitstream:
+	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/synth_design.tcl -tclargs $(TCL_ARGS_SYNTH_DESIGN)
+	$(PYTHON) $(ILA_GEN) -r $(TOP_DIR) -c $(BUILD_PRJ_DIR)/probe_config.txt
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/gen_bitstream.tcl -tclargs $(TCL_ARGS_GEN_BITSTREAM)
 
 emulate:
@@ -38,6 +42,7 @@ view:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf $(TOP_DIR)/.Xil
 	
 clean_project:
 	rm -rf $(BUILD_PRJ_DIR)

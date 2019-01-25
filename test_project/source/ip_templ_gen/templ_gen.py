@@ -20,7 +20,7 @@ def main():
     clk_0.subst_dict['prop']['PRIMITIVE'] = r"PLL"
     clk_0.subst_dict['prop']['PRIM_IN_FREQ'] = r"125.000"
     clk_0.subst_dict['prop']['CLKOUT1_USED'] = r"true"
-    clk_0.subst_dict['prop']['CLKOUT1_REQUESTED_OUT_FREQ'] = r"50.000"
+    clk_0.subst_dict['prop']['CLKOUT1_REQUESTED_OUT_FREQ'] = r"25.000"
     clk_0.subst_dict['prop']['NUM_OUT_CLKS'] = r"1"
 
 

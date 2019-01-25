@@ -24,7 +24,7 @@ def main():
 
 
     # Specify templates to be generated
-    ila_0 = ILA_gen(project_root=args.root, ip_name=r"ila_0", constr_name=r"constr.xdc", inst_name=r"u_ila_0")
+    ila_0 = ILA_gen(project_root=args.root, constr_name=r"constr.xdc", inst_name=r"u_ila_0")
 
     count = 0
 
@@ -42,6 +42,8 @@ def main():
         ila_0.subst_dict['probes']['probe{0}'.format(count)]['width'] = r"{0}".format(width)
         count += 1
 
+    ila_0.subst_dict['conn_dbg_clk'] = r"clk"
+    ila_0.subst_dict['ila_prop']['C_INPUT_PIPE_STAGES'] = r"1"
     ###############
     # template generation
     ###############
