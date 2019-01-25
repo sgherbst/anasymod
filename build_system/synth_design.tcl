@@ -38,10 +38,22 @@ foreach {signal} $mb_sigs {
 	lappend mb_sigs_widths [get_property fp_width [get_nets $signal]]
 }
 
-puts single:$sb_sigs
-puts multi:$mb_sigs
-puts mb_sigs_exponents:$mb_sigs_exponents
-puts mb_sigs_widths:$mb_sigs_widths
+#puts single:$sb_sigs
+#puts multi:$mb_sigs
+#puts mb_sigs_exponents:$mb_sigs_exponents
+#puts mb_sigs_widths:$mb_sigs_widths
+
+# Extraction of time_signal and reset_signal
+set reset_s [get_nets -hier -filter {reset_signal}]
+
+set time_s [get_nets -hier -filter {time_signal}]
+regsub -all "\[{1}[0123456789]+\]{1}" $time_s "" time_s
+set time_s [lsort -unique $time_s]
+
+set time_s_exponent [get_property fp_exponent [get_nets $signal]]
+set time_s_width [get_property fp_width [get_nets $signal]]
+
+
 
 #TBD: Add check for empty string elements and replace with None!
 #TBD: Change format into python dict
@@ -50,6 +62,10 @@ puts $outputFile [concat "SB:" $sb_sigs]
 puts $outputFile [concat "MB:" $mb_sigs]
 puts $outputFile [concat "MB_EXPONENT:" $mb_sigs_exponents]
 puts $outputFile [concat "MB_WIDTH:" $mb_sigs_widths]
+puts $outputFile [concat "RESET:" $reset_s]
+puts $outputFile [concat "TIME:" $time_s]
+puts $outputFile [concat "TIME_EXPONENT:" $time_s_exponent]
+puts $outputFile [concat "TIME_WIDTH:" $time_s_width]
 close $outputFile
 
 close_design

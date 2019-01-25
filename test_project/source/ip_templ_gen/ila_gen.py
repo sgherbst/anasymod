@@ -21,6 +21,10 @@ def main():
     cfg_dict['mb'] = config[1].strip(r"MB:").strip().split()
     cfg_dict['mb_exponent'] = config[2].strip(r"MB_EXPONENT:").strip().split()
     cfg_dict['mb_width'] = config[3].strip(r"MB_WIDTH:").strip().split()
+    cfg_dict['reset'] = config[4].strip(r"RESET:").strip().split()
+    cfg_dict['time'] = config[5].strip(r"TIME:").strip().split()
+    cfg_dict['time_exponent'] = config[6].strip(r"TIME_EXPONENT:").strip().split()
+    cfg_dict['time_width'] = config[7].strip(r"TIME_WIDTH:").strip().split()
 
 
     # Specify templates to be generated
