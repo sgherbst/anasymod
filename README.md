@@ -39,4 +39,10 @@
 > make
 ```
 5. Run **make emulation** to configure the FPGA with the generated bitstream, run the emulation, and save the resulting waveforms to a VCD file.
+```shell
+> make emulation
+```
 6. Run **make view** to view the results from the VCD file using GTKwave.
+```shell
+> make view
+```
