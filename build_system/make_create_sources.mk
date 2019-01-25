@@ -1,7 +1,8 @@
+ifndef ANASYMOD_DIR
+ANASYMOD_DIR = C:/Inicio_dev/anasymod
+endif
 
-BUILD_SYS_DIR = $(abspath build_system/)
-
-include $(BUILD_SYS_DIR)/includes.mk
+include $(ANASYMOD_DIR)/build_system/includes.mk
 
 
 # Build targets for IP cores

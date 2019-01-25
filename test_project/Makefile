@@ -1,7 +1,22 @@
+ifndef ANASYMOD_DIR
+ANASYMOD_DIR = C:/Inicio_dev/anasymod
+endif
 
-BUILD_SYS_DIR = $(abspath build_system/)
+#########################################
+# Example-specific settings
+#########################################
 
-include $(BUILD_SYS_DIR)/includes.mk
+PROJECT_NAME = test_project
+EXAMPLE_NAME = filter
+DT = 1e-7
+BOARD = PYNQ_Z1
+PART = xc7z020clg400-1
+
+#########################################
+# General settings
+#########################################
+
+include $(ANASYMOD_DIR)/build_system/includes.mk
 
 #########################################
 # emulation commands
@@ -20,9 +35,13 @@ create_sources: gen_templates gen_models
 	$(MAKE) -f $(BUILD_SYS_DIR)/make_create_sources.mk
 
 create_project:
+	rm -rf $(BUILD_CONST_DIR)
+	cp  -rf $(PROJECT_SOURCES_CONST_DIR) $(BUILD_CONST_DIR)
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/create_project.tcl -tclargs $(TCL_ARGS_CREATE_PROJECT)
 
 gen_bitstream:
+	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/synth_design.tcl -tclargs $(TCL_ARGS_SYNTH_DESIGN)
+	$(PYTHON) $(ILA_GEN) -r $(TOP_DIR) -c $(BUILD_PRJ_DIR)/probe_config.txt
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/gen_bitstream.tcl -tclargs $(TCL_ARGS_GEN_BITSTREAM)
 
 emulate:
@@ -38,6 +57,7 @@ view:
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf $(TOP_DIR)/.Xil
 	
 clean_project:
 	rm -rf $(BUILD_PRJ_DIR)
