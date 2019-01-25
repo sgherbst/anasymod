@@ -6,6 +6,7 @@ endif
 # Example-specific settings
 #########################################
 
+PROJECT_NAME = test_project
 EXAMPLE_NAME = filter
 DT = 1e-7
 BOARD = PYNQ_Z1

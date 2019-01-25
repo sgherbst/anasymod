@@ -20,7 +20,7 @@ endif
 
 BUILD_SYS_DIR = $(abspath $(ANASYMOD_DIR)/build_system/)
 
-PROJECT_NAME = test_project
+
 TOP_DIR = $(abspath ../$(PROJECT_NAME))
 
 SOURCE_DIR = $(abspath $(TOP_DIR)/source/)
