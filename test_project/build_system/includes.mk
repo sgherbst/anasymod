@@ -9,10 +9,6 @@ DT = 1e-7
 # User-specific settings
 #########################################
 
-ifndef ANASYMOD_DIR
-ANASYMOD_DIR = $(abspath ..)
-endif
-
 ifndef VIVADO_INSTALL_PATH
 VIVADO_INSTALL_PATH = C:/Inicio/tools/64/Xilinx-18.2.0.0/Vivado/2018.2
 endif
@@ -28,6 +24,8 @@ endif
 #########################################
 # project structure
 #########################################
+
+ANASYMOD_DIR = $(abspath ..)
 
 PROJECT_NAME = test_project
 TOP_DIR = $(abspath ../$(PROJECT_NAME))
