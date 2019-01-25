@@ -8,7 +8,7 @@
 
 1. Open a terminal and navigate to a convenient directory.
 ```shell
-> git clone path_to_bitbucket --recursive
+> git clone ssh://git@bitbucket.vih.infineon.com:7999/inicio/anasymod.git --recursive
 ```
 
 2. Install all of the Python packages in the project:
