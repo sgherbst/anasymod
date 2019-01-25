@@ -8,14 +8,15 @@ set BUILD_LIB_DIR [lindex $argv 4]
 set BUILD_MODEL_DIR [lindex $argv 5]
 set BUILD_IP_DIR [lindex $argv 6]
 set BUILD_CONST_DIR [lindex $argv 7]
-set SOURCE_DIR [lindex $argv 8]
-set TOP [lindex $argv 9]
-set SOURCE_SIM_TB_DIR [lindex $argv 10]
-set SVREAL_LIB_DIR [lindex $argv 11]
-set SVREAL_INC_DIR [lindex $argv 12]
-set MSDSL_LIB_DIR [lindex $argv 13]
-set MSDSL_INC_DIR [lindex $argv 14]
-set EMUFLOW_EXAMPLE_TOP [lindex $argv 15]
+set SOURCE_CONST_DIR [lindex $argv 8]
+set PROJECT_SOURCE_DIR [lindex $argv 9]
+set TOP [lindex $argv 10]
+set PROJECT_SOURCE_SIM_TB_DIR [lindex $argv 11]
+set SVREAL_LIB_DIR [lindex $argv 12]
+set SVREAL_INC_DIR [lindex $argv 13]
+set MSDSL_LIB_DIR [lindex $argv 14]
+set MSDSL_INC_DIR [lindex $argv 15]
+set EMUFLOW_EXAMPLE_TOP [lindex $argv 16]
 
 
 #puts PROJECT_NAME:$PROJECT_NAME
@@ -26,9 +27,10 @@ set EMUFLOW_EXAMPLE_TOP [lindex $argv 15]
 #puts BUILD_MODEL_DIR:$BUILD_MODEL_DIR
 #puts BUILD_IP_DIR:$BUILD_IP_DIR
 #puts BUILD_CONST_DIR:$BUILD_CONST_DIR
-#puts SOURCE_DIR:$SOURCE_DIR
+#puts SOURCE_CONST_DIR:$SOURCE_CONST_DIR
+#puts PROJECT_SOURCE_DIR:$SOURCE_DIR
 #puts TOP:$TOP
-#puts SOURCE_SIM_TB_DIR:$SOURCE_SIM_TB_DIR
+#puts PROJECT_SOURCE_SIM_TB_DIR:$PROJECT_SOURCE_SIM_TB_DIR
 #puts SVREAL_LIB_DIR:$SVREAL_LIB_DIR
 #puts SVREAL_INC_DIR:$SVREAL_INC_DIR
 #puts MSDSL_LIB_DIR:$MSDSL_LIB_DIR
@@ -50,11 +52,11 @@ read_verilog  [ glob $MSDSL_INC_DIR/*.*v ]
 read_verilog  [ glob $EMUFLOW_EXAMPLE_TOP ]
 
 read_verilog  [ glob $BUILD_MODEL_DIR/*.*v ]
-read_verilog  [ glob $SOURCE_DIR/*.*v ]
-read_verilog  [ glob $SOURCE_SIM_TB_DIR/*.*v ]
+read_verilog  [ glob $PROJECT_SOURCE_DIR/*.*v ]
+read_verilog  [ glob $PROJECT_SOURCE_SIM_TB_DIR/*.*v ]
 
-set_property used_in_synthesis false [get_files  $SOURCE_SIM_TB_DIR/*.*v]
-set_property used_in_implementation false [get_files  $SOURCE_SIM_TB_DIR/*.*v]
+set_property used_in_synthesis false [get_files  $PROJECT_SOURCE_SIM_TB_DIR/*.*v]
+set_property used_in_implementation false [get_files  $PROJECT_SOURCE_SIM_TB_DIR/*.*v]
 
 # read_ip [ glob $BUILD_IP_ROOT/*/*.xci ]
 # puts [ glob $BUILD_IP_ROOT/*/*.xci ]
@@ -67,7 +69,7 @@ read_ip  [ glob $BUILD_IP_DIR/*/*.xci ]
 #read_checkpoint
 #read_bd C:/Inicio_dev/flyback/emu_build/bd/myproj/project_1.srcs/sources_1/bd/design_1/design_1.bd
 
-read_xdc  [ glob $BUILD_CONST_DIR/*.xdc ]
+read_xdc  [ glob $BUILD_CONST_DIR/*.xdc $SOURCE_CONST_DIR/*.xdc]
 
 set_property file_type {Verilog Header} [get_files  $SVREAL_INC_DIR/*.sv]
 set_property file_type {Verilog Header} [get_files  $MSDSL_INC_DIR/*.sv]

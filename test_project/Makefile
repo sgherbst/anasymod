@@ -1,7 +1,21 @@
+ifndef ANASYMOD_DIR
+ANASYMOD_DIR = C:/Inicio_dev/anasymod
+endif
 
-BUILD_SYS_DIR = $(abspath build_system/)
+#########################################
+# Example-specific settings
+#########################################
 
-include $(BUILD_SYS_DIR)/includes.mk
+EXAMPLE_NAME = filter
+DT = 1e-7
+BOARD = PYNQ_Z1
+PART = xc7z020clg400-1
+
+#########################################
+# General settings
+#########################################
+
+include $(ANASYMOD_DIR)/build_system/includes.mk
 
 #########################################
 # emulation commands
@@ -21,7 +35,7 @@ create_sources: gen_templates gen_models
 
 create_project:
 	rm -rf $(BUILD_CONST_DIR)
-	cp  -rf $(SOURCE_CONST_DIR) $(BUILD_CONST_DIR)
+	cp  -rf $(PROJECT_SOURCES_CONST_DIR) $(BUILD_CONST_DIR)
 	$(VIVADO_BATCH) -mode batch -source $(BUILD_SYS_DIR)/create_project.tcl -tclargs $(TCL_ARGS_CREATE_PROJECT)
 
 gen_bitstream:
