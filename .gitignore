@@ -2,6 +2,8 @@
 .Xil
 .idea
 .DS_Store
+*.jou
+*.log
 *.egg-info
 __pycache__
 
