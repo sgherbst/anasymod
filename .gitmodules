@@ -1,7 +1,3 @@
-[submodule "emuflow"]
-	path = emuflow
-	url = https://github.com/sgherbst/emuflow.git
-	branch = master
 [submodule "msdsl"]
 	path = msdsl
 	url = https://github.com/sgherbst/msdsl.git
