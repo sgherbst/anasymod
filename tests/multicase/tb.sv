@@ -35,10 +35,6 @@ module tb (
     // emulation output
     `PROBE_ANALOG(v_out);
     `PROBE_DIGITAL(ctrl, 1);
-
-    // emulation control
-    `MAKE_RESET_PROBE;
-    `MAKE_TIME_PROBE;
 endmodule
 
 `default_nettype wire

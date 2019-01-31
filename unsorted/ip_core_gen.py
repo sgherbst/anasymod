@@ -6,9 +6,55 @@ from argparse import ArgumentParser
 from emuflow.files import get_full_path
 from emuflow.util import call_python
 
+class Template_gen():
+    """
+    tbd
+    """
+    def __init__(self, project_root, template_dir, template_name):
+        self.tool_root = dirname(dirname(__file__))
+        self.project_root = project_root
+
+        self.subst_dict = {}
+        self.subst_dict['part'] = r"xc7z020clg400-1"
+
+        self.template_name = template_name
+        self.ip_core_template_dir = join(self.tool_root, r"templates", template_dir)
+        self.ip_core_template_path = join(self.ip_core_template_dir, template_name)
+        self.file_loader = FileSystemLoader(self.ip_core_template_dir)
+        self.env = Environment(loader=self.file_loader)
+
+class Ip_cores_gen(Template_gen):
+    """
+    tbd
+    """
+    def __init__(self, project_root, template_dir, template_name, ip_name, build_dir):
+        Template_gen.__init__(self, project_root, template_dir, template_name)
+
+        self.subst_dict['ip_name'] = ip_name
+
+        if build_dir in [None]:
+            self.build_dir = r"{0}/{1}/{2}".format(self.project_root, r"build", r"ips")
+            #self.build_dir = join(self.project_root, r"build", r"ips", self.subst_dict['ip_name'])
+        else:
+            self.build_dir = build_dir
+        self.templ_build_dir = join(self.project_root, r"build", r"ip_gen_scripts")
+
+        self.subst_dict['build_dir'] = self.build_dir #r"{0}/{1}".format(self.build_dir, self.subst_dict['ip_name'] + r".xci")
+        #self.subst_dict['build_path'] = join(self.build_dir, self.subst_dict['ip_name'] + r".xci")
+        self.subst_dict['ip_gen_prj_name'] = r"ip_gen_prj"
+        self.subst_dict['ip_gen_prj_dir'] = r"{0}/{1}/{2}".format(self.project_root, r"build", self.subst_dict['ip_gen_prj_name'])
+        #self.subst_dict['ip_gen_prj_dir'] = join(self.project_root, r"build", self.subst_dict['ip_gen_prj_name'])
 
 
+    def _generate(self, template_name, subst_dict):
+        template = self.env.get_template(template_name)
+        output = template.render(subst=subst_dict)
+        #print(output)
 
+        if not exists(self.templ_build_dir):
+            makedirs(self.templ_build_dir)
+        with open(join(self.templ_build_dir, r"gen_" + self.subst_dict['ip_name'] + r".tcl"), "w") as fh:
+            fh.write(output)
 
 class Clk_wiz_gen(Ip_cores_gen):
     """
@@ -148,3 +194,16 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+#test
+#prj_root = r"C:\Inicio_dev\fpga_framework\test_project"
+
+#gen_clk = Clk_wiz_gen(project_root = prj_root)
+#gen_clk.generate()
+
+#gen_vio = Vio_gen(project_root = prj_root)
+#gen_vio.generate()
+
+#gen_ila_append = ILA_gen(project_root = prj_root, inst_name=r"u_ila_0", constr_name=r"orig_constr.xdc")
+#gen_ila_append.generate()

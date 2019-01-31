@@ -5,7 +5,6 @@
 module top (
     input wire logic ext_clk
 );
-
     logic emu_clk;
     logic emu_rst;
 
@@ -31,6 +30,9 @@ module top (
         .probe_out0(emu_rst)
     );
 
+    // emulation management
+    `MAKE_RESET_PROBE;
+    `MAKE_TIME_PROBE;
 endmodule
 
 `default_nettype wire
