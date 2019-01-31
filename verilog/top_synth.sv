@@ -3,26 +3,33 @@
 `default_nettype none
 
 module top (
-    input wire logic SYSCLK
+    input wire logic ext_clk
 );
 
-    logic clk;
-    logic rst;
+    logic emu_clk;
+    logic emu_rst;
 
+    // testbench
     tb tb_i (
-        .clk(clk),
-        .rst(rst)
+        .clk(emu_clk),
+        .rst(emu_rst)
     );
 
-    clkgen clkgen_i (
-        .SYSCLK(SYSCLK),
-        .clk(clk)
+    // clock generator
+    logic dbg_hub_clk, locked;
+    clk_wiz_0 clk_wiz_0_i(
+        .reset(1'b0),
+        .locked(locked),
+        .clk_in1(ext_clk),
+        .clk_out1(emu_clk),
+        .clk_out2(dbg_hub_clk)
     );
 
-    vio vio_i (
-	    .clk(clk),
-		.rst(rst)
-	);
+    // reset generator
+    vio_0 vio_0_i (
+        .clk(emu_clk),
+        .probe_out0(emu_rst)
+    );
 
 endmodule
 

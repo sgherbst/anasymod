@@ -15,9 +15,6 @@
 > cd ip_core_gen
 > pip install -e .
 > cd ..
-> cd emuflow
-> pip install -e .
-> cd ..
 > cd msdsl
 > pip install -e .
 > cd ..

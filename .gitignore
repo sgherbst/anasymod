@@ -7,5 +7,4 @@
 *.egg-info
 __pycache__
 
-test_project/build
-emuflow/build
+build
