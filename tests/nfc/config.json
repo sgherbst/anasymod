@@ -1,0 +1,11 @@
+{
+  "l_tx": 1e-6,
+  "l_rx": 1e-6,
+  "coupling": 0.95,
+  "r_rx": 10,
+  "c_rx": 0.1e-6,
+  "f_carrier": 13.56e6,
+  "dt": 1e-9,
+  "tstop": 100e-6,
+  "tau_hpf": 16e-6
+}

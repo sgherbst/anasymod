@@ -1,0 +1,27 @@
+[*]
+[*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
+[*] Wed Jan 30 14:04:16 2019
+[*]
+[dumpfile] "C:\Users\herbstst\Emulation\anasymod\tests\build\dump.vcd"
+[dumpfile_mtime] "Wed Jan 30 14:03:09 2019"
+[dumpfile_size] 3468
+[savefile] "c:\users\herbstst\emulation\anasymod\tests\filter\view.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-21.591291 13 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 197
+[signals_width] 118
+[sst_expanded] 1
+[sst_vpaned_height] 153
+@8029
+top.v_out_probe
+@20000
+-
+-
+-
+-
+-
+-
+[pattern_trace] 1
+[pattern_trace] 0

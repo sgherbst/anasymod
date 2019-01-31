@@ -1,0 +1,51 @@
+create_project project_1 C:/Users/herbstst/project_1 -part xc7z020clg400-1
+
+add_files {C:/Users/herbstst/Emulation/anasymod/tests/filter/tb.sv C:/Users/herbstst/Emulation/anasymod/verilog/clkgen.sv C:/Users/herbstst/Emulation/anasymod/svreal/src/assertion_real.sv C:/Users/herbstst/Emulation/anasymod/svreal/src/assign_real.sv C:/Users/herbstst/Emulation/anasymod/svreal/src/add_real.sv C:/Users/herbstst/Emulation/anasymod/svreal/src/comp_real.sv C:/Users/herbstst/Emulation/anasymod/svreal/src/ite_real.sv C:/Users/herbstst/Emulation/anasymod/svreal/src/mul_real.sv C:/Users/herbstst/Emulation/anasymod/svreal/include/math.sv C:/Users/herbstst/Emulation/anasymod/svreal/include/real.sv C:/Users/herbstst/Emulation/anasymod/verilog/top_synth.sv C:/Users/herbstst/Emulation/anasymod/verilog/vio.sv C:/Users/herbstst/Emulation/anasymod/msdsl/include/msdsl.sv C:/Users/herbstst/Emulation/anasymod/msdsl/src/mem_digital.sv C:/Users/herbstst/Emulation/anasymod/msdsl/src/mem_analog.sv C:/Users/herbstst/Emulation/anasymod/msdsl/src/pwm.sv C:/Users/herbstst/Emulation/anasymod/tests/build/models/filter.sv}
+add_files -fileset constrs_1 -norecurse C:/Users/herbstst/Emulation/anasymod/boards/PYNQ_Z1/constr.xdc
+
+set_property file_type {Verilog Header} [get_files  C:/Users/herbstst/Emulation/anasymod/msdsl/include/msdsl.sv]
+set_property file_type {Verilog Header} [get_files  C:/Users/herbstst/Emulation/anasymod/svreal/include/real.sv]
+set_property file_type {Verilog Header} [get_files  C:/Users/herbstst/Emulation/anasymod/svreal/include/math.sv]
+
+set_property verilog_define {EMU_CLK=top.clk EMU_RST=top.rst} [current_fileset]
+
+create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name clk_wiz_0 -dir c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip
+set_property -dict [list CONFIG.PRIM_IN_FREQ {125} CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {25} CONFIG.CLKIN1_JITTER_PS {80.0} CONFIG.MMCM_DIVCLK_DIVIDE {5} CONFIG.MMCM_CLKFBOUT_MULT_F {36.500} CONFIG.MMCM_CLKIN1_PERIOD {8.000} CONFIG.MMCM_CLKOUT0_DIVIDE_F {36.500} CONFIG.CLKOUT1_JITTER {312.659} CONFIG.CLKOUT1_PHASE_ERROR {245.713}] [get_ips clk_wiz_0]
+generate_target {instantiation_template} [get_files c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/clk_wiz_0/clk_wiz_0.xci]
+generate_target all [get_files  c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/clk_wiz_0/clk_wiz_0.xci]
+catch { config_ip_cache -export [get_ips -all clk_wiz_0] }
+export_ip_user_files -of_objects [get_files c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/clk_wiz_0/clk_wiz_0.xci] -no_script -sync -force -quiet
+create_ip_run [get_files -of_objects [get_fileset sources_1] c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/clk_wiz_0/clk_wiz_0.xci]
+launch_runs -jobs 2 clk_wiz_0_synth_1
+export_simulation -of_objects [get_files c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/clk_wiz_0/clk_wiz_0.xci] -directory C:/Users/herbstst/project_1/project_1.ip_user_files/sim_scripts -ip_user_files_dir C:/Users/herbstst/project_1/project_1.ip_user_files -ipstatic_source_dir C:/Users/herbstst/project_1/project_1.ip_user_files/ipstatic -lib_map_path [list {modelsim=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/modelsim} {questa=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/questa} {riviera=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/riviera} {activehdl=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/activehdl}] -use_ip_compiled_libs -force -quiet
+
+create_ip -name vio -vendor xilinx.com -library ip -version 3.0 -module_name vio_0 -dir c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip
+set_property -dict [list CONFIG.C_PROBE_OUT0_INIT_VAL {0x1} CONFIG.C_EN_PROBE_IN_ACTIVITY {0} CONFIG.C_NUM_PROBE_IN {0}] [get_ips vio_0]
+generate_target {instantiation_template} [get_files c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/vio_0/vio_0.xci]
+generate_target all [get_files  c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/vio_0/vio_0.xci]
+catch { config_ip_cache -export [get_ips -all vio_0] }
+export_ip_user_files -of_objects [get_files c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/vio_0/vio_0.xci] -no_script -sync -force -quiet
+create_ip_run [get_files -of_objects [get_fileset sources_1] c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/vio_0/vio_0.xci]
+launch_runs -jobs 2 vio_0_synth_1
+export_simulation -of_objects [get_files c:/Users/herbstst/project_1/project_1.srcs/sources_1/ip/vio_0/vio_0.xci] -directory C:/Users/herbstst/project_1/project_1.ip_user_files/sim_scripts -ip_user_files_dir C:/Users/herbstst/project_1/project_1.ip_user_files -ipstatic_source_dir C:/Users/herbstst/project_1/project_1.ip_user_files/ipstatic -lib_map_path [list {modelsim=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/modelsim} {questa=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/questa} {riviera=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/riviera} {activehdl=C:/Users/herbstst/project_1/project_1.cache/compile_simlib/activehdl}] -use_ip_compiled_libs -force -quiet
+
+create_debug_core u_ila_0 ila
+set_property C_DATA_DEPTH 1024 [get_debug_cores u_ila_0]
+set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
+set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
+set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0]
+set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
+set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0]
+set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
+set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
+set_property port_width 1 [get_debug_ports u_ila_0/clk]
+connect_debug_port u_ila_0/clk [get_nets [list clkgen_i/clk_wiz_0_i/inst/clk_out1 ]]
+set_property port_width 25 [get_debug_ports u_ila_0/probe0]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe0]
+connect_debug_port u_ila_0/probe0 [get_nets [list {tb_i/v_out_probe[0]} {tb_i/v_out_probe[1]} {tb_i/v_out_probe[2]} {tb_i/v_out_probe[3]} {tb_i/v_out_probe[4]} {tb_i/v_out_probe[5]} {tb_i/v_out_probe[6]} {tb_i/v_out_probe[7]} {tb_i/v_out_probe[8]} {tb_i/v_out_probe[9]} {tb_i/v_out_probe[10]} {tb_i/v_out_probe[11]} {tb_i/v_out_probe[12]} {tb_i/v_out_probe[13]} {tb_i/v_out_probe[14]} {tb_i/v_out_probe[15]} {tb_i/v_out_probe[16]} {tb_i/v_out_probe[17]} {tb_i/v_out_probe[18]} {tb_i/v_out_probe[19]} {tb_i/v_out_probe[20]} {tb_i/v_out_probe[21]} {tb_i/v_out_probe[22]} {tb_i/v_out_probe[23]} {tb_i/v_out_probe[24]} ]]
+create_debug_port u_ila_0 probe
+set_property port_width 1 [get_debug_ports u_ila_0/probe1]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe1]
+connect_debug_port u_ila_0/probe1 [get_nets [list rst ]]
+
+launch_runs impl_1 -to_step write_bitstream -jobs 2
