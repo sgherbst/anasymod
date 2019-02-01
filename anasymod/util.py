@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import json
 
 from math import ceil, log2
 
@@ -26,10 +27,28 @@ def call(args, cwd=None):
 def next_pow_2(x):
     return 2**int(ceil(log2(x)))
 
+class DictObject:
+    '''
+    @DynamicAttrs
+    '''
+
+    def __init__(self, d):
+        for key, val in d.items():
+            setattr(self, key, val)
+
+    @staticmethod
+    def load_json(filename):
+        with open(filename, 'r') as f:
+            d = json.load(f)
+
+        return DictObject(d)
+
 def main():
     print(next_pow_2(15))
     print(next_pow_2(16))
     print(next_pow_2(17))
+
+    print(DictObject({'a': 42}).a)
 
 if __name__ == '__main__':
     main()

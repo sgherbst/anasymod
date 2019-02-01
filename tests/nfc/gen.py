@@ -1,11 +1,14 @@
 import os.path
-import json
+import numpy as np
+
 from argparse import ArgumentParser
 from math import sqrt
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Min
+from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, DigitalSignal
+
+from anasymod.util import DictObject
 
 from anasymod.files import get_full_path
 
@@ -19,40 +22,59 @@ def main():
 
     # load config options
     config_file_path = os.path.join(os.path.dirname(get_full_path(__file__)), 'config.json')
-    config = json.load(open(config_file_path, 'r'))
-
-    # make aliases for config options
-    l_tx = config['l_tx']
-    l_rx = config['l_rx']
-    r_rx = config['r_rx']
-    c_rx = config['c_rx']
-    coupling = config['coupling']
-    tau_hpf = config['tau_hpf']
+    cfg = DictObject.load_json(config_file_path)
 
     # calculate derived parameters
-    m = coupling*sqrt(l_tx*l_rx)
+    m = cfg.coupling*sqrt(cfg.l_tx*cfg.l_rx)
 
     # create the model
-    model = MixedSignalModel('nfc', AnalogInput('v_tx'), AnalogOutput('v_hpf'), dt=config['dt'])
-    model.add_signal(AnalogSignal('v_cap', range=25))
-    model.add_signal(AnalogSignal('i_rx', range=5))
+    model = MixedSignalModel('nfc', AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
+    model.add_signal(AnalogSignal('i_tx', 1))
+    model.add_signal(AnalogSignal('i_rx', 1))
+    model.add_signal(AnalogSignal('v_res_tx', 10))
+    model.add_signal(AnalogSignal('v_res_rx', 1000))
 
     # model dynamics
 
-    # i_rx
-    deriv_i_rx = (1/(l_rx-(m**2)/l_tx))*model.v_cap + ((-m/l_tx)/(l_rx-(m**2)/l_tx))*model.v_tx
-    next_i_rx = Min([model.i_rx + deriv_i_rx*config['dt'], 0])
-    model.set_next_cycle(model.i_rx, next_i_rx)
+    # build up the dynamics matrices
+    # input: v_in
+    # states: [i_tx, i_rx, v_res_tx, v_res_rx]
+    A = np.zeros((4,4), dtype=float)
+    B = np.zeros((4,1), dtype=float)
 
-    # v_cap
-    model.set_deriv(model.v_cap, model.i_rx*(-1/c_rx) + model.v_cap*(-1/(r_rx*c_rx)))
+    a = (1/(cfg.l_tx-m**2))
+    b = m/(cfg.l_rx*(cfg.l_tx-m**2))
+    c = (1/(cfg.l_rx-m**2))
+    d = m/(cfg.l_tx*(cfg.l_rx-m**2))
 
-    # add HPF
-    model.set_tf(model.v_hpf, model.v_cap, ([tau_hpf, 0], [tau_hpf, 1]))
+    A[0, :] = np.array([-a*cfg.r_q_tx, +b*cfg.r_q_rx, -a, -b])
+    A[1, :] = np.array([+d*cfg.r_q_tx, -c*cfg.r_q_rx, +d, +c])
+    A[2, :] = np.array([+1/cfg.c_res_tx, 0, 0, 0])
+    A[3, :] = np.array([0, -1/cfg.c_res_rx, 0, 0])
+
+    B[0, 0] = +a
+    B[1, 0] = -d
+    B[2, 0] = 0
+    B[3, 0] = 0
+
+    model.add_lds((A, B, 0, 0), inputs=[model.v_in], states=[model.i_tx, model.i_rx, model.v_res_tx, model.v_res_rx])
+
+    # coils
+    #model.set_deriv(model.i_tx, (1/(cfg.l_tx-m**2))*model.v_tx - (m/(cfg.l_rx*(cfg.l_tx-m**2))*model.v_rx))
+    #model.set_deriv(model.i_rx, (1/(cfg.l_rx-m**2))*model.v_rx - (m/(cfg.l_tx*(cfg.l_rx-m**2))*model.v_tx))
+    #model.set_deriv(model.v_res_tx, model.i_tx/cfg.c_res_tx)
+    #model.set_deriv(model.v_res_rx, -model.i_rx/cfg.c_res_rx)
+    #model.set_this_cycle(model.v_tx, model.v_in - cfg.r_q_tx*model.i_tx - model.v_res_tx)
+    #model.set_this_cycle(model.v_rx, model.v_res_rx - cfg.r_q_rx*model.i_rx)
+
+    # model output
+    model.set_this_cycle(model.v_out, model.v_res_tx)
 
     # probe signals of interest
+    model.add_probe(model.i_tx)
     model.add_probe(model.i_rx)
-    model.add_probe(model.v_cap)
+    model.add_probe(model.v_res_tx)
+    model.add_probe(model.v_res_rx)
 
     # determine the output filename
     if args.output is not None:
