@@ -22,3 +22,11 @@ class CodeGenerator:
     def write_to_file(self, filename):
         with open(filename, 'w') as f:
             f.write(self.text)
+        self.reset()
+
+    def read_from_file(self, filename):
+        with open(filename, 'r') as f:
+            self.text = f.read()
+
+    def dump(self):
+        return self.text

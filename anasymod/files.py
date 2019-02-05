@@ -13,8 +13,8 @@ def get_sibling(path, sibling):
 
 # working with programs
 
-def which(program):
-    return get_full_path(shutil.which(program))
+def which(program, path=None):
+    return get_full_path(shutil.which(program, path=path))
 
 # working with packages
 

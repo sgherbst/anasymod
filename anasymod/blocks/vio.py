@@ -10,7 +10,7 @@ class VioOutput:
         self.init = init
 
 class TemplVIO(TemplGenericIp):
-    def __init__(self, ip_dir, inputs=None, outputs=None):
+    def __init__(self, ip_dir, inputs=None, outputs=None, ip_module_name=None):
         # set defaults
         if inputs is None:
             inputs = []
@@ -32,7 +32,7 @@ class TemplVIO(TemplGenericIp):
                 props[f'CONFIG.C_PROBE_OUT{k}_INIT_VAL'] = str(output.init)
             props[f'CONFIG.C_PROBE_OUT{k}_WIDTH'] = str(output.width)
 
-        super().__init__('vio', ip_dir=ip_dir, props=props)
+        super().__init__('vio', ip_dir=ip_dir, props=props, ip_module_name=ip_module_name)
 
 def main():
     print(TemplVIO('ip_dir', [], [1]).render())

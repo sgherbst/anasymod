@@ -1,10 +1,15 @@
 import os.path
+import multiprocessing
+import shutil
+
+import dotmap
 
 from anasymod.files import which, get_full_path, get_from_module
 from anasymod.util import back2fwd
+from os import environ as env
 
 class EmuConfig:
-    def __init__(self):
+    def __init__(self, vivado=None, iverilog=None, vvp=None, gtkwave=None):
         # source files
         self.sim_only_verilog_sources = []
         self.synth_only_verilog_sources = []
@@ -15,22 +20,13 @@ class EmuConfig:
         self.synth_only_verilog_headers = []
         self.verilog_headers = []
 
+        # paths
+        self.build_dir = get_full_path('build')
+
         # definitions
         self.sim_only_verilog_defines = []
         self.synth_only_verilog_defines = []
         self.verilog_defines = []
-
-        # FPGA board configuration
-        self.fpga_board_config = FpgaBoardConfig()
-
-        # Vivado configuration
-        self.vivado_config = VivadoConfig()
-
-        # Icarus configuration
-        self.icarus_config = IcarusConfig()
-
-        # paths
-        self.build_dir = get_full_path('build')
 
         # other options
         self.top_module = 'top'
@@ -40,7 +36,21 @@ class EmuConfig:
         self.dt = None
         self.tstop = None
         self.ila_depth = None
-        self.probe_signals = []
+        #self.probe_signals = []
+        self.csv_path = os.path.join(self.build_dir, f"{self.top_module}.csv")
+        self.vcd_path = os.path.join(self.build_dir, f"{self.top_module}.vcd")
+
+        # FPGA board configuration
+        self.fpga_board_config = FPGABoardConfig()
+
+        # Vivado configuration
+        self.vivado_config = VivadoConfig(cfg=self, vivado=vivado)
+
+        # GtkWave configuration
+        self.gtkwave_config = GtkWaveConfig(cfg=self, gtkwave=gtkwave)
+
+        # Icarus configuration
+        self.icarus_config = IcarusConfig(cfg=self, iverilog=iverilog, vvp=vvp)
 
     @property
     def sim_verilog_sources(self):
@@ -76,7 +86,7 @@ class EmuConfig:
 
     def set_tstop(self, value):
         self.tstop = value
-        self.sim_only_verilog_defines.append(f'TSTOP_MSDSL={value}')
+        self.verilog_defines.append(f'TSTOP_MSDSL={value}')
 
     def setup_vcd(self):
         self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={back2fwd(self.vcd_abs_path)}')
@@ -105,23 +115,59 @@ class MsEmuConfig(EmuConfig):
         # simulation options
         self.sim_only_verilog_defines.append('SIMULATION_MODE_MSDSL')
 
-class FpgaBoardConfig:
-    def __init__(self, clk_pin='H16', clk_io='LVCMOS33', clk_freq=125e6, full_part_name='xc7z020clg400-1',
-                 short_part_name='xc7z020'):
-        self.clk_pin = clk_pin
-        self.clk_io = clk_io
-        self.clk_freq = clk_freq
-        self.full_part_name = full_part_name
-        self.short_part_name = short_part_name
+class FPGABoardConfig():
+    def __init__(self):
+        self.clk_pin = 'H16'
+        self.clk_io = 'LVCMOS33'
+        self.clk_freq = 125e6
+        self.full_part_name = 'xc7z020clg400-1'
+        self.short_part_name = 'xc7z020'
 
-class VivadoConfig:
-    def __init__(self, project_name='project', project_directory='project', vivado=None):
-        self.project_name = project_name
-        self.project_directory = project_directory
-        self.vivado = vivado if vivado is not None else which('vivado')
+class VivadoConfig():
+    def __init__(self, cfg : EmuConfig, vivado):
+        self.project_name = 'project'
+        self.project_directory = 'project'
 
-class IcarusConfig:
-    def __init__(self, iverilog=None, vvp=None, output='a.out'):
-        self.iverilog = iverilog if iverilog is not None else which('iverilog')
-        self.vvp = vvp if vvp is not None else which('vvp')
-        self.output = output
+        paths = [os.path.join(env['VIVADO_INSTALL_PATH'], r"bin")]
+        self.vivado = vivado if vivado is not None else find_tool(name='vivado', hints=paths)
+
+        self.num_cores = multiprocessing.cpu_count()
+        self.probe_cfg_path = os.path.join(cfg.build_dir, self.project_directory, r"probe_config.txt")
+        self.bitfile_path = os.path.join(cfg.build_dir, self.project_directory, f'{self.project_name}.runs', r"impl_1",
+                                         f"{cfg.top_module}.bit")
+        self.ltxfile_path = os.path.join(cfg.build_dir, self.project_directory, f'{self.project_name}.runs', r"impl_1",
+                                         f"{cfg.top_module}.ltx")
+        self.output_path = os.path.join(cfg.build_dir, f"{cfg.top_module}.csv")
+        self.vio_name = r"vio_0"
+        self.vio_inst_name = self.vio_name + r"_i"
+        self.ila_inst_name = r"u_ila_0"
+        self.ila_reset = r"reset_probe"
+        self.vio_reset = r"vio_i/rst"
+
+class IcarusConfig():
+    def __init__(self, cfg: EmuConfig,  iverilog, vvp):
+        paths = [os.path.join(env['ICARUS_INSTALL_PATH'], r"bin")]
+        self.iverilog = iverilog if iverilog is not None else find_tool(name='iverilog', hints=paths)
+        self.vvp = vvp if vvp is not None else find_tool(name='vvp', hints=paths)
+        self.output = r"a.out"
+
+class GtkWaveConfig():
+    def __init__(self, cfg: EmuConfig, gtkwave):
+        paths = [os.path.join(env['GTKWAVE_INSTALL_PATH'], r"bin")]
+        self.gtkwave = gtkwave if gtkwave is not None else find_tool(name='gtkwave', hints=paths)
+
+def find_tool(name, hints: list):
+    tool_path = shutil.which(name)
+    if tool_path is None:
+        for hint in hints:
+            try:
+                tool_path = shutil.which(name, path=hint)
+            except:
+                pass
+            if tool_path is not None:
+                break
+
+    if tool_path is not None:
+        return get_full_path(tool_path)
+    else:
+        raise KeyError("Tool:{0} could not be found".format(name))

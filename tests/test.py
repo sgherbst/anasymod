@@ -10,6 +10,7 @@ from anasymod.sim.icarus import IcarusSimulator
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
+from anasymod.wave import ConvertWaveform
 
 def main():
     # parse command line arguments
@@ -23,6 +24,8 @@ def main():
     parser.add_argument('--sim', action='store_true')
     parser.add_argument('--view', action='store_true')
     parser.add_argument('--build', action='store_true')
+    parser.add_argument('--run_FPGA', action='store_true')
+    parser.add_argument('--view_FPGA', action='store_true')
 
     args = parser.parse_args()
 
@@ -67,6 +70,12 @@ def main():
         build = VivadoBuild(cfg)
         build.build()
 
+    # run FPGA if desired
+    if args.run_FPGA:
+        if r"build" not in locals():
+            build = VivadoBuild(cfg)
+        build.run_FPGA()
+
     # run simulation if desired
     if args.sim:
         # pick simulator
@@ -82,7 +91,7 @@ def main():
     # view results if desired
     if args.view:
         # build command
-        cmd = [which('gtkwave'), cfg.vcd_abs_path]
+        cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_abs_path]
 
         # add waveform file if it exists
         gtkw_file = os.path.join(args.input, 'view.gtkw')
@@ -90,6 +99,15 @@ def main():
             cmd.append(gtkw_file)
 
         # run command
+        call(cmd)
+
+    if args.view_FPGA:
+        # build command
+        test = ConvertWaveform(cfg=cfg)
+        cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_path]
+
+        # run command
+        print(cmd)
         call(cmd)
 
 if __name__ == '__main__':

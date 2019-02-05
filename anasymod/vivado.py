@@ -44,9 +44,9 @@ class VivadoControl(CodeGenerator):
     def set_property(self, name, value, objects):
         self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
-    def run(self, vivado, build_dir, nolog=True, nojournal=True):
+    def run(self, vivado, build_dir, filename=r"run.tcl", nolog=True, nojournal=True):
         # write the TCL script
-        tcl_script = os.path.join(build_dir, 'run.tcl')
+        tcl_script = os.path.join(build_dir, filename)
         self.write_to_file(tcl_script)
 
         # assemble the command

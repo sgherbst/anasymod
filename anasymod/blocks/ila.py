@@ -1,11 +1,10 @@
 from anasymod.templ import JinjaTempl
 from anasymod.util import next_pow_2
+from anasymod.probe_config import ProbeConfig
 
 class TemplILA(JinjaTempl):
-    def __init__(self, depth=1024, signals=None, inst_name='u_ila_0', ila_clk='emu_clk'):
+    def __init__(self, probe_cfg_path, depth=1024, inst_name='u_ila_0', ila_clk='emu_clk'):
         # set defaults
-        if signals is None:
-            signals = []
 
         # adjust depth if necessary
         depth = max(next_pow_2(depth), 1024)
@@ -21,8 +20,11 @@ class TemplILA(JinjaTempl):
         self.ila_prop['C_DATA_DEPTH'] = str(depth)
 
         # specify all signals to be probed
+        self.probe_cfg = ProbeConfig(probe_cfg_path=probe_cfg_path)
         self.probes = {}
-        for k, (conn, width) in enumerate(signals):
+        signals = self.probe_cfg.analog_signals + self.probe_cfg.time_signal + self.probe_cfg.reset_signal + self.probe_cfg.digital_signals
+        print(f"Signals:{signals}")
+        for k, (conn, width, _) in enumerate(signals):
             probe_name = f'probe{k}'
             self.probes[probe_name] = {}
             self.probes[probe_name]['conn'] = conn

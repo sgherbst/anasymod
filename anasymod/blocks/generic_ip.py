@@ -30,6 +30,7 @@ set_property -dict [list \\
 generate_target instantiation_template [get_files {{subst.ip_xci_path}}]
 
 # end auto-generated code for {{subst.ip_name}}
+
 '''
 
 def main():

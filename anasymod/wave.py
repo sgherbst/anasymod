@@ -1,72 +1,78 @@
 import numpy as np
 
-from argparse import ArgumentParser
+from anasymod.probe_config import ProbeConfig
+from anasymod.config import EmuConfig
 from vcd import VCDWriter
 
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('--csv', type=str, default='ila_values.csv', help='Path to the CSV file with waveforms')
-    parser.add_argument('--probes', type=str, default='probes.txt', help='Path to file with probe information.')
-    parser.add_argument('-o', '--output', type=str, default='example.vcd', help='Path where the VCD file will be written.')
+class ConvertWaveform():
+    def __init__(self, cfg: EmuConfig):
 
-    args = parser.parse_args()
+        signal_lookup = {}
+        with open(cfg.csv_path, 'r') as f:
+            first_line = f.readline()
+            # split up the first line into comma-delimeted names
+            signals = first_line.split(',')
+            # account for whitespace
+            signals = [signal.strip() for signal in signals]
+            # strip off the signal indices
+            for k, signal in enumerate(signals):
+                if '[' in signal:
+                    signal = signal[:signal.index('[')]
+                signal_lookup[signal] = k
+        # TODO: make formatting less fragile
+        print(f"Keys:{signal_lookup.keys()}")
 
-    # build a lookup table that maps signals names to column numbers
-    signal_lookup = {}
-    with open(args.csv, 'r') as f:
-        first_line = f.readline()
-        # split up the first line into comma-delimeted names
-        signals = first_line.split(',')
-        # account for whitespace
-        signals = [signal.strip() for signal in signals]
-        # strip off the signal indices
-        for k, signal in enumerate(signals):
-            if '[' in signal:
-                signal = signal[:signal.index('[')]
-            signal_lookup[signal] = k
+        signals = ProbeConfig(probe_cfg_path=cfg.vivado_config.probe_cfg_path)
 
-    # build up a list of signals and exponents
-    # TODO: make formatting less fragile
+        # Scale analog signals using the exponent
+        probe_data = {}
+        for name, _, exponent in signals.analog_signals:
+            unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
+            scaled_data = (2 ** int(exponent)) * unscaled_data
+            probe_data[name] = scaled_data
 
-    with open(args.probes, 'r') as f:
-        f.readline()
-        line2 = f.readline()
-        line3 = f.readline()
+        # Add reset signal to probe_data
+        for name, _, _ in signals.reset_signal:
+            unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
+            probe_data[name] = unscaled_data
 
-    line2_str = 'MB:'
-    assert line2.startswith(line2_str)
-    line2 = line2[len(line2_str):]
-    probe_names = [elem.strip() for elem in line2.split()]
+        # Add digital signals to probe_data
+        for name, _, _ in signals.digital_signals:
+            try:
+                unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
+                probe_data[name] = unscaled_data
+            except:
+                pass
 
-    line3_str = 'MB_EXPONENT:'
-    assert line3.startswith(line3_str)
-    line3 = line3[len(line3_str):]
-    probe_exponents = [int(elem.strip()) for elem in line3.split()]
+        # Scale time signal using exponent
+        name, _, exponent = signals.time_signal[0]
+        unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
+        scaled_data = (2 ** int(exponent)) * unscaled_data
+        time_signal = scaled_data
 
-    probe_signals = list(zip(probe_names, probe_exponents))
+        # write data to VCD file
+        with open(cfg.vcd_path, "w")as vcd:
+            with VCDWriter(vcd, timescale='1 ns', date='today') as writer:
+                # for signal_full_name, scaled_data in probe_data.items():
+                #     signal_split = signal_full_name.split('/')
+                #     reg = writer.register_var('.'.join(signal_split[:-1]), signal_split[-1], 'real')
+                #     print(reg)
+                #     for timestamp, value in zip(time_signal, scaled_data):
+                #         #print(timestamp)
+                #         #print(value)
+                #         if timestamp >= 0:
+                #             writer.change(reg, 1e9 * timestamp, value)
+                #         else:
+                #             break
 
-    # get the ILA data for each of the probed signals
+                reg = {}
+                for signal_full_name, scaled_data in probe_data.items():
+                    signal_split = signal_full_name.split('/')
+                    reg[signal_full_name] = writer.register_var('.'.join(signal_split[:-1]), signal_split[-1], 'real')
 
-    probe_data = {}
-    for probe_signal in probe_signals:
-        signal_name = probe_signal[0]
-        signal_scale = 2**probe_signal[1]
-
-        unscaled_data = np.genfromtxt(args.csv, delimiter =',', usecols=signal_lookup[signal_name])
-        scaled_data = signal_scale*unscaled_data
-
-        probe_data[signal_name] = scaled_data
-
-    # write data to VCD file
-    with open(args.output, "w")as vcd:
-        with VCDWriter(vcd, timescale='1 ns', date='today') as writer:
-            for signal_full_name, scaled_data in probe_data.items():
-                signal_split = signal_full_name.split('/')
-                reg = writer.register_var('.'.join(signal_split[:-1]), signal_split[-1], 'real')
-                for timestamp, value in enumerate(scaled_data):
-                    writer.change(reg, timestamp, value)
-
-if __name__ == '__main__':
-    main()
-
-
+                for k, timestamp in enumerate(time_signal):
+                    if timestamp >= 0:
+                        for signal_full_name, scaled_data in probe_data.items():
+                            writer.change(reg[signal_full_name], 1e9 * timestamp, scaled_data[k])
+                    else:
+                        break
