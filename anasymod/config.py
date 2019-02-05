@@ -2,8 +2,6 @@ import os.path
 import multiprocessing
 import shutil
 
-import dotmap
-
 from anasymod.files import which, get_full_path, get_from_module
 from anasymod.util import back2fwd
 from os import environ as env
@@ -128,8 +126,8 @@ class VivadoConfig():
         self.project_name = 'project'
         self.project_directory = 'project'
 
-        paths = [os.path.join(env['VIVADO_INSTALL_PATH'], r"bin")]
-        self.vivado = vivado if vivado is not None else find_tool(name='vivado', hints=paths)
+        hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], r"bin")]
+        self.vivado = vivado if vivado is not None else find_tool(name='vivado', hints=hints)
 
         self.num_cores = multiprocessing.cpu_count()
         self.probe_cfg_path = os.path.join(cfg.build_dir, self.project_directory, r"probe_config.txt")
@@ -146,24 +144,25 @@ class VivadoConfig():
 
 class IcarusConfig():
     def __init__(self, cfg: EmuConfig,  iverilog, vvp):
-        paths = [os.path.join(env['ICARUS_INSTALL_PATH'], r"bin")]
-        self.iverilog = iverilog if iverilog is not None else find_tool(name='iverilog', hints=paths)
-        self.vvp = vvp if vvp is not None else find_tool(name='vvp', hints=paths)
+        hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], r"bin")]
+        self.iverilog = iverilog if iverilog is not None else find_tool(name='iverilog', hints=hints)
+        self.vvp = vvp if vvp is not None else find_tool(name='vvp', hints=hints)
         self.output = r"a.out"
 
 class GtkWaveConfig():
     def __init__(self, cfg: EmuConfig, gtkwave):
-        paths = [os.path.join(env['GTKWAVE_INSTALL_PATH'], r"bin")]
-        self.gtkwave = gtkwave if gtkwave is not None else find_tool(name='gtkwave', hints=paths)
+        hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], r"bin")]
+        self.gtkwave = gtkwave if gtkwave is not None else find_tool(name='gtkwave', hints=hints)
 
 def find_tool(name, hints: list):
     tool_path = shutil.which(name)
     if tool_path is None:
         for hint in hints:
             try:
-                tool_path = shutil.which(name, path=hint)
+                tool_path = shutil.which(name, path=hint())
             except:
                 pass
+
             if tool_path is not None:
                 break
 

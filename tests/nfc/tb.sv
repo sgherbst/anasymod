@@ -15,18 +15,22 @@ module tb (
 );
     // input is voltage square wave
 
-    // compute envelope
-    `PWM(0.50, 50e3, in_env_dig);
-    `MAKE_CONST_REAL(5.0, in_env_hi);
-    `MAKE_CONST_REAL(2.5, in_env_lo);
-    `ITE_REAL(in_env_dig, in_env_hi, in_env_lo, in_env);
+    // compute carrier
+    `PWM(0.50, 13.56e6, carrier);
+    `MAKE_CONST_REAL(5.0, v_in_ampl);
+    `ITE_REAL(carrier, v_in_ampl, `MINUS_REAL(v_in_ampl), v_in);
 
-    // apply to carrier
-    `PWM(0.50, 13.56e6, in_dig);
-    `ITE_REAL(in_dig, in_env, `MINUS_REAL(in_env), v_in);
+    // compute communication waveforms
+    `PWM(0.50, 50.0e3, comm_sig);
+    `PWM(0.50, 6.25e3, comm_sel);
 
-    // output has range range +/- 25 V
-    `MAKE_REAL(v_out, 1000);
+    // assign TX and RX communication signals
+    logic tx, rx;
+    assign tx = comm_sig &   comm_sel;
+    assign rx = comm_sig & (~comm_sel);
+
+    // output has range range +/- 100 V
+    `MAKE_REAL(v_out, 100);
 
     // filter instantiation
     nfc #(
@@ -35,6 +39,8 @@ module tb (
     ) nfc_i (
         .v_in(v_in),
         .v_out(v_out),
+        .tx(tx),
+        .rx(rx),
         .clk(clk),
         .rst(rst)
     );
@@ -42,6 +48,8 @@ module tb (
     // simulation output
     `PROBE_ANALOG(v_in);
     `PROBE_ANALOG(v_out);
+    `PROBE_DIGITAL(tx, 1);
+    `PROBE_DIGITAL(rx, 1);
 endmodule
 
 `default_nettype wire

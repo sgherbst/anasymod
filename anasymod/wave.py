@@ -1,78 +1,111 @@
 import numpy as np
 
+from vcd import VCDWriter
+import datetime
+
 from anasymod.probe_config import ProbeConfig
 from anasymod.config import EmuConfig
-from vcd import VCDWriter
 
 class ConvertWaveform():
     def __init__(self, cfg: EmuConfig):
 
-        signal_lookup = {}
+        # read CSV file
         with open(cfg.csv_path, 'r') as f:
             first_line = f.readline()
-            # split up the first line into comma-delimeted names
-            signals = first_line.split(',')
-            # account for whitespace
-            signals = [signal.strip() for signal in signals]
-            # strip off the signal indices
-            for k, signal in enumerate(signals):
-                if '[' in signal:
-                    signal = signal[:signal.index('[')]
-                signal_lookup[signal] = k
-        # TODO: make formatting less fragile
-        print(f"Keys:{signal_lookup.keys()}")
 
+        # split up the first line into comma-delimited names
+        signals = first_line.split(',')
+
+        # account for whitespace
+        signals = [signal.strip() for signal in signals]
+
+        # strip off the signal indices and add to a lookup table
+        signal_lookup = {}
+        for k, signal in enumerate(signals):
+            if '[' in signal:
+                signal = signal[:signal.index('[')]
+            signal_lookup[signal] = k
+
+        # print keys
+        print(f'CSV column names: {[key for key in signal_lookup.keys()]}')
+
+        # define method for getting unscaled data
+        def get_csv_col(name):
+            return np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
+
+        # read probe signal information to find out what signals are analog, digital, reset, time, etc.
         signals = ProbeConfig(probe_cfg_path=cfg.vivado_config.probe_cfg_path)
 
-        # Scale analog signals using the exponent
+        # store data from FPGA in a dictionary
         probe_data = {}
-        for name, _, exponent in signals.analog_signals:
-            unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
-            scaled_data = (2 ** int(exponent)) * unscaled_data
-            probe_data[name] = scaled_data
+        real_signals = set()
+        reg_widths = {}
 
-        # Add reset signal to probe_data
-        for name, _, _ in signals.reset_signal:
-            unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
-            probe_data[name] = unscaled_data
+        # Add analog signals to probe_data
+        for name, _, exponent in signals.analog_signals + signals.time_signal:
+            if name not in signal_lookup:
+                continue
+
+            # add to set of probes with "real" data type
+            real_signals.add(name)
+
+            # get unscaled data and apply scaling factor
+            probe_data[name] = (2**int(exponent)) * get_csv_col(name)
+
+            # convert data to native Python float type (rather than numpy float)
+            # this is required for PyVCD
+            probe_data[name] = [float(x) for x in probe_data[name]]
 
         # Add digital signals to probe_data
-        for name, _, _ in signals.digital_signals:
-            try:
-                unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
-                probe_data[name] = unscaled_data
-            except:
-                pass
+        for name, width, _ in signals.digital_signals + signals.reset_signal:
+            if name not in signal_lookup:
+                continue
 
-        # Scale time signal using exponent
-        name, _, exponent = signals.time_signal[0]
-        unscaled_data = np.genfromtxt(cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
-        scaled_data = (2 ** int(exponent)) * unscaled_data
-        time_signal = scaled_data
+            # define width for this probe
+            reg_widths[name] = int(width)
 
-        # write data to VCD file
-        with open(cfg.vcd_path, "w")as vcd:
-            with VCDWriter(vcd, timescale='1 ns', date='today') as writer:
-                # for signal_full_name, scaled_data in probe_data.items():
-                #     signal_split = signal_full_name.split('/')
-                #     reg = writer.register_var('.'.join(signal_split[:-1]), signal_split[-1], 'real')
-                #     print(reg)
-                #     for timestamp, value in zip(time_signal, scaled_data):
-                #         #print(timestamp)
-                #         #print(value)
-                #         if timestamp >= 0:
-                #             writer.change(reg, 1e9 * timestamp, value)
-                #         else:
-                #             break
+            # get unscaled data
+            probe_data[name] = get_csv_col(name)
 
+            # convert data to native Python float type (rather than numpy int)
+            # this is required for PyVCD
+            probe_data[name] = [int(x) for x in probe_data[name]]
+
+        # Extract the time signal from the probe data since it is needed to produce a VCD file
+        time_signal_name, _, _ = signals.time_signal[0]
+        time_signal = probe_data[time_signal_name]
+
+        # Write data to VCD file
+        with open(cfg.vcd_path, 'w') as vcd:
+            with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
+                # register all of the signals that will be written to VCD
                 reg = {}
                 for signal_full_name, scaled_data in probe_data.items():
+                    # determine signal scope and name
                     signal_split = signal_full_name.split('/')
-                    reg[signal_full_name] = writer.register_var('.'.join(signal_split[:-1]), signal_split[-1], 'real')
+                    vcd_scope = '.'.join(signal_split[:-1])
+                    vcd_name = signal_split[-1]
 
-                for k, timestamp in enumerate(time_signal):
-                    if timestamp >= 0:
-                        for signal_full_name, scaled_data in probe_data.items():
-                            writer.change(reg[signal_full_name], 1e9 * timestamp, scaled_data[k])
+                    # determine signal type and size
+                    if signal_full_name in real_signals:
+                        vcd_var_type = 'real'
+                        vcd_size = None
+                    elif signal_full_name in reg_widths:
+                        vcd_var_type = 'reg'
+                        vcd_size = reg_widths[signal_full_name]
                     else:
+                        raise Exception('Unknown signal type.')
+
+                    # register the signal
+                    reg[signal_full_name] = writer.register_var(scope=vcd_scope, name=vcd_name, var_type=vcd_var_type,
+                                                                size=vcd_size)
+
+                # iterate over all timesteps
+                for k, timestamp in enumerate(time_signal):
+                    # break if timestamp is less than zero since it means that wrapping has occurred
+                    if timestamp < 0:
                         break
+
+                    # iterate over all signals and log their change at this timestamp
+                    for signal_full_name, scaled_data in probe_data.items():
+                        writer.change(reg[signal_full_name], 1e9 * timestamp, scaled_data[k])
