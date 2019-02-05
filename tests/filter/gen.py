@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, AnalogOutput
+from msdsl.expr import AnalogInput, AnalogOutput, Deriv
 
 from anasymod.files import get_full_path
 
@@ -22,7 +22,8 @@ def main(tau=1e-6):
 
     # create the model
     model = MixedSignalModel('filter', AnalogInput('v_in'), AnalogOutput('v_out'), dt=config['dt'])
-    model.set_deriv(model.v_out, (model.v_in - model.v_out) / tau)
+    model.add_eqn_sys(eqns=[Deriv(model.v_out) == (model.v_in - model.v_out) / tau], inputs=[model.v_in],
+                      states=[model.v_out])
 
     # determine the output filename
     filename = os.path.join(get_full_path(args.output), 'filter.sv')

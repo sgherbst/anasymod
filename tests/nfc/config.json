@@ -1,12 +1,12 @@
 {
-  "l_tx": 2e-6,
-  "l_rx": 2e-6,
+  "ind_tx": 2e-6,
+  "ind_rx": 2e-6,
   "coupling": 0.1,
-  "r_q_rx": 10,
-  "r_q_tx": 10,
-  "c_res_rx": 125e-12,
-  "c_res_tx": 125e-12,
+  "res_rx": 10,
+  "res_tx": 10,
+  "cap_rx": 125e-12,
+  "cap_tx": 125e-12,
   "f_carrier": 13.56e6,
-  "dt": 4.60914454e-9,
+  "dt": 2.30457227e-9,
   "tstop": 40e-6
 }

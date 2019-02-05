@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal
+from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Deriv
 
 from anasymod.files import get_full_path
 from anasymod.util import DictObject
@@ -25,10 +25,18 @@ def main():
     model = MixedSignalModel('rlc', AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
     model.add_signal(AnalogSignal('i_ind', 100))
 
-    # define model dynamics
-    A = np.array([[-cfg.res/cfg.ind, -1/cfg.ind], [1/cfg.cap, 0]], dtype=float)
-    B = np.array([[1/cfg.ind], [0]], dtype=float)
-    model.add_lds((A, B, 0, 0), inputs=[model.v_in], states=[model.i_ind, model.v_out])
+    # internal variables
+    v_l = AnalogSignal('v_l')
+    v_r = AnalogSignal('v_r')
+
+    # define dynamics
+    eqns = [
+        Deriv(model.i_ind) == v_l/cfg.ind,
+        Deriv(model.v_out) == model.i_ind / cfg.cap,
+        v_r == model.i_ind*cfg.res,
+        model.v_in == model.v_out + v_l + v_r
+    ]
+    model.add_eqn_sys(eqns=eqns, states=[model.i_ind, model.v_out], inputs=[model.v_in], internals=[v_l, v_r])
 
     # define probes
     model.add_probe(model.i_ind)

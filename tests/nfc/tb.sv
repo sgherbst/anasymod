@@ -18,7 +18,7 @@ module tb (
     // compute envelope
     `PWM(0.50, 50e3, in_env_dig);
     `MAKE_CONST_REAL(5.0, in_env_hi);
-    `MAKE_CONST_REAL(4.0, in_env_lo);
+    `MAKE_CONST_REAL(2.5, in_env_lo);
     `ITE_REAL(in_env_dig, in_env_hi, in_env_lo, in_env);
 
     // apply to carrier
