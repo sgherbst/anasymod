@@ -1,11 +1,14 @@
 import os.path
-import json
+import numpy as np
+
 from argparse import ArgumentParser
 from math import sqrt
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Min
+from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Deriv
+
+from anasymod.util import DictObject
 
 from anasymod.files import get_full_path
 
@@ -19,40 +22,47 @@ def main():
 
     # load config options
     config_file_path = os.path.join(os.path.dirname(get_full_path(__file__)), 'config.json')
-    config = json.load(open(config_file_path, 'r'))
-
-    # make aliases for config options
-    l_tx = config['l_tx']
-    l_rx = config['l_rx']
-    r_rx = config['r_rx']
-    c_rx = config['c_rx']
-    coupling = config['coupling']
-    tau_hpf = config['tau_hpf']
+    cfg = DictObject.load_json(config_file_path)
 
     # calculate derived parameters
-    m = coupling*sqrt(l_tx*l_rx)
+    m = cfg.coupling*sqrt(cfg.ind_tx*cfg.ind_rx)
 
     # create the model
-    model = MixedSignalModel('nfc', AnalogInput('v_tx'), AnalogOutput('v_hpf'), dt=config['dt'])
-    model.add_signal(AnalogSignal('v_cap', range=25))
-    model.add_signal(AnalogSignal('i_rx', range=5))
+    model = MixedSignalModel('nfc', AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
+    model.add_signal(AnalogSignal('i_ind_tx', 1.0))
+    model.add_signal(AnalogSignal('i_ind_rx', 1.0))
+    model.add_signal(AnalogSignal('v_cap_tx', 1000))
+    model.add_signal(AnalogSignal('v_cap_rx', 1000))
 
-    # model dynamics
+    # internal signals
+    v_ind_rx = AnalogSignal('v_ind_rx')
+    v_ind_tx = AnalogSignal('v_ind_tx')
 
-    # i_rx
-    deriv_i_rx = (1/(l_rx-(m**2)/l_tx))*model.v_cap + ((-m/l_tx)/(l_rx-(m**2)/l_tx))*model.v_tx
-    next_i_rx = Min([model.i_rx + deriv_i_rx*config['dt'], 0])
-    model.set_next_cycle(model.i_rx, next_i_rx)
-
-    # v_cap
-    model.set_deriv(model.v_cap, model.i_rx*(-1/c_rx) + model.v_cap*(-1/(r_rx*c_rx)))
-
-    # add HPF
-    model.set_tf(model.v_hpf, model.v_cap, ([tau_hpf, 0], [tau_hpf, 1]))
+    # add dynamics
+    model.add_eqn_sys([
+        # coupled inductor dynamics
+        v_ind_tx == cfg.ind_tx * Deriv(model.i_ind_tx) + m * Deriv(model.i_ind_rx),
+        v_ind_rx == m * Deriv(model.i_ind_tx) + cfg.ind_rx * Deriv(model.i_ind_rx),
+        # capacitor dynamics
+        Deriv(model.v_cap_tx) == +model.i_ind_tx/cfg.cap_tx,
+        Deriv(model.v_cap_rx) == -model.i_ind_rx/cfg.cap_rx,
+        # KVL
+        model.v_in == cfg.res_tx*model.i_ind_tx + v_ind_tx + model.v_cap_tx,
+        model.v_cap_rx == cfg.res_rx*model.i_ind_rx + v_ind_rx,
+        # output
+        model.v_out == model.v_cap_rx
+    ],
+        internals=[v_ind_rx, v_ind_tx],
+        inputs=[model.v_in],
+        outputs=[model.v_out],
+        states=[model.i_ind_tx, model.i_ind_rx, model.v_cap_tx, model.v_cap_rx]
+    )
 
     # probe signals of interest
-    model.add_probe(model.i_rx)
-    model.add_probe(model.v_cap)
+    model.add_probe(model.i_ind_tx)
+    model.add_probe(model.i_ind_rx)
+    model.add_probe(model.v_cap_tx)
+    model.add_probe(model.v_cap_rx)
 
     # determine the output filename
     if args.output is not None:

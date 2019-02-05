@@ -14,32 +14,26 @@ module tb (
     input wire logic rst
 );
     // input is voltage square wave
+    `PWM(0.50, 1e6, in_dig);
+    `MAKE_CONST_REAL(+1.0, in_hi);
+    `MAKE_CONST_REAL(-1.0, in_lo);
+    `ITE_REAL(in_dig, in_hi, in_lo, v_in);
 
-    // compute envelope
-    `PWM(0.50, 50e3, in_env_dig);
-    `MAKE_CONST_REAL(5.0, in_env_hi);
-    `MAKE_CONST_REAL(2.5, in_env_lo);
-    `ITE_REAL(in_env_dig, in_env_hi, in_env_lo, in_env);
-
-    // apply to carrier
-    `PWM(0.50, 13.56e6, in_dig);
-    `ITE_REAL(in_dig, in_env, `MINUS_REAL(in_env), v_in);
-
-    // output has range range +/- 25 V
-    `MAKE_REAL(v_out, 1000);
+    // output has range range +/- 10
+    `MAKE_REAL(v_out, 100.0);
 
     // filter instantiation
-    nfc #(
+    rlc #(
         `PASS_REAL(v_in, v_in),
         `PASS_REAL(v_out, v_out)
-    ) nfc_i (
+    ) filter_i (
         .v_in(v_in),
         .v_out(v_out),
         .clk(clk),
         .rst(rst)
     );
 
-    // simulation output
+    // emulation output
     `PROBE_ANALOG(v_in);
     `PROBE_ANALOG(v_out);
 endmodule
