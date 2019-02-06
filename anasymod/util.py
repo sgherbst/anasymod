@@ -4,6 +4,7 @@ import sys
 import json
 
 from math import ceil, log2
+from collections import namedtuple
 
 def back2fwd(path: str):
     return path.replace('\\', '/')
@@ -27,12 +28,21 @@ def call(args, cwd=None):
 def next_pow_2(x):
     return 2**int(ceil(log2(x)))
 
+
+########################
+# JSON to object: from https://stackoverflow.com/questions/6578986/how-to-convert-json-data-into-a-python-object
+def _json_object_hook(d):
+    return namedtuple('X', d.keys())(*d.values())
+def json2obj(data):
+    return json.loads(data, object_hook=_json_object_hook)
+########################
+
 class DictObject:
     '''
     @DynamicAttrs
     '''
 
-    def __init__(self, d):
+    def __init__(self, filename):
         for key, val in d.items():
             setattr(self, key, val)
 

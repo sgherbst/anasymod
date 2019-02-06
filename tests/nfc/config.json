@@ -1,16 +1,20 @@
 {
   "ind_tx": 2e-6,
   "ind_rx": 2e-6,
-  "coupling": 0.5,
+  "coupling": 0.6,
   "res_coil_rx": 5,
   "res_coil_tx": 5,
   "res_tx_comm_0": 0,
-  "res_tx_comm_1": 50,
+  "res_tx_comm_1": 100,
   "cond_rx_comm_0": 0,
-  "cond_rx_comm_1": 0.002,
+  "cond_rx_comm_1": 0.02,
   "cap_rx": 125e-12,
   "cap_tx": 125e-12,
-  "f_carrier": 13.56e6,
-  "dt": 2.30457227e-9,
-  "tstop": 2e-6
+  "v_carrier": 5.0,
+  "dt": 4.60914454e-9,
+  "tstop": 10e-6,
+  "tau_det_fast": 1e-9,
+  "tau_det_slow": 360e-9,
+  "tau_com_hpf": 50e-6,
+  "tau_com_lpf": 150e-9
 }

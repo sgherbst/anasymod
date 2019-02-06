@@ -1,5 +1,4 @@
 import os.path
-import numpy as np
 from argparse import ArgumentParser
 
 from msdsl.model import MixedSignalModel
@@ -7,7 +6,7 @@ from msdsl.verilog import VerilogGenerator
 from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Deriv
 
 from anasymod.files import get_full_path
-from anasymod.util import DictObject
+from anasymod.util import json2obj
 
 def main():
     print('Running model generator...')
@@ -19,7 +18,7 @@ def main():
 
     # load config options
     config_file_path = os.path.join(os.path.dirname(get_full_path(__file__)), 'config.json')
-    cfg = DictObject.load_json(config_file_path)
+    cfg = json2obj(open(config_file_path, 'r').read())
 
     # create the model
     model = MixedSignalModel('rlc', AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
