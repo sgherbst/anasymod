@@ -12,6 +12,12 @@ from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
 from anasymod.wave import ConvertWaveform
 
+def gather_sources():
+    pass
+    # Gather config files and extract source paths
+    # Read master config file interpret rel/abs/env var
+
+
 def main():
     # parse command line arguments
     parser = ArgumentParser()
@@ -37,7 +43,7 @@ def main():
     test_config = json.load(open(os.path.join(args.input, 'config.json'), 'r'))
 
     # test-level structure
-    model_dir = os.path.join(cfg.build_dir, 'models')
+    model_dir = os.path.join(cfg.build_root, 'models')
     cfg.verilog_sources.append(os.path.join(model_dir, '*.sv'))
     cfg.verilog_sources.append(os.path.join(args.input, 'tb.sv'))
 
@@ -91,7 +97,7 @@ def main():
     # view results if desired
     if args.view:
         # build command
-        cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_abs_path]
+        cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_path]
 
         # add waveform file if it exists
         gtkw_file = os.path.join(args.input, 'view.gtkw')
@@ -107,7 +113,6 @@ def main():
         cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_path]
 
         # run command
-        print(cmd)
         call(cmd)
 
 if __name__ == '__main__':

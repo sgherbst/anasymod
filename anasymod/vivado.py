@@ -1,7 +1,7 @@
 import os
 from glob import glob
 
-from anasymod.util import call, back2fwd
+from anasymod.util import call, path4vivado
 from anasymod.codegen import CodeGenerator
 
 class VivadoControl(CodeGenerator):
@@ -12,8 +12,8 @@ class VivadoControl(CodeGenerator):
         headers = headers if headers is not None else []
 
         # build lists of all source and header files
-        source_files = [back2fwd(f) for source in sources for f in glob(source)]
-        header_files = [back2fwd(f) for header in headers for f in glob(header)]
+        source_files = [path4vivado(f) for source in sources for f in glob(source)]
+        header_files = [path4vivado(f) for header in headers for f in glob(header)]
 
         # add all source files to the project (including header files)
         self.add_files(source_files+header_files)

@@ -10,7 +10,7 @@ class VivadoSimulator(Simulator):
 
         # create a new project
         v.create_project(project_name=self.cfg.vivado_config.project_name,
-                         project_directory=os.path.join(self.cfg.build_dir, self.cfg.vivado_config.project_directory),
+                         project_directory=self.cfg.vivado_config.project_root,
                          force=True)
 
         # add all source files to the project (including header files)

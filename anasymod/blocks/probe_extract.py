@@ -3,12 +3,12 @@ import os
 from anasymod.templ import JinjaTempl
 from anasymod.util import next_pow_2
 from anasymod.config import EmuConfig
-from anasymod.util import back2fwd
+from anasymod.util import path4vivado
 
 class TemplPROBE_EXTRACT(JinjaTempl):
     def __init__(self, cfg: EmuConfig):
-        self.project_dir = back2fwd(os.path.join(cfg.build_dir, cfg.vivado_config.project_directory))
-        self.dcp_path = back2fwd(os.path.join(self.project_dir, cfg.vivado_config.project_name + r".runs", r"synth_1", cfg.top_module + r".dcp"))
+        self.project_dir = path4vivado(cfg.vivado_config.project_root)
+        self.dcp_path = path4vivado(os.path.join(self.project_dir, cfg.vivado_config.project_name + r".runs", r"synth_1", cfg.top_module + r".dcp"))
 
     TEMPLATE_TEXT = '''
 # Load synthesized design
