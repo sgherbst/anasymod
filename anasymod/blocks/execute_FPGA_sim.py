@@ -60,7 +60,7 @@ set_property TRIGGER_COMPARE_VALUE eq1'bF [get_hw_probes {{subst.ila_reset}} -of
 
 # Radix setup
 {% for probename, _, _ in subst.probe_signals.analog_signals + subst.probe_signals.time_signal %}
-set_property DISPLAY_RADIX SIGNED [get_hw_probes {{probename}}]
+catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes {{probename}}]{{'}'}}
 {% endfor %}
 
 # Toggle the reset VIO once to put it in a known state

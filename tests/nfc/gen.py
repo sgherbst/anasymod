@@ -6,10 +6,9 @@ from math import sqrt
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Deriv
+from msdsl.expr import AnalogInput, AnalogOutput, AnalogSignal, Deriv, DigitalInput, Case
 
 from anasymod.util import DictObject
-
 from anasymod.files import get_full_path
 
 def main():
@@ -28,34 +27,40 @@ def main():
     m = cfg.coupling*sqrt(cfg.ind_tx*cfg.ind_rx)
 
     # create the model
-    model = MixedSignalModel('nfc', AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
+    model = MixedSignalModel('nfc', AnalogInput('v_in'), AnalogOutput('v_out'), DigitalInput('tx'),
+                             DigitalInput('rx'), dt=cfg.dt)
     model.add_signal(AnalogSignal('i_ind_tx', 1.0))
     model.add_signal(AnalogSignal('i_ind_rx', 1.0))
-    model.add_signal(AnalogSignal('v_cap_tx', 1000))
-    model.add_signal(AnalogSignal('v_cap_rx', 1000))
+    model.add_signal(AnalogSignal('v_cap_tx', 100))
+    model.add_signal(AnalogSignal('v_cap_rx', 100))
 
     # internal signals
     v_ind_rx = AnalogSignal('v_ind_rx')
     v_ind_tx = AnalogSignal('v_ind_tx')
 
-    # add dynamics
+    # determine TX and RX resistances as a function of digital state
+    res_tx = Case([cfg.res_tx_comm_0, cfg.res_tx_comm_1], sel_bits=[model.tx]) + cfg.res_coil_tx
+    cond_load_rx = Case([cfg.cond_rx_comm_0, cfg.cond_rx_comm_1], sel_bits=[model.rx])
+
+    # implement dynamics
     model.add_eqn_sys([
         # coupled inductor dynamics
         v_ind_tx == cfg.ind_tx * Deriv(model.i_ind_tx) + m * Deriv(model.i_ind_rx),
         v_ind_rx == m * Deriv(model.i_ind_tx) + cfg.ind_rx * Deriv(model.i_ind_rx),
         # capacitor dynamics
         Deriv(model.v_cap_tx) == +model.i_ind_tx/cfg.cap_tx,
-        Deriv(model.v_cap_rx) == -model.i_ind_rx/cfg.cap_rx,
+        Deriv(model.v_cap_rx) == (-model.i_ind_rx - cond_load_rx*model.v_cap_rx)/cfg.cap_rx,
         # KVL
-        model.v_in == cfg.res_tx*model.i_ind_tx + v_ind_tx + model.v_cap_tx,
-        model.v_cap_rx == cfg.res_rx*model.i_ind_rx + v_ind_rx,
+        model.v_in == res_tx*model.i_ind_tx + v_ind_tx + model.v_cap_tx,
+        model.v_cap_rx == cfg.res_coil_rx*model.i_ind_rx + v_ind_rx,
         # output
         model.v_out == model.v_cap_rx
     ],
         internals=[v_ind_rx, v_ind_tx],
         inputs=[model.v_in],
         outputs=[model.v_out],
-        states=[model.i_ind_tx, model.i_ind_rx, model.v_cap_tx, model.v_cap_rx]
+        states=[model.i_ind_tx, model.i_ind_rx, model.v_cap_tx, model.v_cap_rx],
+        sel_bits=[model.rx, model.tx]
     )
 
     # probe signals of interest
