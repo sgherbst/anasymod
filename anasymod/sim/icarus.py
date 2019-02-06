@@ -6,10 +6,14 @@ from anasymod.sim.sim import Simulator
 from anasymod.util import call
 
 class IcarusSimulator(Simulator):
-    def simulate(self):
+    def compile(self):
         # build up the simulation command
-        cmd = [self.cfg.icarus_config.iverilog, '-g2012', '-o', self.cfg.icarus_config.output, '-s',
+        cmd = [self.cfg.icarus_config.iverilog, '-g2012', '-o', self.cfg.icarus_config.output_file_path, '-s',
                self.cfg.top_module]
+
+        # if desired, only preprocess
+        if self.cfg.preprocess_only:
+            cmd.append('-E')
 
         # add defines
         for define in self.cfg.sim_verilog_defines:
@@ -29,7 +33,13 @@ class IcarusSimulator(Simulator):
             cmd.extend(glob(src))
 
         # run iverilog
-        call(cmd, cwd=self.cfg.build_dir)
+        call(cmd, cwd=self.cfg.build_root)
 
-        # run vvp
-        call([self.cfg.icarus_config.vvp, self.cfg.icarus_config.output], cwd=self.cfg.build_dir)
+    def run(self):
+        call([self.cfg.icarus_config.vvp, self.cfg.icarus_config.output_file_path], cwd=self.cfg.build_root)
+
+    def simulate(self):
+        self.compile()
+
+        if not self.cfg.preprocess_only:
+            self.run()
