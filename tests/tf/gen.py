@@ -1,11 +1,11 @@
 import os.path
-import json
 from argparse import ArgumentParser
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
 from msdsl.expr import AnalogInput, AnalogOutput
 
+from anasymod.util import json2obj
 from anasymod.files import get_full_path
 
 def main(num=(1e12,), den=(1, 8e5, 1e12,)):
@@ -18,10 +18,10 @@ def main(num=(1e12,), den=(1, 8e5, 1e12,)):
 
     # load config options
     config_file_path = os.path.join(os.path.dirname(get_full_path(__file__)), 'config.json')
-    config = json.load(open(config_file_path, 'r'))
+    cfg = json2obj(open(config_file_path, 'r').read())
 
     # create the model
-    model = MixedSignalModel('filter', AnalogInput('v_in'), AnalogOutput('v_out'), dt=config['dt'])
+    model = MixedSignalModel('filter', AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
     model.set_tf(model.v_out, model.v_in, (num, den))
 
     # determine the output filename

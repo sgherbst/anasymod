@@ -1,54 +1,47 @@
 [*]
 [*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
-[*] Tue Feb 05 15:19:50 2019
+[*] Wed Feb 06 11:32:02 2019
 [*]
 [dumpfile] "C:\Users\herbstst\Emulation\anasymod\tests\build\dump.vcd"
-[dumpfile_mtime] "Tue Feb 05 15:14:20 2019"
-[dumpfile_size] 8486035
+[dumpfile_mtime] "Wed Feb 06 11:25:34 2019"
+[dumpfile_size] 17045320
 [savefile] "C:\Users\herbstst\Emulation\anasymod\tests\nfc\view.gtkw"
 [timestart] 0
 [size] 1492 905
-[pos] 76 -36
-*-24.974026 28501325 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-26.295954 275249480 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.tb_i.
 [sst_width] 197
 [signals_width] 272
 [sst_expanded] 1
 [sst_vpaned_height] 260
-@28
-top.tb_i.tx_probe
+@8028
+top.tb_i.nfc_i.v_hpf_rx_probe
+@20000
+-
+-
+-
+-
+-
+-
+@8028
+top.tb_i.nfc_i.v_hpf_tx_probe
+@20000
+-
+-
+-
+-
+-
+-
+-
 @29
-top.tb_i.rx_probe
-@8028
-top.v_out_probe
-@20000
--
--
--
--
--
--
-@8028
-top.v_cap_tx_probe
-@20000
--
--
--
--
--
-@8028
-top.i_ind_rx_probe
-@20000
--
--
--
-@8028
-top.i_ind_tx_probe
-@20000
--
--
--
--
+top.tb_i.tx_clk_probe
+@28
+top.tb_i.rx_clk_probe
+top.tb_i.tx_send_probe
+top.tb_i.rx_send_probe
+top.tb_i.tx_recv_probe
+top.tb_i.rx_recv_probe
 [pattern_trace] 1
 [pattern_trace] 0

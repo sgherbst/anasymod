@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--build', action='store_true')
     parser.add_argument('--run_FPGA', action='store_true')
     parser.add_argument('--view_FPGA', action='store_true')
+    parser.add_argument('--preprocess_only', action='store_true')
 
     args = parser.parse_args()
 
@@ -65,6 +66,9 @@ def main():
     # configure waveform viewing
     cfg.setup_vcd()
     cfg.setup_ila()
+
+    # other options
+    cfg.preprocess_only = args.preprocess_only
 
     # real number options
     if args.float:
@@ -94,7 +98,7 @@ def main():
         build.run_FPGA()
 
     # run simulation if desired
-    if args.sim:
+    if args.sim or args.preprocess_only:
         # pick simulator
         sim_cls = {
             'icarus': IcarusSimulator,
