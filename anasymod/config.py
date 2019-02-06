@@ -3,7 +3,7 @@ import multiprocessing
 import shutil
 
 from anasymod.files import which, get_full_path, get_from_module
-from anasymod.util import back2fwd
+from anasymod.util import path4vivado
 from os import environ as env
 
 class EmuConfig:
@@ -18,8 +18,8 @@ class EmuConfig:
         self.synth_only_verilog_headers = []
         self.verilog_headers = []
 
-        # paths
-        self.build_dir = get_full_path('build')
+        # build root
+        self.build_root = get_full_path('build')
 
         # definitions
         self.sim_only_verilog_defines = []
@@ -28,15 +28,13 @@ class EmuConfig:
 
         # other options
         self.top_module = 'top'
-        self.vcd_rel_path = 'dump.vcd'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
         self.dt = None
         self.tstop = None
         self.ila_depth = None
-        #self.probe_signals = []
-        self.csv_path = os.path.join(self.build_dir, f"{self.top_module}.csv")
-        self.vcd_path = os.path.join(self.build_dir, f"{self.top_module}.vcd")
+        self.csv_name = f"{self.top_module}.csv"
+        self.vcd_name = f"{self.top_module}.vcd"
 
         # FPGA board configuration
         self.fpga_board_config = FPGABoardConfig()
@@ -75,8 +73,12 @@ class EmuConfig:
         return self.verilog_defines + self.synth_only_verilog_defines
 
     @property
-    def vcd_abs_path(self):
-        return os.path.join(self.build_dir, self.vcd_rel_path)
+    def vcd_path(self):
+        return os.path.join(self.build_root, self.vcd_name)
+
+    @property
+    def csv_path(self):
+        return os.path.join(self.build_root, self.csv_name)
 
     def set_dt(self, value):
         self.dt = value
@@ -87,7 +89,7 @@ class EmuConfig:
         self.verilog_defines.append(f'TSTOP_MSDSL={value}')
 
     def setup_vcd(self):
-        self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={back2fwd(self.vcd_abs_path)}')
+        self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={path4vivado(self.vcd_path)}')
 
     def setup_ila(self):
         self.ila_depth = int(self.tstop/self.dt)
@@ -123,24 +125,31 @@ class FPGABoardConfig():
 
 class VivadoConfig():
     def __init__(self, cfg : EmuConfig, vivado):
+        self._cfg = cfg
         self.project_name = 'project'
-        self.project_directory = 'project'
 
         hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], r"bin")]
         self.vivado = vivado if vivado is not None else find_tool(name='vivado', hints=hints)
 
         self.num_cores = multiprocessing.cpu_count()
-        self.probe_cfg_path = os.path.join(cfg.build_dir, self.project_directory, r"probe_config.txt")
-        self.bitfile_path = os.path.join(cfg.build_dir, self.project_directory, f'{self.project_name}.runs', r"impl_1",
-                                         f"{cfg.top_module}.bit")
-        self.ltxfile_path = os.path.join(cfg.build_dir, self.project_directory, f'{self.project_name}.runs', r"impl_1",
-                                         f"{cfg.top_module}.ltx")
-        self.output_path = os.path.join(cfg.build_dir, f"{cfg.top_module}.csv")
+        self.probe_cfg_path = os.path.join(self.project_root, r"probe_config.txt")
+        self.bitfile_path = os.path.join(self.project_root, f'{self.project_name}.runs', r"impl_1",
+                                         f"{self._cfg.top_module}.bit")
+        self.ltxfile_path = os.path.join(self.project_root, f'{self.project_name}.runs', r"impl_1",
+                                         f"{self._cfg.top_module}.ltx")
         self.vio_name = r"vio_0"
         self.vio_inst_name = self.vio_name + r"_i"
         self.ila_inst_name = r"u_ila_0"
         self.ila_reset = r"reset_probe"
         self.vio_reset = r"vio_i/rst"
+
+    @property
+    def project_root(self):
+        return os.path.join(self._cfg.build_root, self.project_name)
+
+    @property
+    def ip_dir(self):
+        return os.path.join(self.project_root, f'{self.project_name}.srcs', 'sources_1', 'ip')
 
 class IcarusConfig():
     def __init__(self, cfg: EmuConfig,  iverilog, vvp):

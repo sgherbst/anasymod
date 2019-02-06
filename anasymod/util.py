@@ -6,8 +6,9 @@ import json
 from math import ceil, log2
 from collections import namedtuple
 
-def back2fwd(path: str):
-    return path.replace('\\', '/')
+def path4vivado(path: str):
+    path = path.replace('\\', '/')
+    return f'{{{path}}}'
 
 def call(args, cwd=None):
     # set defaults
