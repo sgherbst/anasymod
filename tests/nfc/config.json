@@ -12,9 +12,9 @@
   "cap_tx": 125e-12,
   "v_carrier": 5.0,
   "dt": 4.60914454e-9,
-  "tstop": 10e-6,
+  "tstop": 200e-6,
   "tau_det_fast": 1e-9,
   "tau_det_slow": 360e-9,
-  "tau_com_hpf": 50e-6,
-  "tau_com_lpf": 150e-9
+  "tau_com_fast": 150e-9,
+  "tau_com_slow": 50e-6
 }
