@@ -12,8 +12,19 @@ from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
 from anasymod.wave import ConvertWaveform
 
-def gather_sources():
-    pass
+def gather_sources(root):
+    fileset_names = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources", r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
+
+    master_cfg_path = os.path.join(root, r"source.config")
+    with open(master_cfg_path, "r") as f:
+        mcfg = f.readlines()
+
+    # Create filesets
+    for line in mcfg:
+
+
+    #   os.path.expandvars() to evaluate env vars
+    #   os.path.isabs(my_path) to check for abs paths
     # Gather config files and extract source paths
     # Read master config file interpret rel/abs/env var
 
