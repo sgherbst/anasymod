@@ -7,7 +7,7 @@ from anasymod.util import path4vivado, back2fwd
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, vivado=None, iverilog=None, vvp=None, gtkwave=None):
+    def __init__(self, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None):
         # source files
         self.sim_only_verilog_sources = []
         self.synth_only_verilog_sources = []
@@ -46,8 +46,14 @@ class EmuConfig:
         # GtkWave configuration
         self.gtkwave_config = GtkWaveConfig(parent=self, gtkwave=gtkwave)
 
+        # SimVision configuration
+        self.simvision_config = SimVisionConfig(parent=self, simvision=simvision)
+
         # Icarus configuration
         self.icarus_config = IcarusConfig(parent=self, iverilog=iverilog, vvp=vvp)
+
+        # Xcelium configuration
+        self.xcelium_config = XceliumConfig(parent=self, xrun=xrun)
 
     @property
     def sim_verilog_sources(self):
@@ -163,6 +169,27 @@ class VivadoConfig():
     def ip_dir(self):
         return os.path.join(self.project_root, f'{self.project_name}.srcs', 'sources_1', 'ip')
 
+class XceliumConfig():
+    def __init__(self, parent: EmuConfig, xrun):
+        # save reference to parent config
+        self.parent = parent
+
+        # set path to iverilog and vvp binaries
+        self._xrun = xrun
+
+        # name of TCL file
+        self.tcl_input = 'input.tcl'
+
+    @property
+    def xrun(self):
+        if self._xrun is None:
+            self._xrun = find_tool(name='xrun')
+        return self._xrun
+
+    @property
+    def tcl_input_path(self):
+        return os.path.join(self.parent.build_root, self.tcl_input)
+
 class IcarusConfig():
     def __init__(self, parent: EmuConfig, iverilog, vvp):
         # save reference to parent config
@@ -200,6 +227,7 @@ class GtkWaveConfig():
         # find binary
         self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
         self._gtkwave = gtkwave
+        self.gtkw_config = None
 
     @property
     def gtkwave(self):
@@ -207,7 +235,26 @@ class GtkWaveConfig():
             self._gtkwave = find_tool(name='gtkwave', hints=self.hints)
         return self._gtkwave
 
-def find_tool(name, hints: list):
+class SimVisionConfig():
+    def __init__(self, parent: EmuConfig, simvision):
+        # save reference to parent config
+        self.parent = parent
+
+        # find binary
+        self._simvision = simvision
+        self.svcf_config = None
+
+    @property
+    def simvision(self):
+        if self._simvision is None:
+            self._simvision = find_tool(name='simvision')
+        return self._simvision
+
+def find_tool(name, hints=None):
+    # set defaults
+    if hints is None:
+        hints = []
+
     # first check the system path for the tool
     tool_path = shutil.which(name)
 
