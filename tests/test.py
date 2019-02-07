@@ -10,7 +10,6 @@ from anasymod.sim.icarus import IcarusSimulator
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
-from anasymod.wave import ConvertWaveform
 
 def gather_sources():
     pass
@@ -113,6 +112,7 @@ def main():
 
     if args.view_FPGA:
         # build command
+        from anasymod.wave import ConvertWaveform
         test = ConvertWaveform(cfg=cfg)
         cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_path]
 

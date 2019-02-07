@@ -133,8 +133,8 @@ class VivadoConfig():
         self.project_name = 'project'
 
         # set path to Vivado
-        hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
-        self.vivado = vivado if vivado is not None else find_tool(name='vivado', hints=hints)
+        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
+        self._vivado = vivado
 
         # set various project options
         self.num_cores = multiprocessing.cpu_count()
@@ -150,6 +150,12 @@ class VivadoConfig():
         self.vio_reset = 'vio_i/rst'
 
     @property
+    def vivado(self):
+        if self._vivado is None:
+            self._vivado = find_tool(name='vivado', hints=self.hints)
+        return self._vivado
+
+    @property
     def project_root(self):
         return os.path.join(self.parent.build_root, self.project_name)
 
@@ -163,12 +169,24 @@ class IcarusConfig():
         self.parent = parent
 
         # set path to iverilog and vvp binaries
-        hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin')]
-        self.iverilog = iverilog if iverilog is not None else find_tool(name='iverilog', hints=hints)
-        self.vvp = vvp if vvp is not None else find_tool(name='vvp', hints=hints)
+        self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin')]
+        self._iverilog = iverilog
+        self._vvp = vvp
 
         # name of output file
         self.output_file_name = 'a.out'
+
+    @property
+    def iverilog(self):
+        if self._iverilog is None:
+            self._iverilog = find_tool(name='iverilog', hints=self.hints)
+        return self._iverilog
+
+    @property
+    def vvp(self):
+        if self._vvp is None:
+            self._vvp = find_tool(name='vvp', hints=self.hints)
+        return self._vvp
 
     @property
     def output_file_path(self):
@@ -177,10 +195,17 @@ class IcarusConfig():
 class GtkWaveConfig():
     def __init__(self, parent: EmuConfig, gtkwave):
         # save reference to parent config
+        self.parent = parent
 
         # find binary
-        hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
-        self.gtkwave = gtkwave if gtkwave is not None else find_tool(name='gtkwave', hints=hints)
+        self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
+        self._gtkwave = gtkwave
+
+    @property
+    def gtkwave(self):
+        if self._gtkwave is None:
+            self._gtkwave = find_tool(name='gtkwave', hints=self.hints)
+        return self._gtkwave
 
 def find_tool(name, hints: list):
     # first check the system path for the tool
