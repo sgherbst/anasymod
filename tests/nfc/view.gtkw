@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
-[*] Wed Feb 06 11:32:02 2019
+[*] Thu Feb 07 11:02:12 2019
 [*]
-[dumpfile] "C:\Users\herbstst\Emulation\anasymod\tests\build\dump.vcd"
-[dumpfile_mtime] "Wed Feb 06 11:25:34 2019"
-[dumpfile_size] 17045320
+[dumpfile] "C:\Users\herbstst\Emulation\anasymod\tests\build\top.vcd"
+[dumpfile_mtime] "Thu Feb 07 11:00:56 2019"
+[dumpfile_size] 14108105
 [savefile] "C:\Users\herbstst\Emulation\anasymod\tests\nfc\view.gtkw"
 [timestart] 0
 [size] 1492 905
 [pos] -1 -1
-*-26.295954 275249480 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-25.295954 275249480 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [treeopen] top.tb_i.
 [sst_width] 197
@@ -17,27 +17,22 @@
 [sst_expanded] 1
 [sst_vpaned_height] 260
 @8028
-top.tb_i.nfc_i.v_hpf_rx_probe
+top.v_comp_tx_probe
 @20000
--
--
 -
 -
 -
 -
 @8028
-top.tb_i.nfc_i.v_hpf_tx_probe
+top.v_comp_rx_probe
+@20001
+-
 @20000
 -
 -
 -
--
--
--
--
-@29
-top.tb_i.tx_clk_probe
 @28
+top.tb_i.tx_clk_probe
 top.tb_i.rx_clk_probe
 top.tb_i.tx_send_probe
 top.tb_i.rx_send_probe

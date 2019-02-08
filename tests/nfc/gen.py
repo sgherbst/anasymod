@@ -5,7 +5,8 @@ from math import sqrt
 
 from msdsl.model import MixedSignalModel
 from msdsl.verilog import VerilogGenerator
-from msdsl.expr import (AnalogSignal, Deriv, DigitalInput, Case, DigitalSignal, DigitalOutput, AnalogArray, DigitalArray)
+from msdsl.expr import (AnalogSignal, Deriv, DigitalInput, Case, DigitalSignal, DigitalOutput, AnalogArray,
+                        DigitalArray, ModelExpr, LessThan, GreaterThan)
 
 
 from anasymod.util import json2obj
@@ -47,7 +48,7 @@ def main():
     res_tx = Case([cfg.res_tx_comm_0, cfg.res_tx_comm_1], sel_bits=[model.tx_send]) + cfg.res_coil_tx
     cond_load_rx = Case([cfg.cond_rx_comm_0, cfg.cond_rx_comm_1], sel_bits=[model.rx_send])
 
-    # implement main dynamics
+    # implement coil dynamics
     model.add_eqn_sys([
         # coupled inductor dynamics
         v_ind_tx == cfg.ind_tx * Deriv(model.i_ind_tx) + m * Deriv(model.i_ind_rx),
@@ -65,49 +66,71 @@ def main():
         sel_bits=[model.rx_send, model.tx_send]
     )
 
-    # implement peak detectors
-    def add_com(v_com: AnalogSignal, v_det: AnalogSignal, v_hpf: AnalogSignal, com_gt_det: DigitalSignal, com_out: DigitalSignal):
-        model.set_this_cycle(com_gt_det, v_com > v_det)
+    # implement communication
+    def add_com(v_com_in_expr: ModelExpr, com_out: DigitalSignal, suffix: str, polarity: str):
+        # declare signals
+        v_com_in = AnalogSignal(f'v_com_in_{suffix}', range=100)
+        v_det = AnalogSignal(f'v_det_{suffix}', range=100)
+        v_lpf_fast = AnalogSignal(f'v_lpf_fast_{suffix}', range=100)
+        v_lpf_slow = AnalogSignal(f'v_lpf_slow_{suffix}', range=100)
+        v_comp = AnalogSignal(f'v_comp_{suffix}', range=100)
+        com_gt_det = DigitalSignal(f'com_gt_det_{suffix}')
+
+        # add signals to model
+        model.add_signal(v_com_in)
+        model.add_signal(v_det)
+        model.add_signal(v_lpf_fast)
+        model.add_signal(v_lpf_slow)
+        model.add_signal(v_comp)
+        model.add_signal(com_gt_det)
+
+        # com circuit input
+        model.set_this_cycle(v_com_in, v_com_in_expr)
+
+        # detector diode on/off
+        model.set_this_cycle(com_gt_det, v_com_in > v_det)
+
+        # comparator input
+        model.set_this_cycle(v_comp, v_lpf_fast-v_lpf_slow)
+
+        # com output 1/0
+        comp_op = {'+': GreaterThan, '-': LessThan}[polarity]
+        model.set_this_cycle(com_out, comp_op(v_comp, 0))
+
+        # detector dynamics
         model.add_eqn_sys([
-            Deriv(v_det) == Case([0, 1/cfg.tau_det_fast], [com_gt_det])*(v_com-v_det) - v_det/cfg.tau_det_slow
-        ], inputs=[v_com], states=[v_det], sel_bits=[com_gt_det])
-        model.set_tf(v_hpf, v_det, ((cfg.tau_com_hpf, 0), (cfg.tau_com_hpf*cfg.tau_com_lpf, (cfg.tau_com_hpf+cfg.tau_com_lpf), 1)))
-        model.set_this_cycle(com_out, v_hpf > 0)
+            Deriv(v_det) == Case([0, 1/cfg.tau_det_fast], [com_gt_det])*(v_com_in-v_det) - v_det/cfg.tau_det_slow,
+            Deriv(v_lpf_fast) == (v_det - v_lpf_fast)/cfg.tau_com_fast,
+            Deriv(v_lpf_slow) == (v_det - v_lpf_slow)/cfg.tau_com_slow
+        ], inputs=[v_com_in], states=[v_det, v_lpf_fast, v_lpf_slow], sel_bits=[com_gt_det])
 
-    # TX recv communication
-    model.add_signal(AnalogSignal('v_com_tx', 100))
-    model.set_this_cycle(model.v_com_tx, model.v_in - model.v_cap_tx)
-    model.add_signal(AnalogSignal('v_det_tx', 100))
-    model.add_signal(AnalogSignal('v_hpf_tx', 100))
-    model.add_signal(DigitalSignal('com_gt_det_tx'))
-    add_com(model.v_com_tx, model.v_det_tx, model.v_hpf_tx, model.com_gt_det_tx, model.tx_recv)
+    # TX incoming bits
+    add_com(model.v_in-model.v_cap_tx, model.tx_recv, suffix='tx', polarity='+')
 
-    # RX recv communication
-    model.add_signal(AnalogSignal('v_det_rx', 100))
-    model.add_signal(AnalogSignal('v_hpf_rx', 100))
-    model.add_signal(DigitalSignal('com_gt_det_rx'))
-    model.add_signal(DigitalSignal('rx_recv_n'))
-    add_com(model.v_cap_rx, model.v_det_rx, model.v_hpf_rx, model.com_gt_det_rx, model.rx_recv_n)
-
-    # invert the RX recv signal
-    # TODO: add digital operations to MSDSL expr library
-    model.set_this_cycle(model.rx_recv, DigitalArray([1, 0], model.rx_recv_n))
+    # RX incoming bits
+    add_com(model.v_cap_rx, model.rx_recv, suffix='rx', polarity='-')
 
     # RX clock recovery
     model.set_this_cycle(model.rx_clk, model.v_cap_rx > 0)
 
     # probe signals of interest
-    # model.add_probe(model.v_in)
-    # model.add_probe(model.i_ind_tx)
-    # model.add_probe(model.i_ind_rx)
-    # model.add_probe(model.v_cap_tx)
-    # model.add_probe(model.v_cap_rx)
-    # model.add_probe(model.v_det_tx)
-    # model.add_probe(model.v_det_rx)
-    model.add_probe(model.v_hpf_tx)
-    model.add_probe(model.v_hpf_rx)
-    # model.add_probe(model.com_gt_det_tx)
-    # model.add_probe(model.com_gt_det_rx)
+    model.add_probe(model.v_in)
+    model.add_probe(model.i_ind_tx)
+    model.add_probe(model.i_ind_rx)
+    model.add_probe(model.v_cap_tx)
+    model.add_probe(model.v_cap_rx)
+    model.add_probe(model.v_com_in_tx)
+    model.add_probe(model.v_com_in_rx)
+    model.add_probe(model.v_det_tx)
+    model.add_probe(model.v_det_rx)
+    model.add_probe(model.v_lpf_fast_tx)
+    model.add_probe(model.v_lpf_fast_rx)
+    model.add_probe(model.v_lpf_slow_tx)
+    model.add_probe(model.v_lpf_slow_rx)
+    model.add_probe(model.v_comp_tx)
+    model.add_probe(model.v_comp_rx)
+    model.add_probe(model.com_gt_det_tx)
+    model.add_probe(model.com_gt_det_rx)
 
     # determine the output filename
     if args.output is not None:

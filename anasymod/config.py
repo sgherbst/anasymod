@@ -8,7 +8,7 @@ from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None):
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None):
         # Initialize filesets
         self.filesets = Filesets(root=root)
         self.filesets.read_filesets()
@@ -51,8 +51,14 @@ class EmuConfig:
         # GtkWave configuration
         self.gtkwave_config = GtkWaveConfig(parent=self, gtkwave=gtkwave)
 
+        # SimVision configuration
+        self.simvision_config = SimVisionConfig(parent=self, simvision=simvision)
+
         # Icarus configuration
         self.icarus_config = IcarusConfig(parent=self, iverilog=iverilog, vvp=vvp)
+
+        # Xcelium configuration
+        self.xcelium_config = XceliumConfig(parent=self, xrun=xrun)
 
     @property
     def sim_verilog_sources(self):
@@ -138,8 +144,8 @@ class VivadoConfig():
         self.project_name = 'project'
 
         # set path to Vivado
-        hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
-        self.vivado = vivado if vivado is not None else find_tool(name='vivado', hints=hints)
+        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
+        self._vivado = vivado
 
         # set various project options
         self.num_cores = multiprocessing.cpu_count()
@@ -155,6 +161,12 @@ class VivadoConfig():
         self.vio_reset = 'vio_i/rst'
 
     @property
+    def vivado(self):
+        if self._vivado is None:
+            self._vivado = find_tool(name='vivado', hints=self.hints)
+        return self._vivado
+
+    @property
     def project_root(self):
         return os.path.join(self.parent.build_root, self.project_name)
 
@@ -162,18 +174,51 @@ class VivadoConfig():
     def ip_dir(self):
         return os.path.join(self.project_root, f'{self.project_name}.srcs', 'sources_1', 'ip')
 
+class XceliumConfig():
+    def __init__(self, parent: EmuConfig, xrun):
+        # save reference to parent config
+        self.parent = parent
+
+        # set path to iverilog and vvp binaries
+        self._xrun = xrun
+
+        # name of TCL file
+        self.tcl_input = 'input.tcl'
+
+    @property
+    def xrun(self):
+        if self._xrun is None:
+            self._xrun = find_tool(name='xrun')
+        return self._xrun
+
+    @property
+    def tcl_input_path(self):
+        return os.path.join(self.parent.build_root, self.tcl_input)
+
 class IcarusConfig():
     def __init__(self, parent: EmuConfig, iverilog, vvp):
         # save reference to parent config
         self.parent = parent
 
         # set path to iverilog and vvp binaries
-        hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin')]
-        self.iverilog = iverilog if iverilog is not None else find_tool(name='iverilog', hints=hints)
-        self.vvp = vvp if vvp is not None else find_tool(name='vvp', hints=hints)
+        self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin')]
+        self._iverilog = iverilog
+        self._vvp = vvp
 
         # name of output file
         self.output_file_name = 'a.out'
+
+    @property
+    def iverilog(self):
+        if self._iverilog is None:
+            self._iverilog = find_tool(name='iverilog', hints=self.hints)
+        return self._iverilog
+
+    @property
+    def vvp(self):
+        if self._vvp is None:
+            self._vvp = find_tool(name='vvp', hints=self.hints)
+        return self._vvp
 
     @property
     def output_file_path(self):
@@ -182,12 +227,39 @@ class IcarusConfig():
 class GtkWaveConfig():
     def __init__(self, parent: EmuConfig, gtkwave):
         # save reference to parent config
+        self.parent = parent
 
         # find binary
-        hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
-        self.gtkwave = gtkwave if gtkwave is not None else find_tool(name='gtkwave', hints=hints)
+        self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
+        self._gtkwave = gtkwave
+        self.gtkw_config = None
 
-def find_tool(name, hints: list):
+    @property
+    def gtkwave(self):
+        if self._gtkwave is None:
+            self._gtkwave = find_tool(name='gtkwave', hints=self.hints)
+        return self._gtkwave
+
+class SimVisionConfig():
+    def __init__(self, parent: EmuConfig, simvision):
+        # save reference to parent config
+        self.parent = parent
+
+        # find binary
+        self._simvision = simvision
+        self.svcf_config = None
+
+    @property
+    def simvision(self):
+        if self._simvision is None:
+            self._simvision = find_tool(name='simvision')
+        return self._simvision
+
+def find_tool(name, hints=None):
+    # set defaults
+    if hints is None:
+        hints = []
+
     # first check the system path for the tool
     tool_path = shutil.which(name)
 

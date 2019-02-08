@@ -12,7 +12,7 @@ def back2fwd(path: str):
 def path4vivado(path: str):
     return f'{{{back2fwd(path)}}}'
 
-def call(args, cwd=None):
+def call(args, cwd=None, wait=True):
     # set defaults
     if cwd is None:
         cwd = os.getcwd()
@@ -22,8 +22,12 @@ def call(args, cwd=None):
     os.chdir(cwd)
 
     # run the command
-    ret = subprocess.call(args=args, stdout=sys.stdout, stderr=sys.stdout)
-    assert ret == 0
+    kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
+    if wait:
+        ret = subprocess.call(**kwargs)
+        assert ret == 0
+    else:
+        subprocess.Popen(**kwargs)
 
     # change back to the starting directory
     os.chdir(start_dir)

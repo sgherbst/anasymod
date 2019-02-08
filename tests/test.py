@@ -7,10 +7,12 @@ from argparse import ArgumentParser
 from anasymod.config import MsEmuConfig
 from anasymod.sim.vivado import VivadoSimulator
 from anasymod.sim.icarus import IcarusSimulator
+from anasymod.sim.xcelium import XceliumSimulator
+from anasymod.viewer.gtkwave import GtkWaveViewer
+from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
-from anasymod.wave import ConvertWaveform
 from anasymod.filesets import Filesets
 
 def main():
@@ -19,6 +21,7 @@ def main():
 
     parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
     parser.add_argument('--simulator_name', type=str, default='icarus')
+    parser.add_argument('--viewer_name', type=str, default='gtkwave')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--float', action='store_true')
     parser.add_argument('--models', action='store_true')
@@ -87,7 +90,8 @@ def main():
         # pick simulator
         sim_cls = {
             'icarus': IcarusSimulator,
-            'vivado': VivadoSimulator
+            'vivado': VivadoSimulator,
+            'xrun': XceliumSimulator
         }[args.simulator_name]
 
         # run simulation
@@ -95,25 +99,25 @@ def main():
         sim.simulate()
 
     # view results if desired
-    if args.view:
-        # build command
-        cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_path]
+    if args.view or args.view_FPGA:
+        # generate VCD if necessary
+        if args.view_FPGA:
+            from anasymod.wave import ConvertWaveform
+            ConvertWaveform(cfg=cfg)
 
-        # add waveform file if it exists
-        gtkw_file = os.path.join(args.input, 'view.gtkw')
-        if os.path.isfile(gtkw_file):
-            cmd.append(gtkw_file)
+        # pick viewer
+        viewer_cls = {
+            'gtkwave': GtkWaveViewer,
+            'simvision': SimVisionViewer
+        }[args.viewer_name]
 
-        # run command
-        call(cmd)
+        # set config file location
+        cfg.gtkwave_config.gtkw_config = os.path.join(args.input, 'view.gtkw')
+        cfg.simvision_config.svcf_config = os.path.join(args.input, 'view.svcf')
 
-    if args.view_FPGA:
-        # build command
-        test = ConvertWaveform(cfg=cfg)
-        cmd = [cfg.gtkwave_config.gtkwave, cfg.vcd_path]
-
-        # run command
-        call(cmd)
+        # run viewer
+        viewer = viewer_cls(cfg)
+        viewer.view()
 
     if args.test:
         cfg.filesets.read_filesets()
