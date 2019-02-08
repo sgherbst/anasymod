@@ -11,23 +11,7 @@ from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
 from anasymod.wave import ConvertWaveform
-
-def gather_sources(root):
-    fileset_names = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources", r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
-
-    master_cfg_path = os.path.join(root, r"source.config")
-    with open(master_cfg_path, "r") as f:
-        mcfg = f.readlines()
-
-    # Create filesets
-    for line in mcfg:
-
-
-    #   os.path.expandvars() to evaluate env vars
-    #   os.path.isabs(my_path) to check for abs paths
-    # Gather config files and extract source paths
-    # Read master config file interpret rel/abs/env var
-
+from anasymod.filesets import Filesets
 
 def main():
     # parse command line arguments
@@ -44,6 +28,7 @@ def main():
     parser.add_argument('--run_FPGA', action='store_true')
     parser.add_argument('--view_FPGA', action='store_true')
     parser.add_argument('--preprocess_only', action='store_true')
+    parser.add_argument('--test', action='store_true')
 
     args = parser.parse_args()
 
@@ -51,7 +36,7 @@ def main():
     args.input = get_full_path(args.input)
 
     # load configuration data
-    cfg = MsEmuConfig()
+    cfg = MsEmuConfig(root=args.input)
     test_config = json.load(open(os.path.join(args.input, 'config.json'), 'r'))
 
     # test-level structure
@@ -129,6 +114,10 @@ def main():
 
         # run command
         call(cmd)
+
+    if args.test:
+        cfg.filesets.read_filesets()
+        print(f"Source Dict:{cfg.filesets.source_dict}")
 
 if __name__ == '__main__':
     main()

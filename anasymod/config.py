@@ -4,10 +4,15 @@ import shutil
 
 from anasymod.files import which, get_full_path, get_from_module
 from anasymod.util import path4vivado, back2fwd
+from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, vivado=None, iverilog=None, vvp=None, gtkwave=None):
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None):
+        # Initialize filesets
+        self.filesets = Filesets(root=root)
+        self.filesets.read_filesets()
+
         # source files
         self.sim_only_verilog_sources = []
         self.synth_only_verilog_sources = []
@@ -96,8 +101,8 @@ class EmuConfig:
         self.ila_depth = int(self.tstop/self.dt)
 
 class MsEmuConfig(EmuConfig):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, root):
+        super().__init__(root=root)
 
         # load msdsl library
         self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
