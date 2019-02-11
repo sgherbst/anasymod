@@ -2,8 +2,8 @@ import os.path
 import multiprocessing
 import shutil
 
-from anasymod.files import which, get_full_path, get_from_module
-from anasymod.util import path4vivado, back2fwd
+from anasymod.files import get_full_path, get_from_module
+from anasymod.util import back2fwd
 from anasymod.filesets import Filesets
 from os import environ as env
 
@@ -149,11 +149,6 @@ class VivadoConfig():
 
         # set various project options
         self.num_cores = multiprocessing.cpu_count()
-        self.probe_cfg_path = os.path.join(self.project_root, 'probe_config.txt')
-        self.bitfile_path = os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1',
-                                         f'{self.parent.top_module}.bit')
-        self.ltxfile_path = os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1',
-                                         f'{self.parent.top_module}.ltx')
         self.vio_name = 'vio_0'
         self.vio_inst_name = self.vio_name + '_i'
         self.ila_inst_name = 'u_ila_0'
@@ -169,6 +164,18 @@ class VivadoConfig():
     @property
     def project_root(self):
         return os.path.join(self.parent.build_root, self.project_name)
+
+    @property
+    def probe_cfg_path(self):
+        return os.path.join(self.project_root, 'probe_config.txt')
+
+    @property
+    def bitfile_path(self):
+        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.bit')
+
+    @property
+    def ltxfile_path(self):
+        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.ltx')
 
     @property
     def ip_dir(self):

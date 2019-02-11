@@ -1,7 +1,7 @@
 import os.path
 
 from anasymod.templ import JinjaTempl
-from anasymod.util import path4vivado
+from anasymod.util import back2fwd
 
 class TemplGenericIp(JinjaTempl):
     def __init__(self, ip_name, ip_dir, ip_module_name=None, props=None):
@@ -13,7 +13,7 @@ class TemplGenericIp(JinjaTempl):
 
         self.ip_name = ip_name
         self.ip_module_name = ip_module_name
-        self.ip_xci_path = path4vivado(os.path.join(ip_dir, ip_module_name, f'{ip_module_name}.xci'))
+        self.ip_xci_path = back2fwd(os.path.join(ip_dir, ip_module_name, f'{ip_module_name}.xci'))
         self.props = props
 
     TEMPLATE_TEXT = '''
@@ -27,7 +27,7 @@ set_property -dict [list \\
 {%- endfor %}
 ] [get_ips {{subst.ip_module_name}}]
 
-generate_target instantiation_template [get_files {{subst.ip_xci_path}}]
+generate_target instantiation_template [get_files "{{subst.ip_xci_path}}"]
 
 # end auto-generated code for {{subst.ip_name}}
 

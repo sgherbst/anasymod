@@ -1,7 +1,7 @@
 import os
 from glob import glob
 
-from anasymod.util import call, path4vivado
+from anasymod.util import call, back2fwd
 from anasymod.codegen import CodeGenerator
 
 class VivadoControl(CodeGenerator):
@@ -12,22 +12,21 @@ class VivadoControl(CodeGenerator):
         headers = headers if headers is not None else []
 
         # build lists of all source and header files
-        source_files = [path4vivado(f) for source in sources for f in glob(source)]
-        header_files = [path4vivado(f) for header in headers for f in glob(header)]
+        source_files = [f for source in sources for f in glob(source)]
+        header_files = [f for header in headers for f in glob(header)]
 
         # add all source files to the project (including header files)
         self.add_files(source_files+header_files)
 
         # specify which files are header files
-        for header_file in header_files:
-            self.set_property('file_type', '{Verilog Header}', f'[get_files {{{header_file}}}]')
+        self.set_header_files(header_files)
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):
         cmd = ['create_project']
         if force:
             cmd.append('-force')
-        cmd.append('{'+project_name+'}')
-        cmd.append('{'+project_directory+'}')
+        cmd.append('"'+project_name+'"')
+        cmd.append('"'+back2fwd(project_directory)+'"')
         if full_part_name is not None:
             cmd.extend(['-part', full_part_name])
         self.println(' '.join(cmd))
@@ -38,8 +37,12 @@ class VivadoControl(CodeGenerator):
             cmd.extend(['-fileset', fileset])
         if norecurse:
             cmd.append('-norecurse')
-        cmd.append('{'+' '.join(files)+'}')
+        cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
         self.println(' '.join(cmd))
+
+    def set_header_files(self, files):
+        file_list = '{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }'
+        self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
 
     def set_property(self, name, value, objects):
         self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))

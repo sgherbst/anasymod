@@ -3,7 +3,7 @@ import os.path
 from anasymod.vivado import VivadoControl
 from anasymod.codegen import CodeGenerator
 from anasymod.config import EmuConfig
-from anasymod.util import path4vivado
+from anasymod.util import back2fwd
 
 from anasymod.blocks.ila import TemplILA
 from anasymod.blocks.dbg_hub import TemplDbgHub
@@ -24,7 +24,7 @@ class VivadoBuild():
     def build(self):
         # create a new project
         self.v.create_project(project_name=self.cfg.vivado_config.project_name,
-                              project_directory=self.cfg.vivado_config.project_directory,
+                              project_directory=self.cfg.vivado_config.project_root,
                               full_part_name=self.cfg.fpga_board_config.full_part_name,
                               force=True)
 
@@ -49,7 +49,7 @@ class VivadoBuild():
         constrs.write_to_file(cpath)
 
         # add constraints to project
-        self.v.add_files([path4vivado(cpath)], fileset='constrs_1')
+        self.v.add_files([cpath], fileset='constrs_1')
 
         # generate the IP blocks
         self.v.use_templ(TemplClkWiz(input_freq=self.cfg.fpga_board_config.clk_freq,
@@ -79,8 +79,8 @@ class VivadoBuild():
         constrs.write_to_file(cpath)
 
         # Open project
-        self.v.println(
-            f'open_project {path4vivado(os.path.join(self.cfg.vivado_config.project_root, self.cfg.vivado_config.project_name + r".xpr"))}')
+        project_path = os.path.join(self.cfg.vivado_config.project_root, self.cfg.vivado_config.project_name + '.xpr')
+        self.v.println(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish
         self.v.println('launch_runs impl_1 -to_step write_bitstream -jobs {0}'.format(self.cfg.vivado_config.num_cores))

@@ -9,9 +9,6 @@ from collections import namedtuple
 def back2fwd(path: str):
     return path.replace('\\', '/')
 
-def path4vivado(path: str):
-    return f'{{{back2fwd(path)}}}'
-
 def call(args, cwd=None, wait=True):
     # set defaults
     if cwd is None:
