@@ -39,6 +39,14 @@ def main():
 
     # load configuration data
     cfg = MsEmuConfig(root=args.input)
+
+    # top-level structure
+    cfg.sim_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_sim.sv'))
+    cfg.synth_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_synth.sv'))
+    cfg.verilog_defines.append('CLK_MSDSL=top.emu_clk')
+    cfg.verilog_defines.append('RST_MSDSL=top.emu_rst')
+
+    # load test-specific configuration
     test_config = json.load(open(os.path.join(args.input, 'config.json'), 'r'))
 
     # test-level structure

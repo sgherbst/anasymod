@@ -118,12 +118,6 @@ class MsEmuConfig(EmuConfig):
         self.verilog_sources.append(get_from_module('svreal', 'src', '*.sv'))
         self.verilog_headers.append(get_from_module('svreal', 'include', '*.sv'))
 
-        # top-level structure
-        self.sim_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_sim.sv'))
-        self.synth_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_synth.sv'))
-        self.verilog_defines.append('CLK_MSDSL=top.emu_clk')
-        self.verilog_defines.append('RST_MSDSL=top.emu_rst')
-
         # simulation options
         self.sim_only_verilog_defines.append('SIMULATION_MODE_MSDSL')
 
