@@ -8,7 +8,8 @@ from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
+                 top_module=None, build_root=None):
         # Initialize filesets
         self.filesets = Filesets(root=root)
         self.filesets.read_filesets()
@@ -32,7 +33,7 @@ class EmuConfig:
         self.verilog_defines = []
 
         # other options
-        self.top_module = 'top'
+        self.top_module = top_module if top_module is not None else 'top'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
         self.dt = None
