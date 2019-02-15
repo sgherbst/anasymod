@@ -8,7 +8,7 @@ from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None):
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
         # Initialize filesets
         self.filesets = Filesets(root=root)
         self.filesets.read_filesets()
@@ -24,7 +24,7 @@ class EmuConfig:
         self.verilog_headers = []
 
         # build root
-        self.build_root = get_full_path('build')
+        self.build_root = build_root if build_root is not None else get_full_path('build')
 
         # definitions
         self.sim_only_verilog_defines = []
@@ -107,8 +107,8 @@ class EmuConfig:
         self.ila_depth = int(self.tstop/self.dt)
 
 class MsEmuConfig(EmuConfig):
-    def __init__(self, root):
-        super().__init__(root=root)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # load msdsl library
         self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
