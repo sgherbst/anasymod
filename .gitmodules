@@ -1,9 +1,9 @@
 [submodule "msdsl"]
 	path = msdsl
-	url = https://github.com/sgherbst/msdsl.git
+	url = ssh://git@bitbucket.vih.infineon.com:7999/inicio/msdsl.git
 	branch = master
 [submodule "svreal"]
 	path = svreal
-	url = https://github.com/sgherbst/svreal.git
+	url = ssh://git@bitbucket.vih.infineon.com:7999/inicio/svreal.git
 	branch = master
 
