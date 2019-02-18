@@ -30,7 +30,11 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 
 ## Running the Simulation Example
 
-1. From within the folder 
+From within the folder **anasymod/tests**, run
+
+```shell
+> python test.py -i filter --models --sim --view
+```
 
 ## Running the Emulation Example
 1. Make sure that your Pynq board is set up correctly:
