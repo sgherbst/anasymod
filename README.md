@@ -4,17 +4,22 @@
 1. Python
 2. Vivado
 3. GTKwave
+4. Icarus Verilog
+
+On Windows, GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).
+
+## Path setup
+
+Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are in your system path.
 
 ## Installation
 1. Open a terminal and navigate to a convenient directory.
 ```shell
 > git clone ssh://git@bitbucket.vih.infineon.com:7999/inicio/anasymod.git --recursive
 ```
-2. Install all of the Python packages in the project:
+2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.
 ```shell
-> cd ip_core_gen
 > pip install -e .
-> cd ..
 > cd msdsl
 > pip install -e .
 > cd ..
@@ -22,9 +27,12 @@
 > pip install -e .
 > cd ..
 ```
-3. Have a look at anasymod/test_project/build_system/includes.mk.  In particular, update the paths to Python, Vivado, and GTKwave as necessary.
 
-## Running the Example
+## Running the Simulation Example
+
+1. From within the folder 
+
+## Running the Emulation Example
 1. Make sure that your Pynq board is set up correctly:
     1. Jumper JP4 should be set for "JTAG"
     2. Jumper "JP5" should be set for "USB"
