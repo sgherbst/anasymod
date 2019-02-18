@@ -36,6 +36,8 @@ From within the folder **anasymod/tests**, run
 > python test.py -i filter --models --sim --view
 ```
 
+This will generate the models, run the simulation
+
 ## Running the Emulation Example
 1. Make sure that your Pynq board is set up correctly:
     1. Jumper JP4 should be set for "JTAG"
