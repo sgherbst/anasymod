@@ -42,16 +42,15 @@ From within the folder **anasymod/tests**, run
     2. Jumper "JP5" should be set for "USB"
 2. Plug the Pynq board into your computer using a micro USB cable.
 3. Move the Pynq board power switch to "ON"
-4. Go to the test_project directory and run **make**.  This will generate the analog model(s), then run synthesis, place and route, and ultimately generate a bitstream file.
+4. Go to the folder **anasymod/tests** and run the following command.  This will take ~10 min to build the bitstream.
 ```shell
-> cd test_project
-> make
+> python test.py -i filter --models --build
 ```
-5. Run **make emulation** to configure the FPGA with the generated bitstream, run the emulation, and save the resulting waveforms to a VCD file.
+5. Run the emulation with the following command
 ```shell
-> make emulation
+> python test.py -i filter --emulate
 ```
-6. Run **make view** to view the results from the VCD file using GTKwave.
+6. View the results with the following command:
 ```shell
-> make view
+> python test.py -i filter --view
 ```
