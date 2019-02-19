@@ -2,13 +2,14 @@ import os.path
 import multiprocessing
 import shutil
 
-from anasymod.files import which, get_full_path, get_from_module
-from anasymod.util import path4vivado, back2fwd
+from anasymod.files import get_full_path, get_from_module
+from anasymod.util import back2fwd
 from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None):
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
+                 top_module=None, build_root=None):
         # Initialize filesets
         self.filesets = Filesets(root=root)
         self.filesets.read_filesets()
@@ -18,7 +19,7 @@ class EmuConfig:
             setattr(self, fileset, self.filesets.fileset_dict[fileset])
 
         # build root
-        self.build_root = get_full_path('build')
+        self.build_root = build_root if build_root is not None else get_full_path('build')
 
         # definitions
         self.sim_only_verilog_defines = []
@@ -26,7 +27,7 @@ class EmuConfig:
         self.verilog_defines = []
 
         # other options
-        self.top_module = 'top'
+        self.top_module = top_module if top_module is not None else 'top'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
         self.dt = None
@@ -101,8 +102,8 @@ class EmuConfig:
         self.ila_depth = int(self.tstop/self.dt)
 
 class MsEmuConfig(EmuConfig):
-    def __init__(self, root):
-        super().__init__(root=root)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # load msdsl library
         self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
@@ -111,12 +112,6 @@ class MsEmuConfig(EmuConfig):
         # load svreal library
         self.verilog_sources.append(get_from_module('svreal', 'src', '*.sv'))
         self.verilog_headers.append(get_from_module('svreal', 'include', '*.sv'))
-
-        # top-level structure
-        self.sim_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_sim.sv'))
-        self.synth_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_synth.sv'))
-        self.verilog_defines.append('CLK_MSDSL=top.emu_clk')
-        self.verilog_defines.append('RST_MSDSL=top.emu_rst')
 
         # simulation options
         self.sim_only_verilog_defines.append('SIMULATION_MODE_MSDSL')
@@ -143,11 +138,6 @@ class VivadoConfig():
 
         # set various project options
         self.num_cores = multiprocessing.cpu_count()
-        self.probe_cfg_path = os.path.join(self.project_root, 'probe_config.txt')
-        self.bitfile_path = os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1',
-                                         f'{self.parent.top_module}.bit')
-        self.ltxfile_path = os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1',
-                                         f'{self.parent.top_module}.ltx')
         self.vio_name = 'vio_0'
         self.vio_inst_name = self.vio_name + '_i'
         self.ila_inst_name = 'u_ila_0'
@@ -163,6 +153,18 @@ class VivadoConfig():
     @property
     def project_root(self):
         return os.path.join(self.parent.build_root, self.project_name)
+
+    @property
+    def probe_cfg_path(self):
+        return os.path.join(self.project_root, 'probe_config.txt')
+
+    @property
+    def bitfile_path(self):
+        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.bit')
+
+    @property
+    def ltxfile_path(self):
+        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.ltx')
 
     @property
     def ip_dir(self):

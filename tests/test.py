@@ -27,8 +27,7 @@ def main():
     parser.add_argument('--sim', action='store_true')
     parser.add_argument('--view', action='store_true')
     parser.add_argument('--build', action='store_true')
-    parser.add_argument('--run_FPGA', action='store_true')
-    parser.add_argument('--view_FPGA', action='store_true')
+    parser.add_argument('--emulate', action='store_true')
     parser.add_argument('--preprocess_only', action='store_true')
     parser.add_argument('--test', action='store_true')
 
@@ -39,6 +38,14 @@ def main():
 
     # load configuration data
     cfg = MsEmuConfig(root=args.input)
+
+    # top-level structure
+    cfg.sim_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_sim.sv'))
+    cfg.synth_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_synth.sv'))
+    cfg.verilog_defines.append('CLK_MSDSL=top.emu_clk')
+    cfg.verilog_defines.append('RST_MSDSL=top.emu_rst')
+
+    # load test-specific configuration
     test_config = json.load(open(os.path.join(args.input, 'config.json'), 'r'))
 
     # test-level structure
@@ -79,10 +86,20 @@ def main():
         build.build()
 
     # run FPGA if desired
-    if args.run_FPGA:
+    if args.emulate:
+        # create VivadoBuild object if necessary (this does not actually build the design)
         if r"build" not in locals():
             build = VivadoBuild(cfg)
+
+        # run the emulation
         build.run_FPGA()
+
+        # post-process results
+        try:
+            from anasymod.wave import ConvertWaveform
+            ConvertWaveform(cfg=cfg)
+        except:
+            print('Could not convert emulation results to VCD.')
 
     # run simulation if desired
     if args.sim or args.preprocess_only:
@@ -98,12 +115,7 @@ def main():
         sim.simulate()
 
     # view results if desired
-    if args.view or args.view_FPGA:
-        # generate VCD if necessary
-        if args.view_FPGA:
-            from anasymod.wave import ConvertWaveform
-            ConvertWaveform(cfg=cfg)
-
+    if args.view:
         # pick viewer
         viewer_cls = {
             'gtkwave': GtkWaveViewer,

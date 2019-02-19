@@ -1,5 +1,3 @@
-import os
-
 from anasymod.sim.sim import Simulator
 from anasymod.vivado import VivadoControl
 
@@ -28,4 +26,4 @@ class VivadoSimulator(Simulator):
         v.println('launch_simulation')
 
         # run the simulation
-        v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_dir)
+        v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename='vivado_sim.tcl')

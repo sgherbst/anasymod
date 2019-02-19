@@ -1,29 +1,24 @@
-import os
-
 from anasymod.templ import JinjaTempl
-from anasymod.util import next_pow_2
 from anasymod.config import EmuConfig
-from anasymod.util import path4vivado
+from anasymod.util import back2fwd
 from anasymod.codegen import CodeGenerator
 from anasymod.probe_config import ProbeConfig
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, cfg: EmuConfig, line_ending='\n'):
-        self.project_dir = path4vivado(cfg.vivado_config.project_root)
-
+    def __init__(self, cfg: EmuConfig):
         self.toggle_reset_template = CodeGenerator()
         self._toggle_reset()
         self.toggle_reset = self.toggle_reset_template.dump()
         self.probe_signals = ProbeConfig(probe_cfg_path=cfg.vivado_config.probe_cfg_path)
 
         # Necessary variables
-        self.bit_file = path4vivado(r"{0}".format(cfg.vivado_config.bitfile_path))
-        self.ltx_file = path4vivado(r"{0}".format(cfg.vivado_config.ltxfile_path))
+        self.bit_file = back2fwd(cfg.vivado_config.bitfile_path)
+        self.ltx_file = back2fwd(cfg.vivado_config.ltxfile_path)
         self.device_name = cfg.fpga_board_config.short_part_name
 
         self.vio_name = cfg.vivado_config.vio_inst_name
         self.ila_name = cfg.vivado_config.ila_inst_name
-        self.output = path4vivado(r"{0}".format(cfg.csv_path))
+        self.output = back2fwd(cfg.csv_path)
         self.ila_reset = cfg.vivado_config.ila_reset
         #tbd remove vio_reset
         self.vio_reset = cfg.vivado_config.vio_reset
@@ -37,9 +32,9 @@ open_hw_target
 
 # Configure files to be programmed
 set my_hw_device [get_hw_devices {{subst.device_name}}*]
-set_property PROGRAM.FILE {{subst.bit_file}} $my_hw_device
-set_property PROBES.FILE {{subst.ltx_file}} $my_hw_device
-set_property FULL_PROBES.FILE {{subst.ltx_file}} $my_hw_device
+set_property PROGRAM.FILE "{{subst.bit_file}}" $my_hw_device
+set_property PROBES.FILE "{{subst.ltx_file}}" $my_hw_device
+set_property FULL_PROBES.FILE "{{subst.ltx_file}}" $my_hw_device
 
 # Program the device
 current_hw_device $my_hw_device
@@ -77,7 +72,7 @@ wait_on_hw_ila $my_hw_ila
 display_hw_ila_data [upload_hw_ila_data $my_hw_ila]
 
 # Write ILA data to a file
-write_hw_ila_data -csv_file -force {{subst.output}} hw_ila_data_1
+write_hw_ila_data -csv_file -force "{{subst.output}}" hw_ila_data_1
 '''
 
     def assign_reset(self, rst_hw_probe, value):
