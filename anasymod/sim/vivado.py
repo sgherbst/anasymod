@@ -14,8 +14,8 @@ class VivadoSimulator(Simulator):
                          force=True)
 
         # add all source files to the project (including header files)
-        v.add_project_contents(sources=self.cfg.sim_verilog_sources,
-                               headers=self.cfg.sim_verilog_headers)
+        v.add_project_contents(sources=self.sources,
+                               headers=self.headers)
 
         # define the top module
         v.set_property('top', f'{{{self.cfg.top_module}}}', '[get_fileset sim_1]')

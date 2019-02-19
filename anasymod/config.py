@@ -13,15 +13,9 @@ class EmuConfig:
         self.filesets = Filesets(root=root)
         self.filesets.read_filesets()
 
-        # source files
-        self.sim_only_verilog_sources = []
-        self.synth_only_verilog_sources = []
-        self.verilog_sources = []
-
-        # header files
-        self.sim_only_verilog_headers = []
-        self.synth_only_verilog_headers = []
-        self.verilog_headers = []
+        # Create attributes for filesets
+        for fileset in self.filesets.fileset_dict.keys():
+            setattr(self, fileset, self.filesets.fileset_dict[fileset])
 
         # build root
         self.build_root = get_full_path('build')
