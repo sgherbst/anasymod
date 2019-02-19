@@ -13,7 +13,6 @@ from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
-from anasymod.filesets import Filesets
 
 def main():
     # parse command line arguments

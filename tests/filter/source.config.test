@@ -4,5 +4,6 @@ verilog_sources =
 sim_only_verilog_headers =
 synth_only_verilog_headers =
 verilog_headers = "../gen.py"
+test_fileset = "../tb.sv"
 
 additional_config_paths = "C:\Inicio\source.config"
