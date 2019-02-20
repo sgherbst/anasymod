@@ -95,11 +95,8 @@ def main():
         build.run_FPGA()
 
         # post-process results
-        try:
-            from anasymod.wave import ConvertWaveform
-            ConvertWaveform(cfg=cfg)
-        except:
-            print('Could not convert emulation results to VCD.')
+        from anasymod.wave import ConvertWaveform
+        ConvertWaveform(cfg=cfg)
 
     # run simulation if desired
     if args.sim or args.preprocess_only:
