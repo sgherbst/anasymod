@@ -9,7 +9,8 @@ setup(
     author_email='gabriel.rutsch@infineon.com, sherbst@stanford.edu, shivani.saravanan@infineon.com',
     packages=['anasymod'],
     install_requires=[
-        'jinja2'
+        'jinja2',
+        'pyvcd'
     ],
     include_package_data=True,
     zip_safe=False,
