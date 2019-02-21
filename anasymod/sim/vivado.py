@@ -19,7 +19,7 @@ class VivadoSimulator(Simulator):
         v.set_property('top', f'{{{self.cfg.top_module}}}', '[get_fileset sim_1]')
 
         # dirty fix set library
-        v.set_property('library', 'ipdb_common_cell_lib', '[get_files C:/Users/tulupov/Documents/ANA_MODEL_FPGA/des_adc/singlecell/src/ipdb_common_cells/*.vhd ]')
+        # v.set_property('library', 'ipdb_common_cell_lib', '[get_files C:/Users/tulupov/Documents/ANA_MODEL_FPGA/des_adc/singlecell/src/ipdb_common_cells/*.vhd ]')
 
         # set define variables
         v.set_property('verilog_define', f"{{{' '.join(self.cfg.sim_verilog_defines)}}}", '[get_fileset sim_1]')
