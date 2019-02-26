@@ -16,6 +16,7 @@ class EmuConfig:
 
         self.filesets = Filesets(root=root, default_filesets=default_filesets)
         self.filesets.read_filesets()
+        self.filesets.create_filesets()
 
         for fileset in self.filesets.fileset_dict.keys():
             setattr(self, fileset, self.filesets.fileset_dict[fileset])
@@ -108,12 +109,12 @@ class MsEmuConfig(EmuConfig):
         super().__init__(*args, **kwargs)
 
         # load msdsl library
-        self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
-        self.verilog_sources.append(get_from_module('msdsl', 'src', '*.sv'))
+        #self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
+        #self.verilog_sources.append(get_from_module('msdsl', 'src', '*.sv'))
 
         # load svreal library
-        self.verilog_sources.append(get_from_module('svreal', 'src', '*.sv'))
-        self.verilog_headers.append(get_from_module('svreal', 'include', '*.sv'))
+        #self.verilog_sources.append(get_from_module('svreal', 'src', '*.sv'))
+        #self.verilog_headers.append(get_from_module('svreal', 'include', '*.sv'))
 
         # simulation options
         self.sim_only_verilog_defines.append('SIMULATION_MODE_MSDSL')

@@ -13,6 +13,7 @@ from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, mkdir_p, rm_rf, get_from_module, which
 from anasymod.util import call
+from anasymod.read_sources import VerilogSource, VerilogHeader, VHDLSource, Sources
 
 def main():
     # parse command line arguments
@@ -38,6 +39,29 @@ def main():
 
     # load configuration data
     cfg = MsEmuConfig(root=args.input)
+
+    # test sources
+    #source_v = []
+    #files_v = []
+
+    #with(open(os.path.join(args.input, r"source.config"), 'r')) as f:
+    #    lines = f.readlines()
+    #    for line in lines:
+    #        if isinstance(eval(line), Sources):
+    #            source_v.append(eval(line))
+
+    #source_v.append(VerilogSource(files=[r"../*.*"], config_path=os.path.join(args.input, 'source.config')))
+    #source_v.append(VerilogSource(files=[r"$VIVADO_INSTALL_PATH\\*.*"], config_path=os.path.join(args.input, 'source.config')))
+    #source_v.append(VerilogSource(files=[r"C:\Users/*/*\*/*_System_Modeling_and_Emulation_10_2018.pptx"], config_path=os.path.join(args.input, 'source.config')))
+
+    #for s in source_v:
+    #    files_v += s.generate()
+
+    #print(source_v)
+    #print(files_v)
+
+
+    # end test sources
 
     # top-level structure
     cfg.sim_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_sim.sv'))
