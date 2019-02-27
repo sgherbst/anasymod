@@ -48,7 +48,6 @@ display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $my_hw_ila]
 # VIO setup
 set my_hw_vio [get_hw_vios]
 set rst_hw_probe [get_hw_probes *rst* -of_objects $my_hw_vio]
-puts $rst_hw_probe
 
 # Trigger setup
 set_property CONTROL.TRIGGER_POSITION 0 $my_hw_ila
