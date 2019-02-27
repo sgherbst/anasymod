@@ -99,7 +99,11 @@ class EmuConfig:
         self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={back2fwd(self.vcd_path)}')
 
     def setup_ila(self):
-        self.ila_depth = int(self.tstop/self.dt)
+        self.ila_depth = 1024
+
+    @property
+    def dec_bits(self):
+        return 8
 
 class MsEmuConfig(EmuConfig):
     def __init__(self, *args, **kwargs):

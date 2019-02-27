@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--emulate', action='store_true')
     parser.add_argument('--preprocess_only', action='store_true')
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--dec_thr_val', type=int, default=0)
 
     args = parser.parse_args()
 
@@ -40,10 +41,14 @@ def main():
     cfg = MsEmuConfig(root=args.input)
 
     # top-level structure
-    cfg.sim_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_sim.sv'))
-    cfg.synth_only_verilog_sources.append(get_from_module('anasymod', 'verilog', 'top_synth.sv'))
+    cfg.verilog_sources.append(get_from_module('anasymod', 'verilog', 'top.sv'))
+    cfg.verilog_sources.append(get_from_module('anasymod', 'verilog', 'clk_gen.sv'))
+    cfg.verilog_sources.append(get_from_module('anasymod', 'verilog', 'vio_gen.sv'))
     cfg.verilog_defines.append('CLK_MSDSL=top.emu_clk')
     cfg.verilog_defines.append('RST_MSDSL=top.emu_rst')
+    cfg.verilog_defines.append('DEC_THR_MSDSL=top.emu_dec_thr')
+    cfg.verilog_defines.append(f'DEC_BITS_MSDSL={cfg.dec_bits}')
+    cfg.sim_only_verilog_defines.append(f'DEC_THR_VAL_MSDSL={args.dec_thr_val}')
 
     # load test-specific configuration
     test_config = json.load(open(os.path.join(args.input, 'config.json'), 'r'))

@@ -5,10 +5,7 @@
 
 `default_nettype none
 
-module tb (
-    input wire logic clk,
-    input wire logic rst
-);
+module tb;
     // signal instantiation
     logic a, b, a_inv, b_inv, a_and_b, a_or_b, a_xor_b;
 
@@ -20,9 +17,7 @@ module tb (
         .b_inv(b_inv),
         .a_and_b(a_and_b),
         .a_or_b(a_or_b),
-        .a_xor_b(a_xor_b),
-        .clk(clk),
-        .rst(rst)
+        .a_xor_b(a_xor_b)
     );
 
     integer i, j;

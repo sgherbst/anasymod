@@ -55,7 +55,8 @@ class VivadoBuild():
         self.v.use_templ(TemplClkWiz(input_freq=self.cfg.fpga_board_config.clk_freq,
                                      output_freqs=[self.cfg.emu_clk_freq, self.cfg.dbg_hub_clk_freq],
                                      ip_dir=self.cfg.vivado_config.ip_dir))
-        self.v.use_templ(TemplVIO(outputs=[VioOutput(width=1)], ip_dir=self.cfg.vivado_config.ip_dir, ip_module_name=self.cfg.vivado_config.vio_name))
+        self.v.use_templ(TemplVIO(outputs=[VioOutput(width=1), VioOutput(width=self.cfg.dec_bits)],
+                                  ip_dir=self.cfg.vivado_config.ip_dir, ip_module_name=self.cfg.vivado_config.vio_name))
 
         # generate all IPs
         self.v.println('generate_target all [get_ips]')
