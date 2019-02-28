@@ -10,11 +10,13 @@ from os import environ as env
 class EmuConfig:
     def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
                  top_module=None, build_root=None):
-        # Initialize filesets
-        self.filesets = Filesets(root=root)
+        # Initialize and create attributes for filesets
+        default_filesets = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources",
+         r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
+
+        self.filesets = Filesets(root=root, default_filesets=default_filesets)
         self.filesets.read_filesets()
 
-        # Create attributes for filesets
         for fileset in self.filesets.fileset_dict.keys():
             setattr(self, fileset, self.filesets.fileset_dict[fileset])
 

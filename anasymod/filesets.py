@@ -1,9 +1,8 @@
 import os
 
 class Filesets():
-    def __init__(self, root):
-        self.default_fileset_names = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources",
-                         r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
+    def __init__(self, root, default_filesets: list):
+        self.default_fileset_names = default_filesets
         self.config_path_key = [r"additional_config_paths"]
 
         self.master_cfg_path = os.path.join(root, r"source.config")
@@ -41,7 +40,7 @@ class Filesets():
                         if not os.path.exists(path):
                             raise ValueError(f"Provided path:{path} of fileset:{key} does not exist")
         else:
-            print(f"No config file existing, skipping to real source files.")
+            print(f"No config file existing, skipping to read source files.")
 
     def _parseconfig(self, cfg: list, cfg_path: str):
         """

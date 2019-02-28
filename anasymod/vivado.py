@@ -47,6 +47,10 @@ class VivadoControl(CodeGenerator):
     def set_property(self, name, value, objects):
         self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
+    def set_vhdl_library(self, files):
+        file_list = '{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }'
+        self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
+
     def run(self, vivado, build_dir, filename=r"run.tcl", nolog=True, nojournal=True):
         # write the TCL script
         tcl_script = os.path.join(build_dir, filename)
