@@ -10,35 +10,17 @@ from os import environ as env
 class EmuConfig:
     def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
                  top_module=None, build_root=None):
-        # Initialize and create attributes for filesets
-        default_filesets = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources",
-         r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
 
-        self.filesets = Filesets(root=root, default_filesets=default_filesets)
-        self.filesets.read_filesets()
-        self.filesets.create_filesets()
-
-        for fileset in self.filesets.fileset_dict.keys():
-            setattr(self, fileset, self.filesets.fileset_dict[fileset])
-
-        # build root
+        # define and create build root
         self.build_root = build_root if build_root is not None else get_full_path('build')
-
-        # definitions
-        self.sim_only_verilog_defines = []
-        self.synth_only_verilog_defines = []
-        self.verilog_defines = []
+        if not os.path.exists(self.build_root):
+            os.mkdir(self.build_root)
 
         # other options
-        self.top_module = top_module if top_module is not None else 'top'
+        # self.top_module = top_module if top_module is not None else 'top'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
-        self.dt = None
-        self.tstop = None
-        self.ila_depth = None
         self.preprocess_only = False
-        self.csv_name = f"{self.top_module}.csv"
-        self.vcd_name = f"{self.top_module}.vcd"
 
         # FPGA board configuration
         self.fpga_board_config = FPGABoardConfig()
@@ -58,66 +40,8 @@ class EmuConfig:
         # Xcelium configuration
         self.xcelium_config = XceliumConfig(parent=self, xrun=xrun)
 
-    @property
-    def sim_verilog_sources(self):
-        return self.verilog_sources + self.sim_only_verilog_sources
-
-    @property
-    def sim_verilog_headers(self):
-        return self.verilog_headers + self.sim_only_verilog_headers
-
-    @property
-    def synth_verilog_sources(self):
-        return self.verilog_sources + self.synth_only_verilog_sources
-
-    @property
-    def synth_verilog_headers(self):
-        return self.verilog_headers + self.synth_only_verilog_headers
-
-    @property
-    def sim_verilog_defines(self):
-        return self.verilog_defines + self.sim_only_verilog_defines
-
-    @property
-    def synth_verilog_defines(self):
-        return self.verilog_defines + self.synth_only_verilog_defines
-
-    @property
-    def vcd_path(self):
-        return os.path.join(self.build_root, self.vcd_name)
-
-    @property
-    def csv_path(self):
-        return os.path.join(self.build_root, self.csv_name)
-
-    def set_dt(self, value):
-        self.dt = value
-        self.verilog_defines.append(f'DT_MSDSL={value}')
-
-    def set_tstop(self, value):
-        self.tstop = value
-        self.verilog_defines.append(f'TSTOP_MSDSL={value}')
-
-    def setup_vcd(self):
-        self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={back2fwd(self.vcd_path)}')
-
     def setup_ila(self):
         self.ila_depth = int(self.tstop/self.dt)
-
-class MsEmuConfig(EmuConfig):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # load msdsl library
-        #self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
-        #self.verilog_sources.append(get_from_module('msdsl', 'src', '*.sv'))
-
-        # load svreal library
-        #self.verilog_sources.append(get_from_module('svreal', 'src', '*.sv'))
-        #self.verilog_headers.append(get_from_module('svreal', 'include', '*.sv'))
-
-        # simulation options
-        self.sim_only_verilog_defines.append('SIMULATION_MODE_MSDSL')
 
 class FPGABoardConfig():
     def __init__(self):

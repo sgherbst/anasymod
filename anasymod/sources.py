@@ -3,16 +3,20 @@ import os
 from glob import glob
 from anasymod.codegen import CodeGenerator
 from anasymod.util import back2fwd
+from typing import Union
 
 class ConfigFileObj(CodeGenerator):
     def __init__(self, files, config_path):
         if isinstance(files, list):
             self.files = files
+        elif isinstance(files, str):
+            self.files = list(files)
         else:
             raise TypeError(f"Type of config_paths variable provided to SubConfig class is not a list, is:{type(files)} instead.")
 
-        # ToDo As soon as test.py is refarctored, the default input variable shall be used as a meaningful input here
+        # ToDo As soon as analysis.py is refarctored, the default input variable shall be used as a meaningful input here
         self.config_path = config_path
+        self.expand_paths()
 
     def expand_paths(self):
         """
@@ -35,9 +39,8 @@ class ConfigFileObj(CodeGenerator):
         self.files = [file for p in abs_paths for file in glob(p)]
 
 class SubConfig(ConfigFileObj):
-    def __init__(self, files, config_path=None):
+    def __init__(self, files: Union[list, str], config_path=None):
         super().__init__(files=files, config_path=config_path)
-        self.expand_paths()
 
 class Sources(ConfigFileObj):
     def __init__(self, files: list, fileset, config_path):
@@ -51,16 +54,15 @@ class Sources(ConfigFileObj):
         self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
 class VerilogSource(Sources):
-    def __init__(self, files: list, fileset=r"all", config_path=None):
+    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
 
     def generate(self):
-        self.expand_paths()
         self.text = self.files
         return self.dump()
 
 class VerilogHeader(Sources):
-    def __init__(self, files: list, fileset=r"all", config_path=None):
+    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
 
     def set_header_files(self):
@@ -68,11 +70,10 @@ class VerilogHeader(Sources):
         self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
 
     def generate(self):
-        self.expand_paths()
         self.dump()
 
 class VHDLSource(Sources):
-    def __init__(self, files: list, library=None, fileset=r"all", config_path=None):
+    def __init__(self, files: Union[list, str], library=None, fileset=r"default", config_path=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
         self.library = library
 
@@ -81,5 +82,5 @@ class VHDLSource(Sources):
         self.set_property('library', value=self.library, objects=f'[get_files {file_list}]')
 
     def generate(self):
-        self.expand_paths()
         self.dump()
+
