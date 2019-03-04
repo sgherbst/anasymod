@@ -15,9 +15,10 @@ from anasymod.files import get_full_path, get_from_module
 from anasymod.sources import VerilogSource, VerilogHeader, VHDLSource, Sources
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
-from anasymod.targets import SimulationTarget, FPGATarget
+from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.enums import ConfigSections
 from anasymod.plugins import Plugin, MSDSL_Plugin
+from anasymod.files import mkdir_p
 
 class Analysis():
     """
@@ -37,10 +38,10 @@ class Analysis():
 
         # Load config file
         try:
-            self.cfg_file = json.load(open(os.path.join(self.args.input, 'config.json'), 'r'))
+            self.cfg_file = json.load(open(os.path.join(self.args.input, 'prj_config.json'), 'r'))
         except:
-            self.cfg_file = {}
-            print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'config.json')}")
+            self.cfg_file = None
+            print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'prj_config.json')}")
 
         # Initialize Plugins
         self._plugins = []
@@ -78,11 +79,14 @@ class Analysis():
 
         # run simulation if desired
         if self.args.sim or self.args.preprocess_only:
-            self.simulate(target=self.args.sim_target)
+            self.simulate(target=getattr(self, self.args.sim_target))
 
         # view results if desired
-        if self.args.view:
-            self.view()
+        if self.args.view and (self.args.sim or self.args.preprocess_only):
+            self.view(target=getattr(self, self.args.sim_target))
+
+        if self.args.view and self.args.emulate:
+            self.view(target=getattr(self, self.args.fpga_target))
 
 ##### Functions exposed for user to exercise on Analysis Object
 
@@ -113,6 +117,10 @@ class Analysis():
         Run simulation on a pc target.
         """
 
+        # create sim result folder
+        if not os.path.exists(os.path.dirname(target.cfg['vcd_path'])):
+            mkdir_p(os.path.dirname(target.cfg['vcd_path']))
+
         # pick simulator
         sim_cls = {
             'icarus': IcarusSimulator,
@@ -124,7 +132,7 @@ class Analysis():
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
 
-    def view(self):
+    def view(self, target: Target):
         """
         View results from selected target run.
         """
@@ -140,7 +148,7 @@ class Analysis():
         self.cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
-        viewer = viewer_cls(self.cfg)
+        viewer = viewer_cls(cfg=self.cfg, target=target)
         viewer.view()
 
 ##### Utility Functions
@@ -163,7 +171,7 @@ class Analysis():
         parser.add_argument('--emulate', action='store_true')
         parser.add_argument('--preprocess_only', action='store_true')
 
-        self.args = parser.parse_args()
+        self.args, _ = parser.parse_known_args()
 
     def _setup_filesets(self):
         """
@@ -181,7 +189,9 @@ class Analysis():
         # Add Defines and Sources from plugins
         for plugin in self._plugins:
             self.filesets._defines += plugin.dump_defines()
-            self.filesets._sources += plugin.dump_sources()
+            self.filesets._verilog_sources += plugin.dump_verilog_sources()
+            self.filesets._verilog_headers += plugin.dump_verilog_headers()
+            self.filesets._vhdl_sources += plugin.dump_vhdl_sources()
 
         # Add custom source and define objects here e.g.:
         # self.filesets.add_source(source=VerilogSource())
@@ -210,23 +220,26 @@ class Analysis():
         #######################################################
         # Create and setup simulation target
         #######################################################
-        self.sim_target = SimulationTarget(prj_cfg=self.cfg, name=r"sim")
-        self.sim_target.assign_fileset(fileset=filesets['default'])
-        self.sim_target.assign_fileset(fileset=filesets['sim'])
+        self.sim = SimulationTarget(prj_cfg=self.cfg, name=r"sim")
+        self.sim.assign_fileset(fileset=filesets['default'])
+        self.sim.assign_fileset(fileset=filesets['sim'])
 
         # Update simulation target specific configuration
         # manual update would be: self.sim_target.cfg[key] = value
-        self.sim_target.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"sim"))
+        self.sim.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"sim"))
+        self.sim.set_tstop()
+        self.sim.setup_vcd()
 
         #######################################################
         # Create and setup FPGA target
         #######################################################
-        self.fpga_target = FPGATarget(prj_cfg=self.cfg, name=r"fpga")
-        self.fpga_target.assign_fileset(fileset=filesets['default'])
-        self.fpga_target.assign_fileset(fileset=filesets['fpga'])
+        self.fpga = FPGATarget(prj_cfg=self.cfg, name=r"fpga")
+        self.fpga.assign_fileset(fileset=filesets['default'])
+        self.fpga.assign_fileset(fileset=filesets['fpga'])
 
         # Update simulation target specific configuration
-        self.sim_target.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
+        self.fpga.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
+        self.fpga.set_tstop()
 
     def _read_config(self, cfg_file, section, subsection=None):
         """
@@ -235,13 +248,14 @@ class Analysis():
         :param section: section to use from config file
         :param subsection: subsection to use from config file
         """
-        if isinstance(section, ConfigSections):
-            if subsection is not None:
-                return cfg_file[section].get(subsection)
+        if cfg_file is not None:
+            if section in ConfigSections.__dict__.keys():
+                if subsection is not None:
+                    return cfg_file[section].get(subsection)
+                else:
+                    return cfg_file.get(section)
             else:
-                return cfg_file.get(section)
-        else:
-            raise KeyError(f"provided section key:{section} is not supported")
+                raise KeyError(f"provided section key:{section} is not supported")
 
 if __name__ == '__main__':
     analysis = Analysis()

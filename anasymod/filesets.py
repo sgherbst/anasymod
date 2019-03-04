@@ -101,13 +101,19 @@ class Filesets():
         # Read in vhdlsource objects to fileset dict
         self._add_to_fileset_dict(name='vhdl_sources', container=self._vhdl_sources)
 
+        # Read in define objects to fileset dict
+        self._add_to_fileset_dict(name='defines', container=self._defines)
+
     def _add_to_fileset_dict(self, name, container):
         """
         Adds a specified attribute to the fileset_dict, e.g. add the verilog sources or defines.
         """
         for item in container:
             if item.fileset in self.fileset_dict.keys():
-                self.fileset_dict[item.fileset][name].append(item)
+                if name in self.fileset_dict[item.fileset]:
+                    self.fileset_dict[item.fileset][name].append(item)
+                else:
+                    self.fileset_dict[item.fileset][name] = [item]
             else:
                 print(f"Custom fileset was added:{item.fileset}")
                 self.fileset_dict[item.fileset] = {}

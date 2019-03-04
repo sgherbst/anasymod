@@ -7,14 +7,14 @@ from typing import Union
 
 class ConfigFileObj(CodeGenerator):
     def __init__(self, files, config_path):
+        super().__init__()
         if isinstance(files, list):
             self.files = files
         elif isinstance(files, str):
-            self.files = list(files)
+            self.files = [files]
         else:
             raise TypeError(f"Type of config_paths variable provided to SubConfig class is not a list, is:{type(files)} instead.")
 
-        # ToDo As soon as analysis.py is refarctored, the default input variable shall be used as a meaningful input here
         self.config_path = config_path
         self.expand_paths()
 

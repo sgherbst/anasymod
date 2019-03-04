@@ -15,15 +15,28 @@ class Plugin():
         self._srccfg_path = os.path.join(self._prj_root, r"source.config")
         self._name = name
         self._defines = []
-        self._sources = []
+        self._verilog_sources = []
+        """:type : List[VerilogSource]"""
+
+        self._verilog_headers = []
+        """:type : List[VerilogHeader]"""
+
+        self._vhdl_sources = []
+        """:type : List[VHDLSource]"""
 
         self.cfg = {}
 
     def dump_defines(self):
         return self._defines
 
-    def dump_sources(self):
-        return self._sources
+    def dump_verilog_sources(self):
+        return self._verilog_sources
+
+    def dump_verilog_headers(self):
+        return self._verilog_headers
+
+    def dump_vhdl_sources(self):
+        return self._vhdl_sources
 
     def update_config(self, config_section: dict=None):
         if config_section is not None:
@@ -40,16 +53,22 @@ class Plugin():
         :param section: section to use from config file
         :param subsection: subsection to use from config file
         """
-        if isinstance(section, ConfigSections):
-            if subsection is not None:
-                return cfg_file[section].get(subsection)
+        if cfg_file is not None:
+            if section in ConfigSections.__dict__.keys():
+                if subsection is not None:
+                    return cfg_file[section].get(subsection)
+                else:
+                    return cfg_file.get(section)
             else:
-                return cfg_file.get(section)
-        else:
-            raise KeyError(f"provided section key:{section} is not supported")
+                raise KeyError(f"provided section key:{section} is not supported")
 
     def add_source(self, source: Sources):
-        self._sources.append(source)
+        if isinstance(source, VerilogSource):
+            self._verilog_sources.append(source)
+        if isinstance(source, VerilogHeader):
+            self._verilog_headers.append(source)
+        if isinstance(source, VHDLSource):
+            self._vhdl_sources.append(source)
 
     def add_define(self, define: Define):
         self._defines.append(define)
@@ -99,7 +118,7 @@ class MSDSL_Plugin(Plugin):
             mkdir_p(self.cfg['model_dir'])
 
             # run generator script
-            gen_script = os.path.join(self.args.input, 'gen.py')
+            gen_script = os.path.join(self._prj_root, 'gen.py')
             call([which('python'), gen_script, '-o', self.cfg['model_dir']])
 
 
@@ -139,4 +158,4 @@ class MSDSL_Plugin(Plugin):
         parser.add_argument('--add_saturation', action='store_true')
         parser.add_argument('--models', action='store_true')
 
-        self.args = parser.parse_args()
+        self.args, _ = parser.parse_known_args()

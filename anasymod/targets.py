@@ -11,24 +11,21 @@ class Target():
 
     Attributes:
         _name               Target name
-        _verilog_sources    List of verilog source objects associated with target
-        _verilog_headers    List of verilog header objects associated with target
-        _vhdl_sources       List of vhdl source objects associated with target
-        _defines            List of define objects associated with target
+        content    Dict of Lists of source and define objects associated with target
     """
     def __init__(self, prj_cfg, name):
         self._prj_cfg = prj_cfg
         self._name = name
-        self._verilog_sources = []
+
+        # Initialize content dict  to store design sources and defines
+        self.content = {}
+        self.content['verilog_sources'] = []
         """:type : List[VerilogSource]"""
-
-        self._verilog_headers = []
+        self.content['verilog_headers'] = []
         """:type : List[VerilogHeader]"""
-
-        self._vhdl_sources = []
+        self.content['vhdl_sources'] = []
         """:type : List[VHDLSource]"""
-
-        self._defines = []
+        self.content['defines'] = []
         """:type : List[Define]"""
 
         # Initialize target_config
@@ -42,7 +39,7 @@ class Target():
         """
         Add define statement to specify tstop
         """
-        self._defines.append(Define(name='TSTOP_MSDSL', value=self.cfg['tstop']))
+        self.content['defines'].append(Define(name='TSTOP_MSDSL', value=self.cfg['tstop']))
 
     def assign_fileset(self, fileset: dict):
         """
@@ -52,10 +49,8 @@ class Target():
         :type fileset: dict
         """
 
-        self._verilog_sources += fileset['verilog_sources']
-        self._verilog_headers += fileset['verilog_headers']
-        self._vhdl_sources += fileset['vhdl_sources']
-        self._defines += fileset['defines']
+        for k in fileset.keys():
+            self.content[k] += fileset[k]
 
     def update_config(self, config_section: dict=None):
         if config_section is not None:
@@ -70,7 +65,7 @@ class SimulationTarget(Target):
         super().__init__(prj_cfg=prj_cfg, name=name)
 
     def setup_vcd(self):
-        self._defines.append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg['vcd_path'])))
+        self.content['defines'].append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg['vcd_path'])))
 
 class FPGATarget(Target):
     """
@@ -78,7 +73,7 @@ class FPGATarget(Target):
     Attributes:
         _ip_cores        List of ip_core objects associated with target, those will generated during the build process
     """
-    def __init__(self, prj_cfg: MsEmuConfig, name=r"fpga"):
+    def __init__(self, prj_cfg: EmuConfig, name=r"fpga"):
         super().__init__(prj_cfg=prj_cfg, name=name)
         self._ip_cores = []
 
