@@ -60,6 +60,10 @@ class Target():
                 else:
                     print(f"Warning: During target config update; provided config key: {k} in target: {self._name} does not exist")
 
+    @property
+    def project_root(self):
+        return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
+
 class SimulationTarget(Target):
     def __init__(self, prj_cfg: EmuConfig, name=r"sim"):
         super().__init__(prj_cfg=prj_cfg, name=name)
@@ -81,10 +85,6 @@ class FPGATarget(Target):
         self.cfg['csv_path'] = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg['csv_name'])
 
         # ToDo: move these paths to toolchain specific config, which shall be instantiated in the target class
-
-    @property
-    def project_root(self):
-        return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
 
     @property
     def probe_cfg_path(self):

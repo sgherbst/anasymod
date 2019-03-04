@@ -7,7 +7,7 @@ from anasymod.targets import FPGATarget
 
 class TemplPROBE_EXTRACT(JinjaTempl):
     def __init__(self, cfg: EmuConfig, target: FPGATarget):
-        self.project_dir = back2fwd(cfg.vivado_config.project_root)
+        self.project_dir = back2fwd(target.project_root)
         self.dcp_path = back2fwd(os.path.join(self.project_dir, cfg.vivado_config.project_name + r".runs", r"synth_1", target.cfg['top_module'] + r".dcp"))
 
     TEMPLATE_TEXT = '''

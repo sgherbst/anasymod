@@ -26,7 +26,7 @@ class VivadoBuild():
     def build(self):
         # create a new project
         self.v.create_project(project_name=self.cfg.vivado_config.project_name,
-                              project_directory=self.cfg.vivado_config.project_root,
+                              project_directory=self.target.project_root,
                               full_part_name=self.cfg.fpga_board_config.full_part_name,
                               force=True)
 
@@ -37,7 +37,7 @@ class VivadoBuild():
         self.v.set_property('top', f"{{{self.target.cfg['top_module']}}}", '[current_fileset]')
 
         # set define variables
-        self.v.add_project_defines(content=self.target.content)
+        self.v.add_project_defines(content=self.target.content, fileset='[current_fileset]')
         #self.v.set_property('verilog_define', f"{{{' '.join(self.cfg.synth_verilog_defines)}}}", '[current_fileset]')
 
         # write constraints to file
@@ -56,9 +56,9 @@ class VivadoBuild():
         # generate the IP blocks
         self.v.use_templ(TemplClkWiz(input_freq=self.cfg.fpga_board_config.clk_freq,
                                      output_freqs=[self.cfg.emu_clk_freq, self.cfg.dbg_hub_clk_freq],
-                                     ip_dir=self.cfg.vivado_config.ip_dir))
+                                     ip_dir=self.target.ip_dir))
         self.v.use_templ(TemplVIO(outputs=[VioOutput(width=1), VioOutput(width=self.cfg.dec_bits)],
-                                  ip_dir=self.cfg.vivado_config.ip_dir, ip_module_name=self.cfg.vivado_config.vio_name))
+                                  ip_dir=self.target.ip_dir, ip_module_name=self.cfg.vivado_config.vio_name))
 
         # generate all IPs
         self.v.println('generate_target all [get_ips]')
@@ -75,13 +75,13 @@ class VivadoBuild():
 
         # append const file with ILA according to extracted probes
         constrs.read_from_file(cpath)
-        constrs.use_templ(TemplILA(probe_cfg_path=self.cfg.vivado_config.probe_cfg_path, inst_name=self.cfg.vivado_config.ila_inst_name))
+        constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, inst_name=self.cfg.vivado_config.ila_inst_name))
 
         constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.cfg.dbg_hub_clk_freq))
         constrs.write_to_file(cpath)
 
         # Open project
-        project_path = os.path.join(self.cfg.vivado_config.project_root, self.cfg.vivado_config.project_name + '.xpr')
+        project_path = os.path.join(self.target.project_root, self.cfg.vivado_config.project_name + '.xpr')
         self.v.println(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish

@@ -52,7 +52,7 @@ class VivadoControl(CodeGenerator):
             file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
             self.set_property('library', '"' + src.library + '"', f'[get_files {file_list}]')
 
-    def add_project_defines(self, content):
+    def add_project_defines(self, content, fileset):
         """
         Add defines to project.
         :param content: List of dicts that store all target specific source and define objects.
@@ -65,7 +65,7 @@ class VivadoControl(CodeGenerator):
                 else:
                     define_list.append(f"{k}")
 
-        self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", '[current_fileset]')
+        self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", fileset)
 
     def add_files(self, files, norecurse=True, fileset=None):
         cmd = ['add_files']
@@ -78,12 +78,6 @@ class VivadoControl(CodeGenerator):
 
     def set_property(self, name, value, objects):
         self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
-
-    def set_vhdl_library(self, files):
-        file_list = '{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }'
-        self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
-        # dirty fix set library
-        self.set_property('library', 'ipdb_common_cell_lib', '[get_files C:/Users/tulupov/Documents/ANA_MODEL_FPGA/des_adc/singlecell/src/ipdb_common_cells/*.vhd ]')
 
     def run(self, vivado, build_dir, filename=r"run.tcl", nolog=True, nojournal=True):
         # write the TCL script

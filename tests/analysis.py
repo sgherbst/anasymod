@@ -206,10 +206,12 @@ class Analysis():
         # self.filesets.add_define(define=Define())
         config_path = os.path.join(self.args.input, 'source.config')
 
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'top_sim.sv'), fileset='sim', config_path=config_path))
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'top_synth.sv'), fileset='fpga', config_path=config_path))
+        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', '*.sv'), fileset='default', config_path=config_path))
+        #self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'top_synth.sv'), fileset='fpga', config_path=config_path))
+
         self.filesets.add_define(define=Define(name='CLK_MSDSL', value='top.emu_clk'))
         self.filesets.add_define(define=Define(name='RST_MSDSL', value='top.emu_rst'))
+        self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value='top.emu_dec_thr'))
 
         self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path))
 
@@ -230,7 +232,8 @@ class Analysis():
         #######################################################
         self.sim = SimulationTarget(prj_cfg=self.cfg, name=r"sim")
         self.sim.assign_fileset(fileset=filesets['default'])
-        self.sim.assign_fileset(fileset=filesets['sim'])
+        if 'sim' in filesets:
+            self.sim.assign_fileset(fileset=filesets['sim'])
 
         # Update simulation target specific configuration
         # manual update would be: self.sim_target.cfg[key] = value
@@ -243,7 +246,8 @@ class Analysis():
         #######################################################
         self.fpga = FPGATarget(prj_cfg=self.cfg, name=r"fpga")
         self.fpga.assign_fileset(fileset=filesets['default'])
-        self.fpga.assign_fileset(fileset=filesets['fpga'])
+        if 'fpga' in filesets:
+            self.fpga.assign_fileset(fileset=filesets['fpga'])
 
         # Update simulation target specific configuration
         self.fpga.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
