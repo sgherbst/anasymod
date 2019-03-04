@@ -65,7 +65,7 @@ class VivadoControl(CodeGenerator):
                 else:
                     define_list.append(f"{k}")
 
-        self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", '[get_fileset sim_1]')
+        self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", '[current_fileset]')
 
     def add_files(self, files, norecurse=True, fileset=None):
         cmd = ['add_files']

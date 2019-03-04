@@ -8,8 +8,7 @@ from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
-                 top_module=None, build_root=None):
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
 
         # define and create build root
         self.build_root = build_root if build_root is not None else get_full_path('build')
@@ -76,26 +75,6 @@ class VivadoConfig():
         if self._vivado is None:
             self._vivado = find_tool(name='vivado', hints=self.hints)
         return self._vivado
-
-    @property
-    def project_root(self):
-        return os.path.join(self.parent.build_root, self.project_name)
-
-    @property
-    def probe_cfg_path(self):
-        return os.path.join(self.project_root, 'probe_config.txt')
-
-    @property
-    def bitfile_path(self):
-        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.bit')
-
-    @property
-    def ltxfile_path(self):
-        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.ltx')
-
-    @property
-    def ip_dir(self):
-        return os.path.join(self.project_root, f'{self.project_name}.srcs', 'sources_1', 'ip')
 
 class XceliumConfig():
     def __init__(self, parent: EmuConfig, xrun):

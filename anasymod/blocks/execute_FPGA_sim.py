@@ -3,22 +3,23 @@ from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 from anasymod.codegen import CodeGenerator
 from anasymod.probe_config import ProbeConfig
+from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, cfg: EmuConfig):
+    def __init__(self, cfg: EmuConfig, target: FPGATarget):
         self.toggle_reset_template = CodeGenerator()
         self._toggle_reset()
         self.toggle_reset = self.toggle_reset_template.dump()
-        self.probe_signals = ProbeConfig(probe_cfg_path=cfg.vivado_config.probe_cfg_path)
+        self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
         # Necessary variables
-        self.bit_file = back2fwd(cfg.vivado_config.bitfile_path)
-        self.ltx_file = back2fwd(cfg.vivado_config.ltxfile_path)
+        self.bit_file = back2fwd(target.bitfile_path)
+        self.ltx_file = back2fwd(target.ltxfile_path)
         self.device_name = cfg.fpga_board_config.short_part_name
 
         self.vio_name = cfg.vivado_config.vio_inst_name
         self.ila_name = cfg.vivado_config.ila_inst_name
-        self.output = back2fwd(cfg.csv_path)
+        self.output = back2fwd(target.cfg['csv_path'])
         self.ila_reset = cfg.vivado_config.ila_reset
         #tbd remove vio_reset
         self.vio_reset = cfg.vivado_config.vio_reset

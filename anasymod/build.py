@@ -74,8 +74,7 @@ class VivadoBuild():
 
         # append const file with ILA according to extracted probes
         constrs.read_from_file(cpath)
-        constrs.use_templ(TemplILA(probe_cfg_path=self.cfg.vivado_config.probe_cfg_path,
-                                   depth=self.cfg.ila_depth, inst_name=self.cfg.vivado_config.ila_inst_name))
+        constrs.use_templ(TemplILA(probe_cfg_path=self.cfg.vivado_config.probe_cfg_path, inst_name=self.cfg.vivado_config.ila_inst_name))
 
         constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.cfg.dbg_hub_clk_freq))
         constrs.write_to_file(cpath)
@@ -95,5 +94,5 @@ class VivadoBuild():
         self.v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename=r"bitstream.tcl")
 
     def run_FPGA(self):
-        self.v.use_templ(TemplEXECUTE_FPGA_SIM(cfg=self.cfg))
+        self.v.use_templ(TemplEXECUTE_FPGA_SIM(cfg=self.cfg, target=self.target))
         self.v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename=r"run_FPGA.tcl")

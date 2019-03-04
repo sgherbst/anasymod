@@ -13,8 +13,8 @@ class Target():
         _name               Target name
         content    Dict of Lists of source and define objects associated with target
     """
-    def __init__(self, prj_cfg, name):
-        self._prj_cfg = prj_cfg
+    def __init__(self, prj_cfg: EmuConfig, name):
+        self.prj_cfg = prj_cfg
         self._name = name
 
         # Initialize content dict  to store design sources and defines
@@ -33,7 +33,7 @@ class Target():
         self.cfg['tstop'] = 1e-05
         self.cfg['top_module'] = 'top'
         self.cfg['vcd_name'] = f"{self.cfg['top_module']}_{self._name}.vcd"
-        self.cfg['vcd_path'] = os.path.join(self._prj_cfg.build_root, r"vcd", self.cfg['vcd_name'])
+        self.cfg['vcd_path'] = os.path.join(self.prj_cfg.build_root, r"vcd", self.cfg['vcd_name'])
 
     def set_tstop(self):
         """
@@ -78,5 +78,29 @@ class FPGATarget(Target):
         self._ip_cores = []
 
         self.cfg['csv_name'] = f"{self.cfg['top_module']}_{self._name}.csv"
-        self.cfg['csv_path'] = os.path.join(self._prj_cfg.build_root, r"csv", self.cfg['csv_name'])
+        self.cfg['csv_path'] = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg['csv_name'])
+
+        # ToDo: move these paths to toolchain specific config, which shall be instantiated in the target class
+
+    @property
+    def project_root(self):
+        return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
+
+    @property
+    def probe_cfg_path(self):
+        return os.path.join(self.project_root, 'probe_config.txt')
+
+    @property
+    def bitfile_path(self):
+        return os.path.join(self.project_root, f'{self.prj_cfg.vivado_config.project_name}.runs', 'impl_1',
+                            f"{self.cfg['top_module']}.bit")
+
+    @property
+    def ltxfile_path(self):
+        return os.path.join(self.project_root, f'{self.prj_cfg.vivado_config.project_name}.runs', 'impl_1',
+                            f"{self.cfg['top_module']}.ltx")
+
+    @property
+    def ip_dir(self):
+        return os.path.join(self.project_root, f'{self.prj_cfg.vivado_config.project_name}.srcs', 'sources_1', 'ip')
 

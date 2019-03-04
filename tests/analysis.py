@@ -101,6 +101,14 @@ class Analysis():
         """
         Run bitstream on FPGA
         """
+
+        # create sim result folders
+        if not os.path.exists(os.path.dirname(target.cfg['vcd_path'])):
+            mkdir_p(os.path.dirname(target.cfg['vcd_path']))
+
+        if not os.path.exists(os.path.dirname(target.cfg['csv_path'])):
+            mkdir_p(os.path.dirname(target.cfg['csv_path']))
+
         # create VivadoBuild object if necessary (this does not actually build the design)
         if r"build" not in locals():
             build = VivadoBuild(cfg=self.cfg, target=target)
@@ -110,7 +118,7 @@ class Analysis():
 
         # post-process results
         from anasymod.wave import ConvertWaveform
-        ConvertWaveform(cfg=self.cfg)
+        ConvertWaveform(cfg=self.cfg, target=target)
 
     def simulate(self, target: SimulationTarget):
         """
