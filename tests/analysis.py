@@ -206,8 +206,7 @@ class Analysis():
         # self.filesets.add_define(define=Define())
         config_path = os.path.join(self.args.input, 'source.config')
 
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', '*.sv'), fileset='default', config_path=config_path))
-        #self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'top_synth.sv'), fileset='fpga', config_path=config_path))
+        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', '*.sv'), config_path=config_path))
 
         self.filesets.add_define(define=Define(name='CLK_MSDSL', value='top.emu_clk'))
         self.filesets.add_define(define=Define(name='RST_MSDSL', value='top.emu_rst'))
