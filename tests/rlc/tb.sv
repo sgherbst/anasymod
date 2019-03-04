@@ -9,10 +9,7 @@
 
 `default_nettype none
 
-module tb (
-    input wire logic clk,
-    input wire logic rst
-);
+module tb;
     // input is voltage square wave
     `PWM(0.50, 1e6, in_dig);
     `MAKE_CONST_REAL(+1.0, in_hi);
@@ -28,9 +25,7 @@ module tb (
         `PASS_REAL(v_out, v_out)
     ) filter_i (
         .v_in(v_in),
-        .v_out(v_out),
-        .clk(clk),
-        .rst(rst)
+        .v_out(v_out)
     );
 
     // emulation output

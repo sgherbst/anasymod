@@ -15,9 +15,18 @@ class TemplILA(JinjaTempl):
         self.conn_ila_clk = ila_clk
 
         self.ila_prop = {}
-        self.ila_prop['C_INPUT_PIPE_STAGES'] = '1'
-        self.ila_prop['ALL_PROBE_SAME_MU_CNT'] = '1'
+
+        # set the number samples per signal
         self.ila_prop['C_DATA_DEPTH'] = str(depth)
+
+        # add a pipelined input to reduce burden on timing closure
+        self.ila_prop['C_INPUT_PIPE_STAGES'] = '1'
+
+        # enable capture control
+        self.ila_prop['C_EN_STRG_QUAL'] = 'true'
+
+        # two comparators per probe are recommended when using capture control (per UG908, p 40)
+        self.ila_prop['ALL_PROBE_SAME_MU_CNT'] = '2'
 
         # specify all signals to be probed
         self.probe_cfg = ProbeConfig(probe_cfg_path=probe_cfg_path)

@@ -9,10 +9,7 @@
 
 `default_nettype none
 
-module tb (
-    input wire logic clk,
-    input wire logic rst
-);
+module tb;
     // input is voltage square wave
 
     // compute carrier
@@ -37,9 +34,7 @@ module tb (
         .tx_recv(tx_recv),
         .rx_recv(rx_recv),
         .tx_clk(tx_clk),
-        .rx_clk(rx_clk),
-        .clk(clk),
-        .rst(rst)
+        .rx_clk(rx_clk)
     );
 
     // simulation output

@@ -40,7 +40,11 @@ class EmuConfig:
         self.xcelium_config = XceliumConfig(parent=self, xrun=xrun)
 
     def setup_ila(self):
-        self.ila_depth = int(self.tstop/self.dt)
+        self.ila_depth = 1024
+
+    @property
+    def dec_bits(self):
+        return 8
 
 class FPGABoardConfig():
     def __init__(self):

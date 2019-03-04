@@ -9,10 +9,7 @@
 
 `default_nettype none
 
-module tb (
-    input wire logic clk,
-    input wire logic rst
-);
+module tb;
     // I/O definition
     `MAKE_CONST_REAL(1.0, v_in);
     `MAKE_REAL(v_out, 1.5);
@@ -27,9 +24,7 @@ module tb (
     ) filter_i (
         .v_in(v_in),
         .v_out(v_out),
-        .ctrl(ctrl),
-        .clk(clk),
-        .rst(rst)
+        .ctrl(ctrl)
     );
 
     // emulation output
