@@ -12,11 +12,13 @@ from anasymod.blocks.clk_wiz import TemplClkWiz
 from anasymod.blocks.vio import TemplVIO, VioOutput
 from anasymod.blocks.probe_extract import TemplPROBE_EXTRACT
 from anasymod.blocks.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
+from anasymod.targets import FPGATarget
 
 class VivadoBuild():
-    def __init__(self, cfg: EmuConfig):
+    def __init__(self, cfg: EmuConfig, target: FPGATarget):
         # save settings
         self.cfg = cfg
+        self.target = target
 
         # TCL generators
         self.v = VivadoControl()
@@ -29,14 +31,14 @@ class VivadoBuild():
                               force=True)
 
         # add all source files to the project (including header files)
-        self.v.add_project_contents(sources=self.cfg.synth_verilog_sources,
-                                    headers=self.cfg.synth_verilog_headers)
+        self.v.add_project_sources(content=self.target.content)
 
         # define the top module
-        self.v.set_property('top', f'{{{self.cfg.top_module}}}', '[current_fileset]')
+        self.v.set_property('top', f"{{{self.target.cfg['top_module']}}}", '[current_fileset]')
 
         # set define variables
-        self.v.set_property('verilog_define', f"{{{' '.join(self.cfg.synth_verilog_defines)}}}", '[current_fileset]')
+        self.v.add_project_defines(content=self.target.content)
+        #self.v.set_property('verilog_define', f"{{{' '.join(self.cfg.synth_verilog_defines)}}}", '[current_fileset]')
 
         # write constraints to file
         constrs = CodeGenerator()
@@ -66,7 +68,7 @@ class VivadoBuild():
         self.v.println('wait_on_run synth_1')
 
         # extact probes from design
-        self.v.use_templ(TemplPROBE_EXTRACT(cfg=self.cfg))
+        self.v.use_templ(TemplPROBE_EXTRACT(cfg=self.cfg, target=self.target))
 
         self.v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename=r"synthesis.tcl")
 

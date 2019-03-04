@@ -71,11 +71,11 @@ class Analysis():
 
         # generate bitstream
         if self.args.build:
-            self.build()
+            self.build(target=getattr(self, self.args.fpga_target))
 
         # run FPGA if desired
         if self.args.emulate:
-            self.emulate()
+            self.emulate(target=getattr(self, self.args.fpga_target))
 
         # run simulation if desired
         if self.args.sim or self.args.preprocess_only:
@@ -90,20 +90,20 @@ class Analysis():
 
 ##### Functions exposed for user to exercise on Analysis Object
 
-    def build(self):
+    def build(self, target: FPGATarget):
         """
         Generate bitstream for FPGA target
         """
-        build = VivadoBuild(self.cfg)
+        build = VivadoBuild(cfg=self.cfg, target=target)
         build.build()
 
-    def emulate(self):
+    def emulate(self, target: FPGATarget):
         """
         Run bitstream on FPGA
         """
         # create VivadoBuild object if necessary (this does not actually build the design)
         if r"build" not in locals():
-            build = VivadoBuild(self.cfg)
+            build = VivadoBuild(cfg=self.cfg, target=target)
 
         # run the emulation
         build.run_FPGA()
