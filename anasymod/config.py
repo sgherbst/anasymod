@@ -8,20 +8,17 @@ from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
-        # Initialize filesets
-        self.filesets = Filesets(root=root)
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
+                 top_module=None, build_root=None):
+        # Initialize and create attributes for filesets
+        default_filesets = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources",
+         r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
+
+        self.filesets = Filesets(root=root, default_filesets=default_filesets)
         self.filesets.read_filesets()
 
-        # source files
-        self.sim_only_verilog_sources = []
-        self.synth_only_verilog_sources = []
-        self.verilog_sources = []
-
-        # header files
-        self.sim_only_verilog_headers = []
-        self.synth_only_verilog_headers = []
-        self.verilog_headers = []
+        for fileset in self.filesets.fileset_dict.keys():
+            setattr(self, fileset, self.filesets.fileset_dict[fileset])
 
         # build root
         self.build_root = build_root if build_root is not None else get_full_path('build')
@@ -32,7 +29,7 @@ class EmuConfig:
         self.verilog_defines = []
 
         # other options
-        self.top_module = 'top'
+        self.top_module = top_module if top_module is not None else 'top'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
         self.dt = None
@@ -104,7 +101,11 @@ class EmuConfig:
         self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={back2fwd(self.vcd_path)}')
 
     def setup_ila(self):
-        self.ila_depth = int(self.tstop/self.dt)
+        self.ila_depth = 1024
+
+    @property
+    def dec_bits(self):
+        return 8
 
 class MsEmuConfig(EmuConfig):
     def __init__(self, *args, **kwargs):

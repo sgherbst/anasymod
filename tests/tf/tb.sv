@@ -9,10 +9,7 @@
 
 `default_nettype none
 
-module tb (
-    input wire logic clk,
-    input wire logic rst
-);
+module tb;
     // input is a fixed value
     `MAKE_CONST_REAL(1.0, v_in);
 
@@ -25,9 +22,7 @@ module tb (
         `PASS_REAL(v_out, v_out)
     ) filter_i (
         .v_in(v_in),
-        .v_out(v_out),
-        .clk(clk),
-        .rst(rst)
+        .v_out(v_out)
     );
 
     // simulation output

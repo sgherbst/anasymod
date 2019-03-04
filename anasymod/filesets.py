@@ -1,16 +1,15 @@
 import os
 
 class Filesets():
-    def __init__(self, root):
-        self.fileset_names = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources",
-                         r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
+    def __init__(self, root, default_filesets: list):
+        self.default_fileset_names = default_filesets
         self.config_path_key = [r"additional_config_paths"]
 
         self.master_cfg_path = os.path.join(root, r"source.config")
 
-        self.source_dict = {}
-        for fileset_name in self.fileset_names:
-            self.source_dict[fileset_name] = []
+        self.fileset_dict = {}
+        for fileset_name in self.default_fileset_names:
+            self.fileset_dict[fileset_name] = []
 
         self.sub_config_paths = []
 
@@ -36,12 +35,12 @@ class Filesets():
 
             # Check if fileset paths exist
             if validate_paths:
-                for key in self.source_dict.keys():
-                    for path in self.source_dict[key]:
+                for key in self.fileset_dict.keys():
+                    for path in self.fileset_dict[key]:
                         if not os.path.exists(path):
                             raise ValueError(f"Provided path:{path} of fileset:{key} does not exist")
         else:
-            print(f"No config file existing, skipping to real source files.")
+            print(f"No config file existing, skipping to read source files.")
 
     def _parseconfig(self, cfg: list, cfg_path: str):
         """
@@ -59,12 +58,15 @@ class Filesets():
                 if len(line_split) is not 2:
                     raise KeyError(f"Too many '=' in line:{line}")
                 if not(line_split[1] is ''):
-                    line_name = line_split[0].strip()
-                    line_paths = line_split[1].split(",")
-                    if line_name in self.fileset_names:
-                        self.source_dict[line_name] += self._expand_paths(paths=line_paths, cfg_path=cfg_path)
-                    elif line_name in self.config_path_key:
-                        self.sub_config_paths += self._expand_paths(paths=line_paths, cfg_path=cfg_path)
+                    fileset_name = line_split[0].strip()
+                    fileset_paths = line_split[1].split(",")
+                    if fileset_name in self.fileset_dict.keys():
+                        self.fileset_dict[fileset_name] += self._expand_paths(paths=fileset_paths, cfg_path=cfg_path)
+                    elif fileset_name in self.config_path_key:
+                        self.sub_config_paths += self._expand_paths(paths=fileset_paths, cfg_path=cfg_path)
+                    else:
+                        print(f"Custom fileset was added:{fileset_name}")
+                        self.fileset_dict[fileset_name] = self._expand_paths(paths=fileset_paths, cfg_path=cfg_path)
 
     def _expand_paths(self, paths: list, cfg_path: str):
         """
@@ -88,7 +90,7 @@ class Filesets():
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")
     fileset.read_filesets()
-    print(fileset.source_dict)
+    print(fileset.fileset_dict)
 
 if __name__ == '__main__':
     main()

@@ -42,7 +42,7 @@ set time_s_width [get_property BUS_WIDTH [get_nets $time_s_tmp]]
 set reset_s [get_nets -hier -filter {reset_signal == "true"}]
 
 # Extract other_signals marked for debug
-set other_s [get_nets -hier -filter {time_signal != "true" && MARK_DEBUG && reset_signal != "true" && analog_signal != "true"}]
+set other_s [get_nets -hier -filter {digital_signal == "true" && MARK_DEBUG}]
 
 set sb_s [list]
 set sb_s [lsearch -regexp -not -inline -all $other_s "\[{1}[0123456789]+\]{1}"]

@@ -42,12 +42,12 @@ program_hw_devices $my_hw_device
 refresh_hw_device $my_hw_device
 
 # ILA setup
-set my_hw_ila [get_hw_ilas -of_objects $my_hw_device -filter CELL_NAME=~"{{subst.ila_name}}"]
+set my_hw_ila [get_hw_ilas]
 display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $my_hw_ila]
 
 # VIO setup
-set my_hw_vio [get_hw_vios -of_objects $my_hw_device -filter CELL_NAME=~"{{subst.vio_name}}"]
-set rst_hw_probe [get_hw_probes * -of_objects $my_hw_vio]
+set my_hw_vio [get_hw_vios]
+set rst_hw_probe [get_hw_probes *rst* -of_objects $my_hw_vio]
 
 # Trigger setup
 set_property CONTROL.TRIGGER_POSITION 0 $my_hw_ila

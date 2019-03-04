@@ -12,11 +12,14 @@ class VivadoSimulator(Simulator):
                          force=True)
 
         # add all source files to the project (including header files)
-        v.add_project_contents(sources=self.cfg.sim_verilog_sources,
-                               headers=self.cfg.sim_verilog_headers)
+        v.add_project_contents(sources=self.sources,
+                               headers=self.headers)
 
         # define the top module
         v.set_property('top', f'{{{self.cfg.top_module}}}', '[get_fileset sim_1]')
+
+        # dirty fix set library
+        # v.set_property('library', 'ipdb_common_cell_lib', '[get_files C:/Users/tulupov/Documents/ANA_MODEL_FPGA/des_adc/singlecell/src/ipdb_common_cells/*.vhd ]')
 
         # set define variables
         v.set_property('verilog_define', f"{{{' '.join(self.cfg.sim_verilog_defines)}}}", '[get_fileset sim_1]')

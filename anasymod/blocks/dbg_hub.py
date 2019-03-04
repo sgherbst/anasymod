@@ -6,7 +6,7 @@ class TemplDbgHub(JinjaTempl):
         self.dbg_hub_prop['C_ENABLE_CLK_DIVIDER'] = 'false'
         self.dbg_hub_prop['C_USER_SCAN_CHAIN'] = '1'
         self.dbg_hub_prop['C_CLK_INPUT_FREQ_HZ'] = str(int(dbg_hub_clk_freq))
-        self.conn_dbg_clk = 'clk_wiz_0_i/clk_out2'
+        self.conn_dbg_clk = 'clk_gen_i/clk_wiz_0_i/clk_out2'
 
     TEMPLATE_TEXT = '''
 # start auto-generated code for debug hub

@@ -16,7 +16,7 @@ class XceliumSimulator(Simulator):
 
         # add include directories
         inc_dirs = set()
-        for header in self.cfg.sim_verilog_headers:
+        for header in self.headers:
             for file in glob(header):
                 inc_dirs.add(os.path.dirname(file))
 
@@ -24,7 +24,7 @@ class XceliumSimulator(Simulator):
             cmd.extend(['-incdir', inc_dir])
 
         # add source files
-        for src in self.cfg.sim_verilog_sources:
+        for src in self.sources:
             cmd.extend(glob(src))
 
         # write TCL file

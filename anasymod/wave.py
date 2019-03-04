@@ -1,6 +1,10 @@
 import numpy as np
 
-from vcd import VCDWriter
+try:
+    from vcd import VCDWriter
+except:
+    print('ERROR: Could not load pyvcd package!')
+
 import datetime
 
 from anasymod.probe_config import ProbeConfig
