@@ -1,0 +1,6 @@
+[submodule "svreal"]
+	path = svreal
+	url = ssh://git@bitbucket.cloudapps.infineon.com:7999/inicio/svreal.git
+[submodule "msdsl"]
+	path = msdsl
+	url = ssh://git@bitbucket.cloudapps.infineon.com:7999/inicio/msdsl.git
