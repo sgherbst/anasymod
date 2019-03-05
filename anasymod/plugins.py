@@ -103,10 +103,6 @@ class MSDSL_Plugin(Plugin):
         if self.args.add_saturation:
             self.add_define(Define(name='ADD_SATURATION'))
 
-        # Setup Defines; after this step, defines shall not be added anymore in MSDSL
-        self._setup_defines()
-        self._setup_sources()
-
         ###############################################################
         # Execute actions according to command line arguments
         ###############################################################
@@ -120,6 +116,10 @@ class MSDSL_Plugin(Plugin):
             # run generator script
             gen_script = os.path.join(self._prj_root, 'gen.py')
             call([which('python'), gen_script, '-o', self.cfg['model_dir']])
+
+        # Setup Defines; after this step, defines shall not be added anymore in MSDSL
+        self._setup_defines()
+        self._setup_sources()
 
 
     def _setup_defines(self):
