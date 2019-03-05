@@ -12,6 +12,7 @@ setup(
         'jinja2',
         'pyvcd'
     ],
+    scripts=['scripts/anasymod'],
     include_package_data=True,
     zip_safe=False,
 )
