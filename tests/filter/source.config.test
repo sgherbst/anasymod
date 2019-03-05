@@ -1,9 +1,0 @@
-sim_only_verilog_sources = "../tb.sv", "$VIVADO_INSTALL_PATH", "C:\Users\Rutsch\Documents\AGD_10_2018\AGD-Analog_System_Modeling_and_Emulation_10_2018.pptx"
-synth_only_verilog_sources = "../tb.sv"
-verilog_sources =
-sim_only_verilog_headers =
-synth_only_verilog_headers =
-verilog_headers = "../gen.py"
-test_fileset = "../tb.sv"
-
-additional_config_paths = "C:\Inicio\source.config"

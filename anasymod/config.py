@@ -8,36 +8,17 @@ from anasymod.filesets import Filesets
 from os import environ as env
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None,
-                 top_module=None, build_root=None):
-        # Initialize and create attributes for filesets
-        default_filesets = [r"sim_only_verilog_sources", r"synth_only_verilog_sources", r"verilog_sources",
-         r"sim_only_verilog_headers", r"synth_only_verilog_headers", r"verilog_headers"]
+    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
 
-        self.filesets = Filesets(root=root, default_filesets=default_filesets)
-        self.filesets.read_filesets()
-
-        for fileset in self.filesets.fileset_dict.keys():
-            setattr(self, fileset, self.filesets.fileset_dict[fileset])
-
-        # build root
-        self.build_root = build_root if build_root is not None else get_full_path('build')
-
-        # definitions
-        self.sim_only_verilog_defines = []
-        self.synth_only_verilog_defines = []
-        self.verilog_defines = []
+        # define and create build root
+        self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
+        if not os.path.exists(self.build_root):
+            os.mkdir(self.build_root)
 
         # other options
-        self.top_module = top_module if top_module is not None else 'top'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
-        self.dt = None
-        self.tstop = None
-        self.ila_depth = None
         self.preprocess_only = False
-        self.csv_name = f"{self.top_module}.csv"
-        self.vcd_name = f"{self.top_module}.vcd"
 
         # FPGA board configuration
         self.fpga_board_config = FPGABoardConfig()
@@ -57,70 +38,12 @@ class EmuConfig:
         # Xcelium configuration
         self.xcelium_config = XceliumConfig(parent=self, xrun=xrun)
 
-    @property
-    def sim_verilog_sources(self):
-        return self.verilog_sources + self.sim_only_verilog_sources
-
-    @property
-    def sim_verilog_headers(self):
-        return self.verilog_headers + self.sim_only_verilog_headers
-
-    @property
-    def synth_verilog_sources(self):
-        return self.verilog_sources + self.synth_only_verilog_sources
-
-    @property
-    def synth_verilog_headers(self):
-        return self.verilog_headers + self.synth_only_verilog_headers
-
-    @property
-    def sim_verilog_defines(self):
-        return self.verilog_defines + self.sim_only_verilog_defines
-
-    @property
-    def synth_verilog_defines(self):
-        return self.verilog_defines + self.synth_only_verilog_defines
-
-    @property
-    def vcd_path(self):
-        return os.path.join(self.build_root, self.vcd_name)
-
-    @property
-    def csv_path(self):
-        return os.path.join(self.build_root, self.csv_name)
-
-    def set_dt(self, value):
-        self.dt = value
-        self.verilog_defines.append(f'DT_MSDSL={value}')
-
-    def set_tstop(self, value):
-        self.tstop = value
-        self.verilog_defines.append(f'TSTOP_MSDSL={value}')
-
-    def setup_vcd(self):
-        self.sim_only_verilog_defines.append(f'VCD_FILE_MSDSL={back2fwd(self.vcd_path)}')
-
     def setup_ila(self):
         self.ila_depth = 1024
 
     @property
     def dec_bits(self):
         return 8
-
-class MsEmuConfig(EmuConfig):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # load msdsl library
-        self.verilog_headers.append(get_from_module('msdsl', 'include', '*.sv'))
-        self.verilog_sources.append(get_from_module('msdsl', 'src', '*.sv'))
-
-        # load svreal library
-        self.verilog_sources.append(get_from_module('svreal', 'src', '*.sv'))
-        self.verilog_headers.append(get_from_module('svreal', 'include', '*.sv'))
-
-        # simulation options
-        self.sim_only_verilog_defines.append('SIMULATION_MODE_MSDSL')
 
 class FPGABoardConfig():
     def __init__(self):
@@ -155,26 +78,6 @@ class VivadoConfig():
         if self._vivado is None:
             self._vivado = find_tool(name='vivado', hints=self.hints)
         return self._vivado
-
-    @property
-    def project_root(self):
-        return os.path.join(self.parent.build_root, self.project_name)
-
-    @property
-    def probe_cfg_path(self):
-        return os.path.join(self.project_root, 'probe_config.txt')
-
-    @property
-    def bitfile_path(self):
-        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.bit')
-
-    @property
-    def ltxfile_path(self):
-        return os.path.join(self.project_root, f'{self.project_name}.runs', 'impl_1', f'{self.parent.top_module}.ltx')
-
-    @property
-    def ip_dir(self):
-        return os.path.join(self.project_root, f'{self.project_name}.srcs', 'sources_1', 'ip')
 
 class XceliumConfig():
     def __init__(self, parent: EmuConfig, xrun):

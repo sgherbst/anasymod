@@ -1,37 +1,51 @@
 import os
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig
+from anasymod.defines import Define
 
 class Filesets():
-    def __init__(self, root, default_filesets: list):
-        self.default_fileset_names = default_filesets
-        self.config_path_key = [r"additional_config_paths"]
+    def __init__(self, root, default_filesets=['default', 'sim', 'fpga']):
+        self._master_cfg_path = os.path.join(root, 'source.config')
 
-        self.master_cfg_path = os.path.join(root, r"source.config")
+        self._verilog_sources = []
+        """:type : List[VerilogSource]"""
 
+        self._verilog_headers = []
+        """:type : List[VerilogHeader]"""
+
+        self._vhdl_sources = []
+        """:type : List[VHDLSource]"""
+
+        self._defines = []
+        """:type : List[Define]"""
+
+        # init fileset_dict
         self.fileset_dict = {}
-        for fileset_name in self.default_fileset_names:
-            self.fileset_dict[fileset_name] = []
+        if not default_filesets:
+            for fileset in default_filesets:
+                self.fileset_dict[fileset] = {}
 
-        self.sub_config_paths = []
+        self._sub_config_paths = []
+        """:type : List[SubConfig]"""
 
     def read_filesets(self, validate_paths=False):
-        if os.path.isfile(self.master_cfg_path):
-            with open(self.master_cfg_path, "r") as f:
+        if os.path.isfile(self._master_cfg_path):
+            with open(self._master_cfg_path, "r") as f:
                 mcfg = f.readlines()
 
             # Read source paths from master config
-            self._parseconfig(cfg=mcfg, cfg_path=self.master_cfg_path)
+            self._parseconfig(cfg=mcfg, cfg_path=self._master_cfg_path)
 
             # Read source paths from sub configs
-            while (bool(self.sub_config_paths)):
-                config_paths = self.sub_config_paths
-                self.sub_config_paths = []
-                for config_path in config_paths:
-                    if os.path.isfile(config_path):
-                        with open(config_path, "r") as f:
-                            cfg = f.readlines()
-                        self._parseconfig(cfg=cfg, cfg_path=config_path)
-                    else:
-                        print(f"WARNING: provided path:'{config_path}' does not exist, skipping config file")
+            while (bool(self._sub_config_paths)):
+                for config in self._sub_config_paths:
+                    self._sub_config_paths.remove(config)
+                    for file in config.files:
+                        if os.path.isfile(file):
+                            with open(file, "r") as f:
+                                cfg = f.readlines()
+                            self._parseconfig(cfg=cfg, cfg_path=file)
+                        else:
+                            print(f"WARNING: provided path:'{config_path}' does not exist, skipping config file")
 
             # Check if fileset paths exist
             if validate_paths:
@@ -51,41 +65,77 @@ class Filesets():
         :param cfg_path:
         :return:
         """
+
         for line in cfg:
             line = line.strip()
             if line:
-                line_split = line.split(r"=")
-                if len(line_split) is not 2:
-                    raise KeyError(f"Too many '=' in line:{line}")
-                if not(line_split[1] is ''):
-                    fileset_name = line_split[0].strip()
-                    fileset_paths = line_split[1].split(",")
-                    if fileset_name in self.fileset_dict.keys():
-                        self.fileset_dict[fileset_name] += self._expand_paths(paths=fileset_paths, cfg_path=cfg_path)
-                    elif fileset_name in self.config_path_key:
-                        self.sub_config_paths += self._expand_paths(paths=fileset_paths, cfg_path=cfg_path)
+                try:
+                    line = eval(line)
+                    if isinstance(line, VerilogSource):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._verilog_sources.append(line)
+                    elif isinstance(line, VerilogHeader):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._verilog_headers.append(line)
+                    elif isinstance(line, VHDLSource):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._vhdl_sources.append(line)
+                    elif isinstance(line, SubConfig):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._sub_config_paths.append(line)
                     else:
-                        print(f"Custom fileset was added:{fileset_name}")
-                        self.fileset_dict[fileset_name] = self._expand_paths(paths=fileset_paths, cfg_path=cfg_path)
+                        print(f"Warning: Line'{line}' of config file: {cfg_path} does not fit do a specified source or config type")
+                except:
+                    print(f"Warning: Line'{line}' of config file: {cfg_path} could not be processed properely")
 
-    def _expand_paths(self, paths: list, cfg_path: str):
+    def populate_fileset_dict(self):
         """
-        Expand environment variables in provided list of paths.
-        Check if path is absolute or relative, in case of a relative path, it will be expanded to an absolute path,
-        whereas the folder of the config_file will be used to complete the path.
-        :param paths:
-        :param cfg_path:
-        :return:
+        Creates fileset dictionary according to filesets that were provided reading in source and define objects.
+        Previously created filesets will be overwritten.
         """
-        abs_paths = []
-        if not isinstance(paths, list):
-            raise TypeError(f"Wrong format used in config file {cfg_path}")
-        for path in paths:
-            path = os.path.expandvars(path.strip('" '))
-            if not os.path.isabs(path):
-                path = os.path.join(os.path.dirname(cfg_path), "".join(path.replace('\\', '/').replace('/', os.sep).split(os.sep)[1:]))
-            abs_paths.append(path)
-        return abs_paths
+
+        # Read in verilog source objects to fileset dict
+        self._add_to_fileset_dict(name='verilog_sources', container=self._verilog_sources)
+
+        # Read in verilog header objects to fileset dict
+        self._add_to_fileset_dict(name='verilog_headers', container=self._verilog_headers)
+
+        # Read in vhdlsource objects to fileset dict
+        self._add_to_fileset_dict(name='vhdl_sources', container=self._vhdl_sources)
+
+        # Read in define objects to fileset dict
+        self._add_to_fileset_dict(name='defines', container=self._defines)
+
+    def _add_to_fileset_dict(self, name, container):
+        """
+        Adds a specified attribute to the fileset_dict, e.g. add the verilog sources or defines.
+        """
+        for item in container:
+            if item.fileset in self.fileset_dict.keys():
+                if name in self.fileset_dict[item.fileset]:
+                    self.fileset_dict[item.fileset][name].append(item)
+                else:
+                    self.fileset_dict[item.fileset][name] = [item]
+            else:
+                print(f"Custom fileset was added:{item.fileset}")
+                self.fileset_dict[item.fileset] = {}
+                self.fileset_dict[item.fileset][name] = [item]
+
+
+    def add_source(self, source: Sources):
+        if isinstance(source, VerilogSource):
+            self._verilog_sources.append(source)
+        if isinstance(source, VerilogHeader):
+            self._verilog_headers.append(source)
+        if isinstance(source, VHDLSource):
+            self._vhdl_sources.append(source)
+
+    def add_define(self, define: Define):
+        self._defines.append(define)
 
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")

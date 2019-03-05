@@ -9,28 +9,33 @@ class IcarusSimulator(Simulator):
     def compile(self):
         # build up the simulation command
         cmd = [self.cfg.icarus_config.iverilog, '-g2012', '-o', self.cfg.icarus_config.output_file_path, '-s',
-               self.cfg.top_module]
+               self.target.cfg['top_module']]
 
         # if desired, only preprocess
         if self.cfg.preprocess_only:
             cmd.append('-E')
 
         # add defines
-        for define in self.cfg.sim_verilog_defines:
-            cmd.extend(['-D', define])
+        for define in self.target.content['defines']:
+            for k, v in define.define.items():
+                if v is not None:
+                    cmd.extend(['-D', f"{k}={v}"])
+                else:
+                    cmd.extend(['-D', f"{k}"])
 
-        # add include directories
+        # add include directories, remove filename from paths and create a list of inc dirs removing duplicates
         inc_dirs = set()
-        for header in self.headers:
-            for file in glob(header):
-                inc_dirs.add(os.path.dirname(file))
+        for sources in self.target.content['verilog_headers']:
+            for src in sources.files:
+                inc_dirs.add(os.path.dirname(src))
 
         for inc_dir in inc_dirs:
             cmd.extend(['-I', inc_dir])
 
-        # add source files
-        for src in self.sources:
-            cmd.extend(glob(src))
+        # add verilog source files
+        for sources in self.target.content['verilog_sources']:
+            for src in sources.files:
+                cmd.append(src)
 
         # run iverilog
         call(cmd, cwd=self.cfg.build_root)
