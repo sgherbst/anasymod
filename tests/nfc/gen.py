@@ -4,10 +4,11 @@ from argparse import ArgumentParser
 from math import sqrt
 
 from msdsl.model import MixedSignalModel
-from msdsl.verilog import VerilogGenerator
-from msdsl.expr import (AnalogSignal, Deriv, DigitalInput, Case, DigitalSignal, DigitalOutput, AnalogArray,
-                        DigitalArray, ModelExpr, LessThan, GreaterThan)
-
+from msdsl.generator.verilog import VerilogGenerator
+from msdsl.expr.signals import AnalogSignal, DigitalInput, DigitalSignal, DigitalOutput
+from msdsl.eqn.deriv import Deriv
+from msdsl.eqn.cases import eqn_case
+from msdsl.expr.expr import LessThan, GreaterThan, ModelExpr
 
 from anasymod.util import json2obj
 from anasymod.files import get_full_path
@@ -17,7 +18,8 @@ def main():
 
     # parse command line arguments
     parser = ArgumentParser()
-    parser.add_argument('-o', '--output', default='.', type=str)
+    parser.add_argument('-o', '--output',type=str)
+    parser.add_argument('--dt', type=float)
     args = parser.parse_args()
 
     # load config options
@@ -29,24 +31,23 @@ def main():
 
     # create the model
     model = MixedSignalModel('nfc', DigitalInput('tx_clk'), DigitalInput('tx_send'), DigitalOutput('tx_recv'),
-                             DigitalInput('rx_send'), DigitalOutput('rx_recv'), DigitalOutput('rx_clk'), dt=cfg.dt)
+                             DigitalInput('rx_send'), DigitalOutput('rx_recv'), DigitalOutput('rx_clk'), dt=args.dt)
 
     # implement TX carrier
-    model.add_signal(AnalogSignal('v_in', 10))
-    model.set_this_cycle(model.v_in, AnalogArray([-cfg.v_carrier, +cfg.v_carrier], model.tx_clk))
+    model.bind_name('v_in', cfg.v_carrier*(2*model.tx_clk-1))
 
     # internal signals
-    model.add_signal(AnalogSignal('i_ind_tx', 1.0))
-    model.add_signal(AnalogSignal('i_ind_rx', 1.0))
-    model.add_signal(AnalogSignal('v_cap_tx', 100))
-    model.add_signal(AnalogSignal('v_cap_rx', 100))
+    model.add_analog_state('i_ind_tx', 1.0)
+    model.add_analog_state('i_ind_rx', 1.0)
+    model.add_analog_state('v_cap_tx', 100)
+    model.add_analog_state('v_cap_rx', 100)
 
     v_ind_rx = AnalogSignal('v_ind_rx')
     v_ind_tx = AnalogSignal('v_ind_tx')
 
     # determine TX and RX resistances as a function of digital state
-    res_tx = Case([cfg.res_tx_comm_0, cfg.res_tx_comm_1], sel_bits=[model.tx_send]) + cfg.res_coil_tx
-    cond_load_rx = Case([cfg.cond_rx_comm_0, cfg.cond_rx_comm_1], sel_bits=[model.rx_send])
+    res_tx = eqn_case([cfg.res_tx_comm_0, cfg.res_tx_comm_1], [model.tx_send]) + cfg.res_coil_tx
+    cond_load_rx = eqn_case([cfg.cond_rx_comm_0, cfg.cond_rx_comm_1], [model.rx_send])
 
     # implement coil dynamics
     model.add_eqn_sys([
@@ -59,39 +60,23 @@ def main():
         # KVL
         model.v_in == res_tx*model.i_ind_tx + v_ind_tx + model.v_cap_tx,
         model.v_cap_rx == cfg.res_coil_rx*model.i_ind_rx + v_ind_rx
-    ],
-        internals=[v_ind_rx, v_ind_tx],
-        inputs=[model.v_in],
-        states=[model.i_ind_tx, model.i_ind_rx, model.v_cap_tx, model.v_cap_rx],
-        sel_bits=[model.rx_send, model.tx_send]
-    )
+    ])
 
     # implement communication
     def add_com(v_com_in_expr: ModelExpr, com_out: DigitalSignal, suffix: str, polarity: str):
-        # declare signals
-        v_com_in = AnalogSignal(f'v_com_in_{suffix}', range=100)
-        v_det = AnalogSignal(f'v_det_{suffix}', range=100)
-        v_lpf_fast = AnalogSignal(f'v_lpf_fast_{suffix}', range=100)
-        v_lpf_slow = AnalogSignal(f'v_lpf_slow_{suffix}', range=100)
-        v_comp = AnalogSignal(f'v_comp_{suffix}', range=100)
-        com_gt_det = DigitalSignal(f'com_gt_det_{suffix}')
-
-        # add signals to model
-        model.add_signal(v_com_in)
-        model.add_signal(v_det)
-        model.add_signal(v_lpf_fast)
-        model.add_signal(v_lpf_slow)
-        model.add_signal(v_comp)
-        model.add_signal(com_gt_det)
+        # declare state variables
+        v_det = model.add_analog_state(f'v_det_{suffix}', range_=100)
+        v_lpf_fast = model.add_analog_state(f'v_lpf_fast_{suffix}', range_=100)
+        v_lpf_slow = model.add_analog_state(f'v_lpf_slow_{suffix}', range_=100)
 
         # com circuit input
-        model.set_this_cycle(v_com_in, v_com_in_expr)
+        v_com_in = model.bind_name(f'v_com_in_{suffix}', v_com_in_expr)
 
         # detector diode on/off
-        model.set_this_cycle(com_gt_det, v_com_in > v_det)
+        com_gt_det = model.bind_name(f'com_gt_det_{suffix}', v_com_in > v_det)
 
         # comparator input
-        model.set_this_cycle(v_comp, v_lpf_fast-v_lpf_slow)
+        v_comp = model.bind_name(f'v_comp_{suffix}', v_lpf_fast-v_lpf_slow)
 
         # com output 1/0
         comp_op = {'+': GreaterThan, '-': LessThan}[polarity]
@@ -99,10 +84,10 @@ def main():
 
         # detector dynamics
         model.add_eqn_sys([
-            Deriv(v_det) == Case([0, 1/cfg.tau_det_fast], [com_gt_det])*(v_com_in-v_det) - v_det/cfg.tau_det_slow,
+            Deriv(v_det) == eqn_case([0, 1/cfg.tau_det_fast], [com_gt_det])*(v_com_in-v_det) - v_det/cfg.tau_det_slow,
             Deriv(v_lpf_fast) == (v_det - v_lpf_fast)/cfg.tau_com_fast,
             Deriv(v_lpf_slow) == (v_det - v_lpf_slow)/cfg.tau_com_slow
-        ], inputs=[v_com_in], states=[v_det, v_lpf_fast, v_lpf_slow], sel_bits=[com_gt_det])
+        ])
 
     # TX incoming bits
     add_com(model.v_in-model.v_cap_tx, model.tx_recv, suffix='tx', polarity='+')
@@ -133,14 +118,11 @@ def main():
     model.add_probe(model.com_gt_det_rx)
 
     # determine the output filename
-    if args.output is not None:
-        filename = os.path.join(get_full_path(args.output), 'nfc.sv')
-        print('Model will be written to: ' + filename)
-    else:
-        filename = None
+    filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')
+    print('Model will be written to: ' + filename)
 
     # generate the model
-    model.compile_model(VerilogGenerator(filename))
+    model.compile_to_file(VerilogGenerator(), filename)
 
 if __name__ == '__main__':
     main()

@@ -3,8 +3,10 @@ import os.path
 from argparse import ArgumentParser
 
 from msdsl.model import MixedSignalModel
-from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, DigitalInput, AnalogOutput, Case, Deriv, AnalogSignal
+from msdsl.generator.verilog import VerilogGenerator
+from msdsl.expr.signals import AnalogInput, DigitalInput, AnalogOutput, AnalogSignal
+from msdsl.eqn.deriv import Deriv
+from msdsl.eqn.cases import eqn_case
 
 from anasymod.util import json2obj
 from anasymod.files import get_full_path
@@ -15,6 +17,7 @@ def main():
     # parse command line arguments
     parser = ArgumentParser()
     parser.add_argument('-o', '--output', type=str)
+    parser.add_argument('--dt', type=float)
     args = parser.parse_args()
 
     # load config options
@@ -23,17 +26,17 @@ def main():
 
     # create the model
     model = MixedSignalModel('buck', DigitalInput('hs'), DigitalInput('ls'), AnalogInput('v_in'), AnalogOutput('v_out'),
-                             AnalogOutput('i_ind'), dt=cfg.dt)
+                             AnalogOutput('i_ind'), dt=args.dt)
 
     # internal state variable
-    model.add_signal(AnalogSignal('v_snub', 1000))
+    model.add_analog_state('v_snub', 1000)
 
     # dynamics
     i_snub = AnalogSignal('i_snub')
     v_sw = AnalogSignal('v_sw')
 
-    cond_hs = Case([0, 1/cfg.r_sw], [model.hs])
-    cond_ls = Case([0, 1/cfg.r_sw], [model.ls])
+    cond_hs = eqn_case([0, 1/cfg.r_sw], [model.hs])
+    cond_ls = eqn_case([0, 1/cfg.r_sw], [model.ls])
 
     model.add_eqn_sys([
         # Current into snubber capacitor
@@ -48,19 +51,17 @@ def main():
         # Capacitors
         Deriv(model.v_snub) == i_snub/cfg.c_snub,
         Deriv(model.v_out) == (model.i_ind-model.v_out/cfg.r_load)/cfg.c_load
-    ], states=[model.i_ind, model.v_out, model.v_snub], inputs=[model.v_in], sel_bits=[model.hs, model.ls],
-       internals=[v_sw, i_snub]
-    )
+    ])
 
     # add probes
     model.add_probe(model.v_snub)
 
     # determine the output filename
-    filename = os.path.join(get_full_path(args.output), 'buck.sv')
+    filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')
     print('Model will be written to: ' + filename)
 
     # generate the model
-    model.compile_model(VerilogGenerator(filename))
+    model.compile_to_file(VerilogGenerator(), filename)
 
 if __name__ == '__main__':
     main()

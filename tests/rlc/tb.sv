@@ -19,11 +19,15 @@ module tb;
     // output has range range +/- 10
     `MAKE_REAL(v_out, 100.0);
 
+    initial begin
+        $display(`DT_MSDSL);
+    end
+
     // filter instantiation
     rlc #(
         `PASS_REAL(v_in, v_in),
         `PASS_REAL(v_out, v_out)
-    ) filter_i (
+    ) rlc_i (
         .v_in(v_in),
         .v_out(v_out)
     );
