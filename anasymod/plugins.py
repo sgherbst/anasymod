@@ -116,7 +116,7 @@ class MSDSL_Plugin(Plugin):
 
             # run generator script
             gen_script = os.path.join(self._prj_root, 'gen.py')
-            call([which('python'), gen_script, '-o', self.cfg['model_dir'], '--dt', self.cfg['dt']])
+            call([which('python'), gen_script, '-o', self.cfg['model_dir'], '--dt', str(self.cfg['dt'])])
 
         # Setup Defines; after this step, defines shall not be added anymore in MSDSL
         self._setup_defines()
