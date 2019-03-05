@@ -16,7 +16,11 @@ class ConfigFileObj(CodeGenerator):
             raise TypeError(f"Type of config_paths variable provided to SubConfig class is not a list, is:{type(files)} instead.")
 
         self.config_path = config_path
-        self.expand_paths()
+
+        # In case config_path was not specified yet (default is None) path expansion needs to be performed later manually after setting config_path
+        # This is necessary to improve conveniency of providing sources in config file
+        if config_path is not None:
+            self.expand_paths()
 
     def expand_paths(self):
         """
@@ -31,7 +35,7 @@ class ConfigFileObj(CodeGenerator):
             file = os.path.expandvars(file.strip('" '))
             if not os.path.isabs(file):
                 if self.config_path is not None:
-                    file = os.path.join(os.path.dirname(self.config_path), "".join(file.replace('\\', '/').replace('/', os.sep).split(os.sep)[1:]))
+                    file = os.path.join(os.path.dirname(self.config_path), *(file.replace('\\', '/').replace('/', os.sep).split(os.sep)[1:]))
                 else:
                     raise KeyError(f"No config path was provided, is set to:{self.config_path}")
             abs_paths.append(file)

@@ -50,7 +50,8 @@ class VivadoControl(CodeGenerator):
         for src in vhdl_src:
             self.add_files(src.files)
             file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
-            self.set_property('library', '"' + src.library + '"', f'[get_files {file_list}]')
+            if src.library is not None:
+                self.set_property('library', '"' + src.library + '"', f'[get_files {file_list}]')
 
     def add_project_defines(self, content, fileset):
         """

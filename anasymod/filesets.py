@@ -73,16 +73,22 @@ class Filesets():
                     line = eval(line)
                     if isinstance(line, VerilogSource):
                         line.config_path = cfg_path
+                        line.expand_paths()
                         self._verilog_sources.append(line)
-                    if isinstance(line, VerilogHeader):
+                    elif isinstance(line, VerilogHeader):
                         line.config_path = cfg_path
+                        line.expand_paths()
                         self._verilog_headers.append(line)
-                    if isinstance(line, VHDLSource):
+                    elif isinstance(line, VHDLSource):
                         line.config_path = cfg_path
+                        line.expand_paths()
                         self._vhdl_sources.append(line)
                     elif isinstance(line, SubConfig):
                         line.config_path = cfg_path
+                        line.expand_paths()
                         self._sub_config_paths.append(line)
+                    else:
+                        print(f"Warning: Line'{line}' of config file: {cfg_path} does not fit do a specified source or config type")
                 except:
                     print(f"Warning: Line'{line}' of config file: {cfg_path} could not be processed properely")
 

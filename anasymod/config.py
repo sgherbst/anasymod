@@ -11,12 +11,11 @@ class EmuConfig:
     def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
 
         # define and create build root
-        self.build_root = build_root if build_root is not None else get_full_path('build')
+        self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
         if not os.path.exists(self.build_root):
             os.mkdir(self.build_root)
 
         # other options
-        # self.top_module = top_module if top_module is not None else 'top'
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
         self.preprocess_only = False
