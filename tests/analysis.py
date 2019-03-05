@@ -260,11 +260,12 @@ class Analysis():
         :param subsection: subsection to use from config file
         """
         if cfg_file is not None:
-            if (section in ConfigSections.__dict__.keys()) and (section in cfg_file):
-                if subsection is not None:
-                    return cfg_file[section].get(subsection)
-                else:
-                    return cfg_file.get(section)
+            if section in ConfigSections.__dict__.keys():
+                if section in cfg_file:
+                    if subsection is not None:
+                        return cfg_file[section].get(subsection)
+                    else:
+                        return cfg_file.get(section)
             else:
                 raise KeyError(f"provided section key:{section} is not supported")
 
