@@ -4,6 +4,7 @@ from anasymod.defines import Define
 from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
 from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource
+from anasymod.util import read_config
 
 class Target():
     """
@@ -51,14 +52,6 @@ class Target():
 
         for k in fileset.keys():
             self.content[k] += fileset[k]
-
-    def update_config(self, config_section: dict=None):
-        if config_section is not None:
-            for k, v in config_section.items():
-                if k in self.cfg:
-                    self.cfg[k] = v
-                else:
-                    print(f"Warning: During target config update; provided config key: {k} in target: {self._name} does not exist")
 
     @property
     def project_root(self):

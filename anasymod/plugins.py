@@ -5,7 +5,7 @@ from anasymod.sources import Sources, VerilogHeader, VerilogSource, VHDLSource
 from anasymod.defines import Define
 from anasymod.files import mkdir_p, rm_rf, get_from_module, which
 from argparse import ArgumentParser
-from anasymod.util import call
+from anasymod.util import call, read_config, update_config
 
 class Plugin():
     def __init__(self, cfg_file, prj_root, build_root, name):
@@ -38,31 +38,6 @@ class Plugin():
     def dump_vhdl_sources(self):
         return self._vhdl_sources
 
-    def update_config(self, config_section: dict=None):
-        if config_section is not None:
-            for k, v in config_section.items():
-                if k in self.cfg:
-                    self.cfg[k] = v
-                else:
-                    print(f"Warning: During target config update; provided config key: {k} in target: {self._name} does not exist")
-
-    def _read_config(self, cfg_file, section, subsection=None):
-        """
-        Return specified entries from config file, datatype is a dict. This dict will later be used to update flow configs.
-
-        :param section: section to use from config file
-        :param subsection: subsection to use from config file
-        """
-        if cfg_file is not None:
-            if section in ConfigSections.__dict__.keys():
-                if section in cfg_file:
-                    if subsection is not None:
-                        return cfg_file[section].get(subsection)
-                    else:
-                        return cfg_file.get(section)
-            else:
-                raise KeyError(f"provided section key:{section} is not supported")
-
     def add_source(self, source: Sources):
         if isinstance(source, VerilogSource):
             self._verilog_sources.append(source)
@@ -94,7 +69,7 @@ class MSDSL_Plugin(Plugin):
         self.cfg['model_dir'] = os.path.join(self._build_root, 'models')
 
         # Update msdsl config with msdsl section in config file
-        self.update_config(self._read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
+        self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
 
         # Add defines according to command line arguments
         if self.args.float:
@@ -116,6 +91,21 @@ class MSDSL_Plugin(Plugin):
         self._setup_defines()
         self._setup_sources()
 
+##### Functions exposed for user to exercise on Analysis Object
+
+    def models(self):
+        """
+        Call gen.py to generate analog models.
+        """
+        # make model directory, removing the old one if necessary
+        rm_rf(self.cfg['model_dir'])
+        mkdir_p(self.cfg['model_dir'])
+
+        # run generator script
+        gen_script = os.path.join(self._prj_root, 'gen.py')
+        call([which('python'), gen_script, '-o', self.cfg['model_dir'], '--dt', str(self.cfg['dt'])])
+
+##### Utility Functions
 
     def _setup_defines(self):
         """
@@ -157,33 +147,19 @@ class MSDSL_Plugin(Plugin):
 
         self.args, _ = parser.parse_known_args()
 
-    def models(self):
-        """
-        Call gen.py to generate analog models.
-        """
-        # make model directory, removing the old one if necessary
-        rm_rf(self.cfg['model_dir'])
-        mkdir_p(self.cfg['model_dir'])
 
-        # run generator script
-        gen_script = os.path.join(self._prj_root, 'gen.py')
-        call([which('python'), gen_script, '-o', self.cfg['model_dir'], '--dt', str(self.cfg['dt'])])
-
-
-class NETEXP_Plugin(Plugin):
+class NETEXPLORER_Plugin(Plugin):
     def __init__(self, cfg_file, prj_root, build_root):
-        super().__init__(cfg_file=cfg_file, prj_root=prj_root, build_root=build_root, name='netexp')
+        super().__init__(cfg_file=cfg_file, prj_root=prj_root, build_root=build_root, name='netexplorer')
 
         # Parse command line arguments specific to MSDSL
         self.args = None
         self._parse_args()
 
-        # Initialize msdsl config
-        self.cfg['dt'] = 0.1e-6
-        self.cfg['model_dir'] = os.path.join(self._build_root, 'models')
+        # Initialize netexplorer config
 
-        # Update msdsl config with msdsl section in config file
-        self.update_config(self._read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
+        # Update netexplorer config with netexplorer section in config file
+        self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
 
         # Add defines according to command line arguments
 
@@ -191,7 +167,23 @@ class NETEXP_Plugin(Plugin):
         # Execute actions according to command line arguments
         ###############################################################
 
-        # make models
+        # explore
+        if self.args.explore:
+            self.explore()
+
+        # Setup Defines; after this step, defines shall not be added anymore in MSDSL
+
+##### Functions exposed for user to exercise on Analysis Object
+
+    def explore(self):
+        """
+        Convert SV or Verilog netlist input replacing IFX specific types such as ANALOG_T and CURRENT_T to svreal
+        compliant data types als taking into account additional functionalities that need to be expressed by additional
+        svreal operations.
+        """
+        pass
+
+##### Utility Functions
 
     def _parse_args(self):
         """
@@ -199,9 +191,51 @@ class NETEXP_Plugin(Plugin):
         python analysis.py -i filter --models --sim --view
         """
         parser = ArgumentParser()
-        parser.add_argument('--range_assertions', action='store_true')
-        parser.add_argument('--float', action='store_true')
-        parser.add_argument('--add_saturation', action='store_true')
-        parser.add_argument('--models', action='store_true')
+        parser.add_argument('--explore', action='store_true')
+
+        self.args, _ = parser.parse_known_args()
+
+class STARGAZER_Plugin(Plugin):
+    def __init__(self, cfg_file, prj_root, build_root):
+        super().__init__(cfg_file=cfg_file, prj_root=prj_root, build_root=build_root, name='stargazer')
+
+        # Parse command line arguments specific to MSDSL
+        self.args = None
+        self._parse_args()
+
+        # Initialize stargazer config
+
+        # Update stargazer config with stargazer section in config file
+        self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
+
+        # Add defines according to command line arguments
+
+        ###############################################################
+        # Execute actions according to command line arguments
+        ###############################################################
+
+        # gaze
+        if self.args.gaze:
+            self.gaze()
+
+        # Setup Defines; after this step, defines shall not be added anymore in MSDSL
+
+##### Functions exposed for user to exercise on Analysis Object
+
+    def gaze(self):
+        """
+        Convert primitives in starlib into a synthesizable form.
+        """
+        pass
+
+##### Utility Functions
+
+    def _parse_args(self):
+        """
+        Read command line arguments. This supports convenient usage from command shell e.g.:
+        python analysis.py -i filter --models --sim --view
+        """
+        parser = ArgumentParser()
+        parser.add_argument('--gaze', action='store_true')
 
         self.args, _ = parser.parse_known_args()

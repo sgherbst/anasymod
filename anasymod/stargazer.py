@@ -1,0 +1,1 @@
+## StarGazer class shall be added here
