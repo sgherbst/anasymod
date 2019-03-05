@@ -110,13 +110,7 @@ class MSDSL_Plugin(Plugin):
 
         # make models
         if self.args.models:
-            # make model directory, removing the old one if necessary
-            rm_rf(self.cfg['model_dir'])
-            mkdir_p(self.cfg['model_dir'])
-
-            # run generator script
-            gen_script = os.path.join(self._prj_root, 'gen.py')
-            call([which('python'), gen_script, '-o', self.cfg['model_dir'], '--dt', str(self.cfg['dt'])])
+            self.models()
 
         # Setup Defines; after this step, defines shall not be added anymore in MSDSL
         self._setup_defines()
@@ -149,6 +143,55 @@ class MSDSL_Plugin(Plugin):
 
         # Add model sources
         self.add_source(source=VerilogSource(files=os.path.join(self.cfg['model_dir'], '*.sv'), config_path=self._srccfg_path))
+
+    def _parse_args(self):
+        """
+        Read command line arguments. This supports convenient usage from command shell e.g.:
+        python analysis.py -i filter --models --sim --view
+        """
+        parser = ArgumentParser()
+        parser.add_argument('--range_assertions', action='store_true')
+        parser.add_argument('--float', action='store_true')
+        parser.add_argument('--add_saturation', action='store_true')
+        parser.add_argument('--models', action='store_true')
+
+        self.args, _ = parser.parse_known_args()
+
+    def models(self):
+        """
+        Call gen.py to generate analog models.
+        """
+        # make model directory, removing the old one if necessary
+        rm_rf(self.cfg['model_dir'])
+        mkdir_p(self.cfg['model_dir'])
+
+        # run generator script
+        gen_script = os.path.join(self._prj_root, 'gen.py')
+        call([which('python'), gen_script, '-o', self.cfg['model_dir'], '--dt', str(self.cfg['dt'])])
+
+
+class NETEXP_Plugin(Plugin):
+    def __init__(self, cfg_file, prj_root, build_root):
+        super().__init__(cfg_file=cfg_file, prj_root=prj_root, build_root=build_root, name='netexp')
+
+        # Parse command line arguments specific to MSDSL
+        self.args = None
+        self._parse_args()
+
+        # Initialize msdsl config
+        self.cfg['dt'] = 0.1e-6
+        self.cfg['model_dir'] = os.path.join(self._build_root, 'models')
+
+        # Update msdsl config with msdsl section in config file
+        self.update_config(self._read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
+
+        # Add defines according to command line arguments
+
+        ###############################################################
+        # Execute actions according to command line arguments
+        ###############################################################
+
+        # make models
 
     def _parse_args(self):
         """
