@@ -3,40 +3,55 @@ import multiprocessing
 import shutil
 
 from anasymod.files import get_full_path, get_from_module
-from anasymod.util import back2fwd
+from anasymod.util import back2fwd, read_config, update_config
 from anasymod.filesets import Filesets
 from os import environ as env
+from anasymod.enums import ConfigSections
+from anasymod.plugins import *
 
 class EmuConfig:
-    def __init__(self, root, vivado=None, iverilog=None, vvp=None, gtkwave=None, xrun=None, simvision=None, build_root=None):
+    def __init__(self, root, cfg_file, build_root=None):
 
         # define and create build root
         self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
         if not os.path.exists(self.build_root):
             os.mkdir(self.build_root)
 
-        # other options
+        # Initialize internal variables
+        self._cfg_file = cfg_file
+
+        # Initialize config options
         self.emu_clk_freq = 25e6
         self.dbg_hub_clk_freq = 100e6
         self.preprocess_only = False
+
+        # Initialize config  dict
+        self.cfg = {}
+        self.cfg['plugins'] = []
+        self.cfg['plugins'].append('msdsl')
+        #self.cfg['plugins'].append('netexplorer')
+        #self.cfg['plugins'].append('stargazer')
+
+        # Update config options by reading from config file
+        self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))
 
         # FPGA board configuration
         self.fpga_board_config = FPGABoardConfig()
 
         # Vivado configuration
-        self.vivado_config = VivadoConfig(parent=self, vivado=vivado)
+        self.vivado_config = VivadoConfig(parent=self)
 
         # GtkWave configuration
-        self.gtkwave_config = GtkWaveConfig(parent=self, gtkwave=gtkwave)
+        self.gtkwave_config = GtkWaveConfig(parent=self)
 
         # SimVision configuration
-        self.simvision_config = SimVisionConfig(parent=self, simvision=simvision)
+        self.simvision_config = SimVisionConfig(parent=self)
 
         # Icarus configuration
-        self.icarus_config = IcarusConfig(parent=self, iverilog=iverilog, vvp=vvp)
+        self.icarus_config = IcarusConfig(parent=self)
 
         # Xcelium configuration
-        self.xcelium_config = XceliumConfig(parent=self, xrun=xrun)
+        self.xcelium_config = XceliumConfig(parent=self)
 
     def setup_ila(self):
         self.ila_depth = 1024
@@ -54,7 +69,7 @@ class FPGABoardConfig():
         self.short_part_name = 'xc7z020'
 
 class VivadoConfig():
-    def __init__(self, parent: EmuConfig, vivado):
+    def __init__(self, parent: EmuConfig, vivado=None):
         # save reference to parent config
         self.parent = parent
 
@@ -80,7 +95,7 @@ class VivadoConfig():
         return self._vivado
 
 class XceliumConfig():
-    def __init__(self, parent: EmuConfig, xrun):
+    def __init__(self, parent: EmuConfig, xrun=None):
         # save reference to parent config
         self.parent = parent
 
@@ -101,7 +116,7 @@ class XceliumConfig():
         return os.path.join(self.parent.build_root, self.tcl_input)
 
 class IcarusConfig():
-    def __init__(self, parent: EmuConfig, iverilog, vvp):
+    def __init__(self, parent: EmuConfig, iverilog=None, vvp=None):
         # save reference to parent config
         self.parent = parent
 
@@ -130,7 +145,7 @@ class IcarusConfig():
         return os.path.join(self.parent.build_root, self.output_file_name)
 
 class GtkWaveConfig():
-    def __init__(self, parent: EmuConfig, gtkwave):
+    def __init__(self, parent: EmuConfig, gtkwave=None):
         # save reference to parent config
         self.parent = parent
 
@@ -146,7 +161,7 @@ class GtkWaveConfig():
         return self._gtkwave
 
 class SimVisionConfig():
-    def __init__(self, parent: EmuConfig, simvision):
+    def __init__(self, parent: EmuConfig, simvision=None):
         # save reference to parent config
         self.parent = parent
 

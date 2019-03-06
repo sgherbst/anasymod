@@ -11,8 +11,6 @@
   "cap_rx": 125e-12,
   "cap_tx": 125e-12,
   "v_carrier": 5.0,
-  "dt": 4.60914454e-9,
-  "tstop": 200e-6,
   "tau_det_fast": 1e-9,
   "tau_det_slow": 360e-9,
   "tau_com_fast": 150e-9,

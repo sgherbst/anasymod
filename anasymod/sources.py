@@ -58,8 +58,9 @@ class Sources(ConfigFileObj):
         self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
 class VerilogSource(Sources):
-    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None):
+    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None, verilog_version=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
+        self.verilog_version = verilog_version
 
     def generate(self):
         self.text = self.files

@@ -1,12 +1,12 @@
 import os.path
-import json
 from argparse import ArgumentParser
 
 from msdsl.model import MixedSignalModel
-from msdsl.verilog import VerilogGenerator
-from msdsl.expr import AnalogInput, DigitalInput, AnalogOutput, Deriv, Case
+from msdsl.generator.verilog import VerilogGenerator
+from msdsl.expr.signals import AnalogInput, DigitalInput, AnalogOutput
+from msdsl.eqn.cases import eqn_case
+from msdsl.eqn.deriv import Deriv
 
-from anasymod.util import json2obj
 from anasymod.files import get_full_path
 
 def main(tau=1e-6):
@@ -15,26 +15,23 @@ def main(tau=1e-6):
     # parse command line arguments
     parser = ArgumentParser()
     parser.add_argument('-o', '--output', type=str)
+    parser.add_argument('--dt', type=float)
     args = parser.parse_args()
 
-    # load config options
-    config_file_path = os.path.join(os.path.dirname(get_full_path(__file__)), 'config.json')
-    cfg = json2obj(open(config_file_path, 'r').read())
-
     # create the model
-    model = MixedSignalModel('filter', DigitalInput('ctrl'), AnalogInput('v_in'), AnalogOutput('v_out'), dt=cfg.dt)
+    model = MixedSignalModel('filter', DigitalInput('ctrl'), AnalogInput('v_in'), AnalogOutput('v_out'), dt=args.dt)
 
     # define dynamics
     model.add_eqn_sys([
-        Deriv(model.v_out) == Case([0, 1/tau], [model.ctrl])*model.v_in - model.v_out/tau
-    ], states=[model.v_out], inputs=[model.v_in], sel_bits=[model.ctrl])
+        Deriv(model.v_out) == eqn_case([0, 1/tau], [model.ctrl])*model.v_in - model.v_out/tau
+    ])
 
     # determine the output filename
-    filename = os.path.join(get_full_path(args.output), 'filter.sv')
+    filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')
     print('Model will be written to: ' + filename)
 
     # generate the model
-    model.compile_model(VerilogGenerator(filename))
+    model.compile_to_file(VerilogGenerator(), filename)
 
 if __name__ == '__main__':
     main()

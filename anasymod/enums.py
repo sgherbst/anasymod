@@ -10,3 +10,4 @@ class ConfigSections:
     FPGA_BOARD = "FPGA_BOARD"
     TOOL = "TOOL"
     PLUGIN = "PLUGIN"
+    PROJECT = "PROJECT"
