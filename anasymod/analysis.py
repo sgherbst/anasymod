@@ -17,8 +17,10 @@ from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.enums import ConfigSections
-from anasymod.plugins import Plugin, MSDSL_Plugin
 from anasymod.files import mkdir_p
+from anasymod.util import read_config, update_config
+
+from importlib import import_module
 
 class Analysis():
     """
@@ -33,9 +35,6 @@ class Analysis():
         # expand path of input and output directories relative to analysis.py
         self.args.input = get_full_path(self.args.input)
 
-        # Initialize project config
-        self.cfg = EmuConfig(root=self.args.input)
-
         # Load config file
         try:
             self.cfg_file = json.load(open(os.path.join(self.args.input, 'prj_config.json'), 'r'))
@@ -43,15 +42,19 @@ class Analysis():
             self.cfg_file = None
             print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'prj_config.json')}")
 
+        # Initialize project config
+        self.cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file)
+
         # Initialize Plugins
         self._plugins = []
-        """:type : list[Plugin]"""
-
-        self._plugins.append(MSDSL_Plugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.cfg.build_root))
-
-        # Add an attribute for each plugin that was added before; this allows easy use of plugin specific functions
-        for plugin in self._plugins:
-            setattr(self, plugin._name, plugin)
+        for plugin in self.cfg.cfg['plugins']:
+            try:
+                i = import_module(f"plugin.{plugin}")
+                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.cfg.build_root)
+                self._plugins.append(inst)
+                setattr(self, inst._name, inst)
+            except:
+                raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
 
         # Initialize Filesets
         self._setup_filesets()
@@ -139,6 +142,12 @@ class Analysis():
         # run simulation
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
+
+    def probe(self):
+        """
+        Probe specified signal. Signal will be stored in a numpy array.
+        """
+        pass
 
     def view(self, target: Target):
         """
@@ -229,14 +238,14 @@ class Analysis():
         #######################################################
         # Create and setup simulation target
         #######################################################
+
         self.sim = SimulationTarget(prj_cfg=self.cfg, name=r"sim")
         self.sim.assign_fileset(fileset=filesets['default'])
         if 'sim' in filesets:
             self.sim.assign_fileset(fileset=filesets['sim'])
 
         # Update simulation target specific configuration
-        # manual update would be: self.sim_target.cfg[key] = value
-        self.sim.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"sim"))
+        self.sim.cfg = update_config(cfg=self.sim.cfg, config_section=read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"sim"))
         self.sim.set_tstop()
         self.sim.setup_vcd()
 
@@ -249,25 +258,8 @@ class Analysis():
             self.fpga.assign_fileset(fileset=filesets['fpga'])
 
         # Update simulation target specific configuration
-        self.fpga.update_config(config_section=self._read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
+        self.fpga.cfg = update_config(cfg=self.fpga.cfg, config_section=read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
         self.fpga.set_tstop()
-
-    def _read_config(self, cfg_file, section, subsection=None):
-        """
-        Return specified entries from config file, datatype is a dict. This dict will later be used to update flow configs.
-
-        :param section: section to use from config file
-        :param subsection: subsection to use from config file
-        """
-        if cfg_file is not None:
-            if section in ConfigSections.__dict__.keys():
-                if section in cfg_file:
-                    if subsection is not None:
-                        return cfg_file[section].get(subsection)
-                    else:
-                        return cfg_file.get(section)
-            else:
-                raise KeyError(f"provided section key:{section} is not supported")
 
 if __name__ == '__main__':
     analysis = Analysis()
