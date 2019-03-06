@@ -2,7 +2,6 @@ import os.path
 import multiprocessing
 import shutil
 
-from functools import partial
 from anasymod.files import get_full_path, get_from_module
 from anasymod.util import back2fwd, read_config, update_config
 from anasymod.filesets import Filesets
@@ -29,9 +28,9 @@ class EmuConfig:
         # Initialize config  dict
         self.cfg = {}
         self.cfg['plugins'] = []
-        self.cfg['plugins'].append('MSDSL_Plugin')
-        #self.cfg['plugins'].append('NETEXPLORER_Plugin')
-        #self.cfg['plugins'].append('STARGAZER_Plugin')
+        self.cfg['plugins'].append('msdsl')
+        #self.cfg['plugins'].append('netexplorer')
+        #self.cfg['plugins'].append('stargazer')
 
         # Update config options by reading from config file
         self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))

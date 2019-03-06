@@ -3,7 +3,6 @@ import os.path
 import json
 
 from argparse import ArgumentParser
-from functools import partial
 
 from anasymod.config import EmuConfig
 from anasymod.sim.vivado import VivadoSimulator
@@ -18,9 +17,10 @@ from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.enums import ConfigSections
-from anasymod.plugins import Plugin, MSDSL_Plugin
 from anasymod.files import mkdir_p
 from anasymod.util import read_config, update_config
+
+from importlib import import_module
 
 class Analysis():
     """
@@ -46,22 +46,15 @@ class Analysis():
         self.cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file)
 
         # Initialize Plugins
-        #self._plugins = []
-        #""":type : list[Plugin]"""
-
-        #self._plugins.append(MSDSL_Plugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.cfg.build_root))
-
-        # Instantiate each plugin stored in list of plugins
+        self._plugins = []
         for plugin in self.cfg.cfg['plugins']:
             try:
-                inst = partial(eval(plugin), cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.cfg.build_root)()
+                i = import_module(f"plugin.{plugin}")
+                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.cfg.build_root)
+                self._plugins.append(inst)
                 setattr(self, inst._name, inst)
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
-
-        # Add an attribute for each plugin that was added before; this allows easy use of plugin specific functions
-        #for plugin in self._plugins:
-        #    setattr(self, plugin._name, plugin)
 
         # Initialize Filesets
         self._setup_filesets()
