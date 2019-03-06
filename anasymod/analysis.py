@@ -143,6 +143,12 @@ class Analysis():
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
 
+    def probe(self):
+        """
+        Probe specified signal. Signal will be stored in a numpy array.
+        """
+        pass
+
     def view(self, target: Target):
         """
         View results from selected target run.
