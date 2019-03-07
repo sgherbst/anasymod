@@ -5,6 +5,7 @@ from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
 from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource
 from anasymod.util import read_config
+from anasymod.probe import Probe
 
 class Target():
     """
@@ -17,6 +18,10 @@ class Target():
     def __init__(self, prj_cfg: EmuConfig, name):
         self.prj_cfg = prj_cfg
         self._name = name
+
+        # Initialize Probe Objs; there can be a probe obj for each supported simulator and synthesizer
+        self.probes = {}
+        """ :type : dict(Probe)"""
 
         # Initialize content dict  to store design sources and defines
         self.content = {}

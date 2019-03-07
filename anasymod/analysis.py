@@ -19,6 +19,8 @@ from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.enums import ConfigSections
 from anasymod.files import mkdir_p
 from anasymod.util import read_config, update_config
+from anasymod.probe import ProbeCSV, ProbeVCD
+from typing import Union
 
 from importlib import import_module
 
@@ -26,7 +28,7 @@ class Analysis():
     """
     This is the top user Class that shall be used to exercise anasymod.
     """
-    def __init__(self, input=None, build_root=None, simulator_name=None, preprocess_only=None, viewer_name=None):
+    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None):
 
         # Parse command line arguments
         self.args = None
@@ -41,6 +43,7 @@ class Analysis():
 
         # update args according to user specified values when instantiating analysis class
         self.args.simulator_name = simulator_name if simulator_name is not None else self.args.simulator_name
+        self.args.synthesizer_name = synthesizer_name if synthesizer_name is not None else self.args.synthesizer_name
         self.args.viewer_name = viewer_name if viewer_name is not None else self.args.viewer_name
         self.args.preprocess_only = preprocess_only if preprocess_only is not None else self.args.preprocess_only
 
@@ -152,11 +155,23 @@ class Analysis():
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
 
-    def probe(self):
+    def probe(self, target: Union[FPGATarget, SimulationTarget], name):
         """
         Probe specified signal. Signal will be stored in a numpy array.
         """
-        pass
+        probeobj = self._setup_probeobj(target=target)
+
+        return probeobj._probe(name=name)
+
+    def probes(self, target: Union[FPGATarget, SimulationTarget]):
+        """
+        Display all signals that were stored for specified target run (simulation or emulation)
+        :param target: Target for which all stored signals will be displayed
+        :return: list of signal names
+        """
+        probeobj = self._setup_probeobj(target=target)
+
+        return probeobj._probes()
 
     def view(self, target: Target):
         """
@@ -188,6 +203,7 @@ class Analysis():
 
         parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
         parser.add_argument('--simulator_name', type=str, default='icarus' if os.name == 'nt' else 'xcelium')
+        parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default='gtkwave' if os.name == 'nt' else 'simvision')
         parser.add_argument('--sim_target', type=str, default='sim')
         parser.add_argument('--fpga_target', type=str, default='fpga')
@@ -270,6 +286,31 @@ class Analysis():
         # Update simulation target specific configuration
         self.fpga.cfg = update_config(cfg=self.fpga.cfg, config_section=read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
         self.fpga.set_tstop()
+
+    def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
+        """
+        Check if the requested probe obj in the target object already exists, in not create one.
+        Return the probe object.
+
+        :param target: Target that signals shall be extracted from
+        :return: probe object that was selected in target object
+        """
+
+        # specify probe obj name, specific to selected simulator/synthesizer
+        if isinstance(target, FPGATarget):
+            target_name = f"prb_{self.args.synthesizer_name}"
+        elif isinstance(target, SimulationTarget):
+            target_name = f"prb_{self.args.simulator_name}"
+        else:
+            raise ValueError(f"Provided target type:{target} is not supported")
+
+        # check if probe obj is already existing, if not, instantiate one
+
+        #ToDo: In future it should be also possible to instantiate different probe objects, depending on data format that shall be read in
+        if target_name not in target.probes.keys():
+            target.probes[target_name] = ProbeVCD(prj_config=self.cfg, target=target)
+
+        return target.probes[target_name]
 
 if __name__ == '__main__':
     analysis = Analysis()
