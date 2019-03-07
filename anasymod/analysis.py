@@ -26,14 +26,23 @@ class Analysis():
     """
     This is the top user Class that shall be used to exercise anasymod.
     """
-    def __init__(self):
+    def __init__(self, input=None, build_root=None, simulator_name=None, preprocess_only=None, viewer_name=None):
 
         # Parse command line arguments
         self.args = None
         self._parse_args()
 
+        # Overwrite input location in case it was provided when instantiation the Analysis class
+        if input is not None:
+            self.args.input = input
+
         # expand path of input and output directories relative to analysis.py
         self.args.input = get_full_path(self.args.input)
+
+        # update args according to user specified values when instantiating analysis class
+        self.args.simulator_name = simulator_name if simulator_name is not None else self.args.simulator_name
+        self.args.viewer_name = viewer_name if viewer_name is not None else self.args.viewer_name
+        self.args.preprocess_only = preprocess_only if preprocess_only is not None else self.args.preprocess_only
 
         # Load config file
         try:
@@ -43,7 +52,7 @@ class Analysis():
             print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'prj_config.json')}")
 
         # Initialize project config
-        self.cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file)
+        self.cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
 
         # Initialize Plugins
         self._plugins = []
@@ -220,6 +229,7 @@ class Analysis():
         self.filesets.add_define(define=Define(name='CLK_MSDSL', value='top.emu_clk'))
         self.filesets.add_define(define=Define(name='RST_MSDSL', value='top.emu_rst'))
         self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value='top.emu_dec_thr'))
+        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.cfg.cfg['dec_bits']))
 
         self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path))
 

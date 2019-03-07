@@ -2,7 +2,7 @@ import os.path
 import multiprocessing
 import shutil
 
-from anasymod.files import get_full_path, get_from_module
+from anasymod.files import get_full_path, get_from_module, mkdir_p
 from anasymod.util import back2fwd, read_config, update_config
 from anasymod.filesets import Filesets
 from os import environ as env
@@ -15,7 +15,7 @@ class EmuConfig:
         # define and create build root
         self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
         if not os.path.exists(self.build_root):
-            os.mkdir(self.build_root)
+            mkdir_p(self.build_root)
 
         # Initialize internal variables
         self._cfg_file = cfg_file
@@ -27,6 +27,7 @@ class EmuConfig:
 
         # Initialize config  dict
         self.cfg = {}
+        self.cfg['dec_bits'] = 24
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
         #self.cfg['plugins'].append('netexplorer')
@@ -55,10 +56,6 @@ class EmuConfig:
 
     def setup_ila(self):
         self.ila_depth = 1024
-
-    @property
-    def dec_bits(self):
-        return 8
 
 class FPGABoardConfig():
     def __init__(self):
