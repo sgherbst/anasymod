@@ -27,7 +27,7 @@ class VivadoBuild():
         # create a new project
         self.v.create_project(project_name=self.cfg.vivado_config.project_name,
                               project_directory=self.target.project_root,
-                              full_part_name=self.cfg.fpga_board_config.full_part_name,
+                              full_part_name=self.cfg.fpga_board_config.board.cfg['full_part_name'],
                               force=True)
 
         # add all source files to the project (including header files)
@@ -43,9 +43,9 @@ class VivadoBuild():
         # write constraints to file
         constrs = CodeGenerator()
 
-        constrs.use_templ(TemplExtClk(ext_clk_pin=self.cfg.fpga_board_config.clk_pin,
-                                      ext_clk_io_std=self.cfg.fpga_board_config.clk_io,
-                                      ext_clk_freq=self.cfg.fpga_board_config.clk_freq))
+        constrs.use_templ(TemplExtClk(ext_clk_pin=self.cfg.fpga_board_config.board.cfg['clk_pin'],
+                                      ext_clk_io_std=self.cfg.fpga_board_config.board.cfg['clk_io'],
+                                      ext_clk_freq=self.cfg.fpga_board_config.board.cfg['clk_freq']))
 
         cpath = os.path.join(self.cfg.build_root, 'constrs.xdc')
         constrs.write_to_file(cpath)
@@ -54,7 +54,7 @@ class VivadoBuild():
         self.v.add_files([cpath], fileset='constrs_1')
 
         # generate the IP blocks
-        self.v.use_templ(TemplClkWiz(input_freq=self.cfg.fpga_board_config.clk_freq,
+        self.v.use_templ(TemplClkWiz(input_freq=self.cfg.fpga_board_config.board.cfg['clk_freq'],
                                      output_freqs=[self.cfg.emu_clk_freq, self.cfg.dbg_hub_clk_freq],
                                      ip_dir=self.target.ip_dir))
         self.v.use_templ(TemplVIO(outputs=[VioOutput(width=1), VioOutput(width=self.cfg.cfg['dec_bits'])],

@@ -15,7 +15,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # Necessary variables
         self.bit_file = back2fwd(target.bitfile_path)
         self.ltx_file = back2fwd(target.ltxfile_path)
-        self.device_name = cfg.fpga_board_config.short_part_name
+        self.device_name = cfg.fpga_board_config.board.cfg['short_part_name']
 
         self.vio_name = cfg.vivado_config.vio_inst_name
         self.ila_name = cfg.vivado_config.ila_inst_name
