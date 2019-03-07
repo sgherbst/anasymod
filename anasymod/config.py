@@ -6,8 +6,9 @@ from anasymod.files import get_full_path, get_from_module, mkdir_p
 from anasymod.util import back2fwd, read_config, update_config
 from anasymod.filesets import Filesets
 from os import environ as env
-from anasymod.enums import ConfigSections
+from anasymod.enums import ConfigSections, BoardNames
 from anasymod.plugins import *
+from anasymod.fpga_boards.boards import *
 
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
@@ -28,6 +29,7 @@ class EmuConfig:
         # Initialize config  dict
         self.cfg = {}
         self.cfg['dec_bits'] = 24
+        self.cfg['board_name'] = BoardNames.PYNQ_Z1
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
         #self.cfg['plugins'].append('netexplorer')
@@ -37,7 +39,7 @@ class EmuConfig:
         self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))
 
         # FPGA board configuration
-        self.fpga_board_config = FPGABoardConfig()
+        self.fpga_board_config = FPGABoardConfig(board_name=self.cfg['board_name'])
 
         # Vivado configuration
         self.vivado_config = VivadoConfig(parent=self)
@@ -58,12 +60,27 @@ class EmuConfig:
         self.ila_depth = 1024
 
 class FPGABoardConfig():
-    def __init__(self):
-        self.clk_pin = 'H16'
-        self.clk_io = 'LVCMOS33'
-        self.clk_freq = 125e6
+    def __init__(self, board_name):
+        self.board_name = board_name
+        self.board = None
+
+        # Fetch board info
+        self.board = self.fetch_board(board_name=board_name)
+
         self.full_part_name = 'xc7z020clg400-1'
         self.short_part_name = 'xc7z020'
+
+    def fetch_board(self, board_name):
+        """
+        Fetch boards info
+        :param board_name: name of board to be fetched
+        :return:
+        """
+
+        if board_name is BoardNames.PYNQ_Z1:
+            return PYNQ_Z1()
+        elif board_name is BoardNames.VC707:
+            return
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):

@@ -11,3 +11,11 @@ class ConfigSections:
     TOOL = "TOOL"
     PLUGIN = "PLUGIN"
     PROJECT = "PROJECT"
+
+class BoardNames:
+    """
+    Container including enums for all supported boards.
+    """
+
+    PYNQ_Z1 = 'PYNQ_Z1'
+    VC707 = 'VC707'
