@@ -18,7 +18,7 @@ def main():
 
     # create the model
     m = MixedSignalModel('inertial', DigitalInput('in_'), DigitalOutput('out'), dt=args.dt)
-    m.set_this_cycle(m.out, m.inertial_delay(m.in_, tr=12e-6, tf=34e-6))
+    m.set_this_cycle(m.out, m.inertial_delay(m.in_, tr=42e-6, tf=0e-6))
 
     # determine the output filename
     filename = os.path.join(get_full_path(args.output), f'{m.module_name}.sv')
