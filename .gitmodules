@@ -1,9 +1,6 @@
-[submodule "msdsl"]
-	path = msdsl
-	url = https://github.com/sgherbst/msdsl.git
-	branch = master
 [submodule "svreal"]
 	path = svreal
 	url = https://github.com/sgherbst/svreal.git
-	branch = master
-
+[submodule "msdsl"]
+	path = msdsl
+	url = https://github.com/sgherbst/msdsl.git
