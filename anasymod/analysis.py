@@ -28,7 +28,10 @@ class Analysis():
     """
     This is the top user Class that shall be used to exercise anasymod.
     """
-    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None):
+    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None, op_mode=None):
+
+        # Indicate that setup is not finished yet
+        self._setup_finished = False
 
         # Parse command line arguments
         self.args = None
@@ -68,47 +71,66 @@ class Analysis():
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
 
+        # Check which mode is used to run, in case of commandline mode, besided setting up the class, also argument will be executed
+        if op_mode in ['commandline']:
+            print(f"Running in commandline mode.")
+
+            # Finalize project setup, no more modifications of filesets and targets after that!!!
+            self.finish_setup()
+
+            ###############################################################
+            # Set options from to command line arguments
+            ###############################################################
+
+            self.cfg.preprocess_only = self.args.preprocess_only
+
+            ###############################################################
+            # Execute actions according to command line arguments
+            ###############################################################
+
+            # generate bitstream
+            if self.args.build:
+                self.build(target=getattr(self, self.args.fpga_target))
+
+            # run FPGA if desired
+            if self.args.emulate:
+                self.emulate(target=getattr(self, self.args.fpga_target))
+
+            # run simulation if desired
+            if self.args.sim or self.args.preprocess_only:
+                self.simulate(target=getattr(self, self.args.sim_target))
+
+            # view results if desired
+            if self.args.view and (self.args.sim or self.args.preprocess_only):
+                self.view(target=getattr(self, self.args.sim_target))
+
+            if self.args.view and self.args.emulate:
+                self.view(target=getattr(self, self.args.fpga_target))
+
+##### Functions exposed for user to exercise on Analysis Object
+
+    def finish_setup(self):
+        """
+        Finalize filesets and setup targets. Both should not be modified anymore afterwards.
+        :return:
+        """
         # Initialize Filesets
         self._setup_filesets()
 
         # Initialize Targets
         self._setup_targets()
 
-        ###############################################################
-        # Set options from to command line arguments
-        ###############################################################
-
-        self.cfg.preprocess_only = self.args.preprocess_only
-
-        ###############################################################
-        # Execute actions according to command line arguments
-        ###############################################################
-
-        # generate bitstream
-        if self.args.build:
-            self.build(target=getattr(self, self.args.fpga_target))
-
-        # run FPGA if desired
-        if self.args.emulate:
-            self.emulate(target=getattr(self, self.args.fpga_target))
-
-        # run simulation if desired
-        if self.args.sim or self.args.preprocess_only:
-            self.simulate(target=getattr(self, self.args.sim_target))
-
-        # view results if desired
-        if self.args.view and (self.args.sim or self.args.preprocess_only):
-            self.view(target=getattr(self, self.args.sim_target))
-
-        if self.args.view and self.args.emulate:
-            self.view(target=getattr(self, self.args.fpga_target))
-
-##### Functions exposed for user to exercise on Analysis Object
+        # Set indication that project setup is complete
+        self._setup_finished = True
 
     def build(self, target: FPGATarget):
         """
         Generate bitstream for FPGA target
         """
+
+        # Check if project setup was finished
+        self._check_setup()
+
         build = VivadoBuild(cfg=self.cfg, target=target)
         build.build()
 
@@ -116,6 +138,9 @@ class Analysis():
         """
         Run bitstream on FPGA
         """
+
+        # Check if project setup was finished
+        self._check_setup()
 
         # create sim result folders
         if not os.path.exists(os.path.dirname(target.cfg['vcd_path'])):
@@ -140,6 +165,10 @@ class Analysis():
         Run simulation on a pc target.
         """
 
+        # check if setup is already finished, if not do so
+        if not self._setup_finished:
+            self.finish_setup()
+
         # create sim result folder
         if not os.path.exists(os.path.dirname(target.cfg['vcd_path'])):
             mkdir_p(os.path.dirname(target.cfg['vcd_path']))
@@ -159,6 +188,10 @@ class Analysis():
         """
         Probe specified signal. Signal will be stored in a numpy array.
         """
+
+        # Check if project setup was finished
+        self._check_setup()
+
         probeobj = self._setup_probeobj(target=target)
 
         return probeobj._probe(name=name)
@@ -169,6 +202,10 @@ class Analysis():
         :param target: Target for which all stored signals will be displayed
         :return: list of signal names
         """
+
+        # Check if project setup was finished
+        self._check_setup()
+
         probeobj = self._setup_probeobj(target=target)
 
         return probeobj._probes()
@@ -177,6 +214,9 @@ class Analysis():
         """
         View results from selected target run.
         """
+
+        # Check if project setup was finished
+        self._check_setup()
 
         # pick viewer
         viewer_cls = {
@@ -230,10 +270,12 @@ class Analysis():
 
         # Add Defines and Sources from plugins
         for plugin in self._plugins:
-            self.filesets._defines += plugin.dump_defines()
-            self.filesets._verilog_sources += plugin.dump_verilog_sources()
-            self.filesets._verilog_headers += plugin.dump_verilog_headers()
-            self.filesets._vhdl_sources += plugin.dump_vhdl_sources()
+            plugin._setup_sources()
+            plugin._setup_defines()
+            self.filesets._defines += plugin._dump_defines()
+            self.filesets._verilog_sources += plugin._dump_verilog_sources()
+            self.filesets._verilog_headers += plugin._dump_verilog_headers()
+            self.filesets._vhdl_sources += plugin._dump_vhdl_sources()
 
         # Add custom source and define objects here e.g.:
         # self.filesets.add_source(source=VerilogSource())
@@ -312,5 +354,15 @@ class Analysis():
 
         return target.probes[target_name]
 
+    def _check_setup(self):
+        """
+        Check if the targets were already created for the project. If not, throw an error.
+        :return:
+        """
+        if not self._setup_finished:
+            raise ValueError("The project setup changed after data aquisition; Data might be out of sync!")
+
+
+
 if __name__ == '__main__':
-    analysis = Analysis()
+    analysis = Analysis(op_mode='commandline')
