@@ -37,6 +37,7 @@ class Target():
         # Initialize target_config
         self.cfg = {}
         self.cfg['tstop'] = 1e-05
+        self.cfg['emu_clk_freq'] =25e6
         self.cfg['top_module'] = 'top'
         self.cfg['vcd_name'] = f"{self.cfg['top_module']}_{self._name}.vcd"
         self.cfg['vcd_path'] = os.path.join(self.prj_cfg.build_root, r"vcd", self.cfg['vcd_name'])

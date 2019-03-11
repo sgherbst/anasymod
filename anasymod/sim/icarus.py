@@ -46,5 +46,5 @@ class IcarusSimulator(Simulator):
     def simulate(self):
         self.compile()
 
-        if not self.cfg.preprocess_only:
+        if not self.cfg.cfg['preprocess_only']:
             self.run()

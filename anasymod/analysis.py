@@ -78,7 +78,7 @@ class Analysis():
         # Set options from to command line arguments
         ###############################################################
 
-        self.cfg.preprocess_only = self.args.preprocess_only
+        self.cfg.cfg['preprocess_only'] = self.args.preprocess_only
 
         ###############################################################
         # Execute actions according to command line arguments

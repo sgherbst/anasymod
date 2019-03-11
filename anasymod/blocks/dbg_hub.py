@@ -2,6 +2,7 @@ from anasymod.templ import JinjaTempl
 
 class TemplDbgHub(JinjaTempl):
     def __init__(self, dbg_hub_clk_freq=300e6):
+        super().__init__()
         self.dbg_hub_prop = {}
         self.dbg_hub_prop['C_ENABLE_CLK_DIVIDER'] = 'false'
         self.dbg_hub_prop['C_USER_SCAN_CHAIN'] = '1'

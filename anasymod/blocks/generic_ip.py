@@ -5,6 +5,7 @@ from anasymod.util import back2fwd
 
 class TemplGenericIp(JinjaTempl):
     def __init__(self, ip_name, ip_dir, ip_module_name=None, props=None):
+        super().__init__()
         # set defaults
         if props is None:
             props = {}

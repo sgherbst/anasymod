@@ -7,6 +7,7 @@ from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, cfg: EmuConfig, target: FPGATarget):
+        super().__init__()
         self.toggle_reset_template = CodeGenerator()
         self._toggle_reset()
         self.toggle_reset = self.toggle_reset_template.dump()
@@ -15,7 +16,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # Necessary variables
         self.bit_file = back2fwd(target.bitfile_path)
         self.ltx_file = back2fwd(target.ltxfile_path)
-        self.device_name = cfg.fpga_board_config.board.cfg['short_part_name']
+        self.device_name = cfg.board.cfg['short_part_name']
 
         self.vio_name = cfg.vivado_config.vio_inst_name
         self.ila_name = cfg.vivado_config.ila_inst_name

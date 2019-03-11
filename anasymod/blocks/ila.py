@@ -4,6 +4,7 @@ from anasymod.probe_config import ProbeConfig
 
 class TemplILA(JinjaTempl):
     def __init__(self, probe_cfg_path, depth=1024, inst_name='u_ila_0', ila_clk='emu_clk'):
+        super().__init__()
         # set defaults
 
         # adjust depth if necessary

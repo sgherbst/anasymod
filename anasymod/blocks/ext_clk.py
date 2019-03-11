@@ -2,6 +2,7 @@ from anasymod.templ import JinjaTempl
 
 class TemplExtClk(JinjaTempl):
     def __init__(self, ext_clk_pin='H16', ext_clk_io_std='LVCMOS33', ext_clk_name='ext_clk', ext_clk_freq=125e6):
+        super().__init__()
         self.ext_clk_pin = ext_clk_pin
         self.ext_clk_io_std = ext_clk_io_std
         self.ext_clk_name = ext_clk_name

@@ -18,18 +18,14 @@ class EmuConfig:
         if not os.path.exists(self.build_root):
             mkdir_p(self.build_root)
 
-        # Initialize internal variables
         self._cfg_file = cfg_file
-
-        # Initialize config options
-        self.emu_clk_freq = 25e6
-        self.dbg_hub_clk_freq = 100e6
-        self.preprocess_only = False
 
         # Initialize config  dict
         self.cfg = {}
         self.cfg['dec_bits'] = 24
         self.cfg['board_name'] = BoardNames.PYNQ_Z1
+        self.cfg['emu_clk_freq'] = 25e6
+        self.cfg['preprocess_only'] = False
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
         #self.cfg['plugins'].append('netexplorer')
@@ -39,7 +35,7 @@ class EmuConfig:
         self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))
 
         # FPGA board configuration
-        self.fpga_board_config = FPGABoardConfig(board_name=self.cfg['board_name'])
+        self.board = self.fetch_board(board_name=self.cfg['board_name'])
 
         # Vivado configuration
         self.vivado_config = VivadoConfig(parent=self)
@@ -56,19 +52,6 @@ class EmuConfig:
         # Xcelium configuration
         self.xcelium_config = XceliumConfig(parent=self)
 
-    def setup_ila(self):
-        self.ila_depth = 1024
-
-class FPGABoardConfig():
-    def __init__(self, board_name):
-        self.board_name = board_name
-        self.board = None
-
-        # Fetch board info
-        self.board = self.fetch_board(board_name=board_name)
-
-        self.full_part_name = 'xc7z020clg400-1'
-        self.short_part_name = 'xc7z020'
 
     def fetch_board(self, board_name):
         """
@@ -80,7 +63,7 @@ class FPGABoardConfig():
         if board_name is BoardNames.PYNQ_Z1:
             return PYNQ_Z1()
         elif board_name is BoardNames.VC707:
-            return
+            return VC707()
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):
