@@ -1,0 +1,23 @@
+[*]
+[*] GTKWave Analyzer v3.3.65 (w)1999-2015 BSI
+[*] Thu Mar 07 17:34:17 2019
+[*]
+[dumpfile] "C:\Users\herbstst\Emulation\anasymod\tests\inertial\build\vcd\top_sim.vcd"
+[dumpfile_mtime] "Thu Mar 07 17:34:11 2019"
+[dumpfile_size] 235334
+[savefile] "C:\Users\herbstst\Emulation\anasymod\tests\inertial\view.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] 250 256
+*-26.509474 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.tb_i.
+[sst_width] 197
+[signals_width] 190
+[sst_expanded] 1
+[sst_vpaned_height] 153
+@28
+top.tb_i.in__probe
+top.tb_i.out_probe
+[pattern_trace] 1
+[pattern_trace] 0

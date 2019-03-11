@@ -16,7 +16,6 @@ class Plugin():
         self._name = name
         self._defines = []
         self._verilog_sources = []
-        self._cs_enums = ConfigSections
         """:type : List[VerilogSource]"""
 
         self._verilog_headers = []
@@ -27,17 +26,29 @@ class Plugin():
 
         self.cfg = {}
 
-    def dump_defines(self):
+    def _dump_defines(self):
         return self._defines
 
-    def dump_verilog_sources(self):
+    def _dump_verilog_sources(self):
         return self._verilog_sources
 
-    def dump_verilog_headers(self):
+    def _dump_verilog_headers(self):
         return self._verilog_headers
 
-    def dump_vhdl_sources(self):
+    def _dump_vhdl_sources(self):
         return self._vhdl_sources
+
+    def _setup_sources(self):
+        """
+        Add Source objects that are specific to MSDSL
+        """
+        raise NotImplementedError()
+
+    def _setup_defines(self):
+        """
+        Add Define objects that are specific to MSDSL
+        """
+        raise NotImplementedError()
 
     def add_source(self, source: Sources):
         if isinstance(source, VerilogSource):

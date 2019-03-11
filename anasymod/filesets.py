@@ -87,6 +87,8 @@ class Filesets():
                         line.config_path = cfg_path
                         line.expand_paths()
                         self._sub_config_paths.append(line)
+                    elif isinstance(line, Define):
+                        self._defines.append(line)
                     else:
                         print(f"Warning: Line'{line}' of config file: {cfg_path} does not fit do a specified source or config type")
                 except:
