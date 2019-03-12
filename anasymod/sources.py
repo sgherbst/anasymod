@@ -36,7 +36,10 @@ class ConfigFileObj(CodeGenerator):
             if not os.path.isabs(file):
                 if self.config_path is not None:
                     path_suffix = file.replace('\\', '/').replace('/', os.sep).split(os.sep)
-                    path_suffix.remove('.')
+                    try:
+                        path_suffix.remove('.')
+                    except:
+                        pass
                     file = os.path.join(os.path.dirname(self.config_path), *(path_suffix))
                 else:
                     raise KeyError(f"No config path was provided, is set to:{self.config_path}")
