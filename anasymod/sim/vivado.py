@@ -15,10 +15,10 @@ class VivadoSimulator(Simulator):
         v.add_project_sources(content=self.target.content)
 
         # define the top module
-        v.set_property('top', f"{{{self.target.cfg['top_module']}}}", '[get_fileset sim_1]')
+        v.set_property('top', f"{{{self.target.cfg['top_module']}}}", '[get_filesets {sim_1 sources_1}]')
 
         # set define variables
-        v.add_project_defines(content=self.target.content, fileset='[get_fileset sim_1]')
+        v.add_project_defines(content=self.target.content, fileset='[get_filesets {sim_1 sources_1}]')
 
         # launch the simulation
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')

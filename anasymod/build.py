@@ -91,6 +91,12 @@ class VivadoBuild():
         # self.v.println('refresh_design')
         # self.v.println('puts [get_nets - hier - filter {MARK_DEBUG}]')
 
+        # re-generate the LTX file
+        # without this step, the ILA probes are sometimes split into individual bits
+        ltx_file_path = os.path.join(self.target.project_root, f'{self.cfg.vivado_config.project_name}.runs', 'impl_1',
+                                     f"{self.target.cfg['top_module']}.ltx")
+        self.v.println(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
+
         # run bitstream generation
         self.v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename=r"bitstream.tcl")
 

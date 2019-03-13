@@ -1,15 +1,11 @@
 from anasymod.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
-from anasymod.codegen import CodeGenerator
 from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, cfg: EmuConfig, target: FPGATarget):
-        self.toggle_reset_template = CodeGenerator()
-        self._toggle_reset()
-        self.toggle_reset = self.toggle_reset_template.dump()
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
         # Necessary variables
@@ -51,22 +47,52 @@ set my_hw_vio [get_hw_vios]
 set rst_hw_probe [get_hw_probes *rst* -of_objects $my_hw_vio]
 
 # Trigger setup
+# TODO: use starting time as trigger condition
+startgroup
+set_property CONTROL.CAPTURE_MODE BASIC $my_hw_ila
 set_property CONTROL.TRIGGER_POSITION 0 $my_hw_ila
-set_property TRIGGER_COMPARE_VALUE eq1'bF [get_hw_probes {{subst.ila_reset}} -of_objects $my_hw_ila]
+endgroup
+set_property TRIGGER_COMPARE_VALUE eq1'b0 [get_hw_probes {{subst.ila_reset}} -of_objects $my_hw_ila]
 
-# Radix setup
+# Capture setup
+# TODO: use variable for emu_dec_cmp_probe
+# TODO: use the actual depth of the ILA divided by two as WINDOW_COUNT (not hard-coded to 512).  the data depth should
+# probably always be "2" because unfortunately "1" is not a valid option.
+set_property CONTROL.DATA_DEPTH 2 $my_hw_ila
+set_property CONTROL.WINDOW_COUNT 2048 $my_hw_ila
+set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes emu_dec_cmp_probe -of_objects $my_hw_ila]
+
+# VIO: decimation ratio
+# TODO: allow the decimation ratio to be varied
+set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+set_property OUTPUT_VALUE 1100 [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+
+# Radix setup: real numbers
 {% for probename, _, _ in subst.probe_signals.analog_signals + subst.probe_signals.time_signal %}
 catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes {{probename}}]{{'}'}}
 {% endfor %}
 
-# Toggle the reset VIO once to put it in a known state
-{{subst.toggle_reset}}
+# Radix setup: unsigned digital values
+# TODO: handle both signed and unsigned digital values
+{% for probename, _, _ in subst.probe_signals.digital_signals + subst.probe_signals.reset_signal %}
+catch {{'{'}}set_property DISPLAY_RADIX UNSIGNED [get_hw_probes {{probename}}]{{'}'}}
+{% endfor %}
+
+# Put design in reset
+startgroup
+set_property OUTPUT_VALUE 1 $rst_hw_probe
+commit_hw_vio $rst_hw_probe
+endgroup
 
 # Arm the ILA trigger
 run_hw_ila $my_hw_ila
 
-# Toggle reset to cause emulation to run
-{{subst.toggle_reset}}
+# Take design out of reset
+startgroup
+set_property OUTPUT_VALUE 0 $rst_hw_probe
+commit_hw_vio $rst_hw_probe
+endgroup
 
 # Get data from the ILA
 wait_on_hw_ila $my_hw_ila
@@ -75,16 +101,6 @@ display_hw_ila_data [upload_hw_ila_data $my_hw_ila]
 # Write ILA data to a file
 write_hw_ila_data -csv_file -force "{{subst.output}}" hw_ila_data_1
 '''
-
-    def assign_reset(self, rst_hw_probe, value):
-        self.toggle_reset_template.println("""startgroup
-set_property OUTPUT_VALUE {0} {1}
-commit_hw_vio {1}
-endgroup""".format(value, rst_hw_probe))
-
-    def _toggle_reset(self, rst_hw_probe=r"$rst_hw_probe"):
-        self.assign_reset(rst_hw_probe, 1)
-        self.assign_reset(rst_hw_probe, 0)
 
 def main():
     print(TemplEXECUTE_FPGA_SIM(cfg=EmuConfig()).render())
