@@ -6,9 +6,9 @@ class TemplILA(JinjaTempl):
     def __init__(self, probe_cfg_path, depth=4096, inst_name='u_ila_0', ila_clk='emu_clk'):
         # set defaults
 
-        # adjust depth if necessary so that it is a power of two and greater than or equal to 1024
-        # (these requirements come from Vivado)
-        depth = max(next_pow_2(depth), 1024)
+        # Sanity checking for ILA depth
+        assert next_pow_2(depth) == depth, 'The ILA depth must be a power of 2.'
+        assert depth >= 1024, 'The ILA depth must be at least 1024.'
 
         self.inst_name = inst_name
 

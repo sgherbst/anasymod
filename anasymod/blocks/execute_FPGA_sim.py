@@ -5,7 +5,7 @@ from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, cfg: EmuConfig, target: FPGATarget):
+    def __init__(self, cfg: EmuConfig, target: FPGATarget, decimation: int):
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
         # Necessary variables
@@ -19,6 +19,8 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         self.ila_reset = cfg.vivado_config.ila_reset
         #tbd remove vio_reset
         self.vio_reset = cfg.vivado_config.vio_reset
+        self.window_count = str(cfg.ila_depth//2)
+        self.decimation = str(decimation)
 
     TEMPLATE_TEXT = '''
 # Connect to hardware
@@ -56,16 +58,15 @@ set_property TRIGGER_COMPARE_VALUE eq1'b0 [get_hw_probes {{subst.ila_reset}} -of
 
 # Capture setup
 # TODO: use variable for emu_dec_cmp_probe
-# TODO: use the actual depth of the ILA divided by two as WINDOW_COUNT (not hard-coded to 512).  the data depth should
 # probably always be "2" because unfortunately "1" is not a valid option.
 set_property CONTROL.DATA_DEPTH 2 $my_hw_ila
-set_property CONTROL.WINDOW_COUNT 2048 $my_hw_ila
+set_property CONTROL.WINDOW_COUNT {{subst.window_count}} $my_hw_ila
 set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes emu_dec_cmp_probe -of_objects $my_hw_ila]
 
 # VIO: decimation ratio
-# TODO: allow the decimation ratio to be varied
+# TODO: use variable for emu_dec_thr
 set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
-set_property OUTPUT_VALUE 1100 [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+set_property OUTPUT_VALUE {{subst.decimation}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
 commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
 
 # Radix setup: real numbers

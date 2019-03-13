@@ -154,7 +154,7 @@ class Analysis():
             build = VivadoBuild(cfg=self.cfg, target=target)
 
         # run the emulation
-        build.run_FPGA()
+        build.run_FPGA(decimation=self.args.decimation)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
@@ -251,6 +251,7 @@ class Analysis():
         parser.add_argument('--view', action='store_true')
         parser.add_argument('--build', action='store_true')
         parser.add_argument('--emulate', action='store_true')
+        parser.add_argument('--decimation', type=int, default=1)
         parser.add_argument('--preprocess_only', action='store_true')
 
         self.args, _ = parser.parse_known_args()
