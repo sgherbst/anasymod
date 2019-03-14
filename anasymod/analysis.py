@@ -82,7 +82,7 @@ class Analysis():
             # Set options from to command line arguments
             ###############################################################
 
-        self.cfg.cfg['preprocess_only'] = self.args.preprocess_only
+            self.cfg.cfg['preprocess_only'] = self.args.preprocess_only
 
             ###############################################################
             # Execute actions according to command line arguments
@@ -357,12 +357,12 @@ class Analysis():
     def _check_setup(self):
         """
         Check if the targets were already created for the project. If not, throw an error.
+
         :return:
         """
+
         if not self._setup_finished:
             raise ValueError("The project setup changed after data aquisition; Data might be out of sync!")
-
-
 
 if __name__ == '__main__':
     analysis = Analysis(op_mode='commandline')

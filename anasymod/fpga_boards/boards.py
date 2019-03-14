@@ -12,7 +12,7 @@ class FPGABoard():
 class PYNQ_Z1(FPGABoard):
     def __init__(self):
         self.cfg = {
-        'clk_pin' : 'H16',
+        'clk_pin' : ['H16'],
         'clk_io' : 'LVCMOS33',
         'clk_freq' : 125e6,
         'full_part_name' : 'xc7z020clg400-1',
@@ -23,8 +23,7 @@ class PYNQ_Z1(FPGABoard):
 class VC707(FPGABoard):
     def __init__(self):
         self.cfg = {
-        'clk_pin_p' : 'E19',
-        'clk_pin_n': 'E18',
+        'clk_pin' : ['E19', 'E18'],
         'clk_io' : 'LVDS',
         'clk_freq' : 200e6,
         'full_part_name' : 'XC7VX485T-2FFG1761C',

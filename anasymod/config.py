@@ -23,7 +23,8 @@ class EmuConfig:
         # Initialize config  dict
         self.cfg = {}
         self.cfg['dec_bits'] = 24
-        self.cfg['board_name'] = BoardNames.PYNQ_Z1
+        #self.cfg['board_name'] = BoardNames.PYNQ_Z1
+        self.cfg['board_name'] = BoardNames.VC707
         self.cfg['emu_clk_freq'] = 25e6
         self.cfg['preprocess_only'] = False
         self.cfg['plugins'] = []

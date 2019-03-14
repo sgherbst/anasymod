@@ -2,19 +2,6 @@ class ModuleBase():
     """
     This is the base class for module structure generation.
     """
-    def __init__(self):
-
-        # Stores all modules that need to be instantiated in this module
-        self.child_modules =[]
-
-        # Stores all io ports of module
-        self.ports = []
-
-        # Template for custom body
-        self.template = ''
-
-        #
-
     def gen_module(self):
         """
         Generates sv code for module body.

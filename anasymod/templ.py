@@ -1,4 +1,4 @@
-from jinja2 import Template, Environment
+from jinja2 import Environment
 
 class JinjaTempl:
     def __init__(self, trim_blocks=False, lstrip_blocks=False):
