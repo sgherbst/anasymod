@@ -1,7 +1,5 @@
 import os
 
-from glob import glob
-
 from anasymod.viewer.viewer import Viewer
 from anasymod.util import call
 

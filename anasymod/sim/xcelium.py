@@ -1,10 +1,5 @@
-import os
-
-from glob import glob
-
 from anasymod.sim.sim import Simulator
 from anasymod.util import call
-from anasymod.sources import VerilogSource, VerilogHeader, VHDLSource, Sources
 from anasymod.targets import SimulationTarget
 from anasymod.config import EmuConfig
 
@@ -14,7 +9,7 @@ class XceliumSimulator(Simulator):
 
     def simulate(self):
         # build up the simulation command
-        cmd = [self.cfg.xcelium_config.xrun, '-sv', '-top', self.target.cfg['top_module'], '-input', self.cfg.xcelium_config.tcl_input_path]
+        cmd = [self.cfg.xcelium_config.xrun, '-sv', '-top', self.target.cfg.top_module, '-input', self.cfg.xcelium_config.tcl_input_path]
 
         # add defines
         for define in self.target.content['defines']:

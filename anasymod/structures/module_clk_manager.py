@@ -1,10 +1,9 @@
 from anasymod.templ import JinjaTempl
 from anasymod.structures.signal_base import SignalBase
-from anasymod.structures.port_base import PortBase
+from anasymod.structures.port_base import PortIN, PortOUT
 from anasymod.blocks.clk_wiz import TemplClkWiz
 from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
-from anasymod.enums import PortDirections
 
 class ModuleClkManager(JinjaTempl):
     def __init__(self, cfg: EmuConfig, target: FPGATarget, num_out_clks=3, ext_clk_name='ext_clk', emu_clk_name='emu_clk', dbg_clk_name='dbg_hub_clk', clk_out_name='clk_out'):
@@ -15,15 +14,15 @@ class ModuleClkManager(JinjaTempl):
         self.ext_clk_name = ext_clk_name
         self.emu_clk_name = emu_clk_name
 
-        self.clk_wiz = TemplClkWiz(cfg=self.prj_cfg, target=target, num_out_clks=self.num_out_clks)
+        self.clk_wiz = TemplClkWiz(target=target, num_out_clks=self.num_out_clks)
         self.clk_wiz_ports = self.clk_wiz.ports
 
         # Add signals for input clk
-        if isinstance(self.target.prj_cfg.board.cfg['clk_pin'], list):
-            if len(self.target.prj_cfg.board.cfg['clk_pin']) == 2:
+        if isinstance(self.target.prj_cfg.board.clk_pin, list):
+            if len(self.target.prj_cfg.board.clk_pin) == 2:
                 clk_in_ports = ['clk_in1_p', 'clk_in1_n']
                 ext_clk_name = [f"{ext_clk_name}_p", f"{ext_clk_name}_n"]
-            elif len(self.target.prj_cfg.board.cfg['clk_pin']) == 1:
+            elif len(self.target.prj_cfg.board.clk_pin) == 1:
                 clk_in_ports = ['clk_in1']
                 ext_clk_name = [ext_clk_name]
             else:
@@ -78,22 +77,20 @@ class ModuleClkManager(JinjaTempl):
 
         self.ports['input_clks'] = []
         for port in clk_in_ports:
-            self.ports['input_clks'].append(PortBase(name=port, direction=PortDirections.IN))
+            self.ports['input_clks'].append(PortIN(name=port))
 
         # Add port for main clk
-        self.ports['main_clk'] = [PortBase(name=self.emu_clk_name, direction=PortDirections.OUT)]
+        self.ports['main_clk'] = [PortOUT(name=self.emu_clk_name)]
 
         # Add ports for additional output clks
         self.ports['output_clks'] = []
         for k in range(1, self.num_out_clks):
-            self.ports[f'output_clks'].append(PortBase(name=f'clk_out{k+2}', direction=PortDirections.OUT))
+            self.ports[f'output_clks'].append(PortOUT(name=f'clk_out{k+2}'))
 
         # Add ports for additional output clks
         self.ports['output_clks_en'] = []
         for k in range(1, self.num_out_clks):
-            self.ports[f'output_clks_en'].append(PortBase(name=f'clk_out{k+2}_en', direction=PortDirections.IN))
-
-#ToDo do not forget to add {{ "," if not loop.last }} functionality where it is needed
+            self.ports[f'output_clks_en'].append(PortIN(name=f'clk_out{k+2}_en'))
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps

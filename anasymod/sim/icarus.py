@@ -1,7 +1,5 @@
 import os
 
-from glob import glob
-
 from anasymod.sim.sim import Simulator
 from anasymod.util import call
 
@@ -9,7 +7,7 @@ class IcarusSimulator(Simulator):
     def compile(self):
         # build up the simulation command
         cmd = [self.cfg.icarus_config.iverilog, '-g2012', '-o', self.cfg.icarus_config.output_file_path, '-s',
-               self.target.cfg['top_module']]
+               self.target.cfg.top_module]
 
         # if desired, only preprocess
         if self.cfg.preprocess_only:

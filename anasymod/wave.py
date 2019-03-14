@@ -8,14 +8,13 @@ except:
 import datetime
 
 from anasymod.probe_config import ProbeConfig
-from anasymod.config import EmuConfig
 from anasymod.targets import FPGATarget
 
 class ConvertWaveform():
-    def __init__(self, cfg: EmuConfig, target: FPGATarget):
+    def __init__(self, target: FPGATarget):
 
         # read CSV file
-        with open(target.cfg['csv_path'], 'r') as f:
+        with open(target.cfg.csv_path, 'r') as f:
             first_line = f.readline()
 
         # split up the first line into comma-delimited names
@@ -36,7 +35,7 @@ class ConvertWaveform():
 
         # define method for getting unscaled data
         def get_csv_col(name):
-            return np.genfromtxt(target.cfg['csv_path'], delimiter=',', usecols=signal_lookup[name], skip_header=1)
+            return np.genfromtxt(target.cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
 
         # read probe signal information to find out what signals are analog, digital, reset, time, etc.
         signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
@@ -81,7 +80,7 @@ class ConvertWaveform():
         time_signal = probe_data[time_signal_name]
 
         # Write data to VCD file
-        with open(target.cfg['vcd_path'], 'w') as vcd:
+        with open(target.cfg.vcd_path, 'w') as vcd:
             with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                 # register all of the signals that will be written to VCD
                 reg = {}

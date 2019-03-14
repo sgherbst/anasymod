@@ -2,13 +2,12 @@ import os.path
 import multiprocessing
 import shutil
 
-from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.util import back2fwd, read_config, update_config
-from anasymod.filesets import Filesets
+from anasymod.files import get_full_path, mkdir_p
 from os import environ as env
-from anasymod.enums import ConfigSections, BoardNames
+from anasymod.enums import BoardNames
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
+from anasymod.base_config import BaseConfig
 
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
@@ -18,25 +17,16 @@ class EmuConfig:
         if not os.path.exists(self.build_root):
             mkdir_p(self.build_root)
 
-        self._cfg_file = cfg_file
+        self.cfg_file = cfg_file
 
         # Initialize config  dict
-        self.cfg = {}
-        self.cfg['dec_bits'] = 24
-        #self.cfg['board_name'] = BoardNames.PYNQ_Z1
-        self.cfg['board_name'] = BoardNames.VC707
-        self.cfg['emu_clk_freq'] = 25e6
-        self.cfg['preprocess_only'] = False
-        self.cfg['plugins'] = []
-        self.cfg['plugins'].append('msdsl')
-        #self.cfg['plugins'].append('netexplorer')
-        #self.cfg['plugins'].append('stargazer')
+        self.cfg = Config(cfg_file=self.cfg_file)
 
         # Update config options by reading from config file
-        self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))
+        self.cfg.update_config()
 
         # FPGA board configuration
-        self.board = self.fetch_board(board_name=self.cfg['board_name'])
+        self.board = self.fetch_board()
 
         # Vivado configuration
         self.vivado_config = VivadoConfig(parent=self)
@@ -54,17 +44,15 @@ class EmuConfig:
         self.xcelium_config = XceliumConfig(parent=self)
 
 
-    def fetch_board(self, board_name):
+    def fetch_board(self):
         """
-        Fetch boards info
-        :param board_name: name of board to be fetched
-        :return:
+        Fetch FPGA board info.
         """
 
-        if board_name is BoardNames.PYNQ_Z1:
-            return PYNQ_Z1()
-        elif board_name is BoardNames.VC707:
-            return VC707()
+        if self.cfg.board_name is BoardNames.PYNQ_Z1:
+            return PYNQ_Z1
+        elif self.cfg.board_name is BoardNames.VC707:
+            return VC707
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):
@@ -172,6 +160,22 @@ class SimVisionConfig():
         if self._simvision is None:
             self._simvision = find_tool(name='simvision')
         return self._simvision
+
+class Config(BaseConfig):
+    """
+    Container to store all config attributes.
+    """
+    def __init__(self, cfg_file):
+        super().__init__(cfg_file=cfg_file, section=ConfigSections.PROJECT)
+        self.dec_bits = 24
+        #self'board_name'] = BoardNames.PYNQ_Z1
+        self.board_name = BoardNames.VC707
+        self.emu_clk_freq = 25e6
+        self.preprocess_only = False
+        self.plugins = []
+        self.plugins.append('msdsl')
+        #self.plugins.append('netexplorer')
+        #self.plugins.append('stargazer')
 
 def find_tool(name, hints=None):
     # set defaults

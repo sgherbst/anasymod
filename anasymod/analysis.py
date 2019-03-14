@@ -16,9 +16,7 @@ from anasymod.sources import VerilogSource, VerilogHeader, VHDLSource, Sources
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
-from anasymod.enums import ConfigSections
 from anasymod.files import mkdir_p
-from anasymod.util import read_config, update_config
 from anasymod.probe import ProbeCSV, ProbeVCD
 from typing import Union
 
@@ -58,14 +56,14 @@ class Analysis():
             print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'prj_config.json')}")
 
         # Initialize project config
-        self.cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
+        self.prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
 
         # Initialize Plugins
         self._plugins = []
-        for plugin in self.cfg.cfg['plugins']:
+        for plugin in self.prj_cfg.cfg.plugins:
             try:
                 i = import_module(f"plugin.{plugin}")
-                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.cfg.build_root)
+                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.prj_cfg.build_root)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
             except:
@@ -82,7 +80,7 @@ class Analysis():
             # Set options from to command line arguments
             ###############################################################
 
-            self.cfg.cfg['preprocess_only'] = self.args.preprocess_only
+            self.prj_cfg.cfg['preprocess_only'] = self.args.preprocess_only
 
             ###############################################################
             # Execute actions according to command line arguments
@@ -131,7 +129,7 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        build = VivadoBuild(cfg=self.cfg, target=target)
+        build = VivadoBuild(cfg=self.prj_cfg, target=target)
         build.build()
 
     def emulate(self, target: FPGATarget):
@@ -143,22 +141,22 @@ class Analysis():
         self._check_setup()
 
         # create sim result folders
-        if not os.path.exists(os.path.dirname(target.cfg['vcd_path'])):
-            mkdir_p(os.path.dirname(target.cfg['vcd_path']))
+        if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(target.cfg.vcd_path))
 
-        if not os.path.exists(os.path.dirname(target.cfg['csv_path'])):
-            mkdir_p(os.path.dirname(target.cfg['csv_path']))
+        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
+            mkdir_p(os.path.dirname(target.cfg.csv_path))
 
         # create VivadoBuild object if necessary (this does not actually build the design)
         if r"build" not in locals():
-            build = VivadoBuild(cfg=self.cfg, target=target)
+            build = VivadoBuild(cfg=self.prj_cfg, target=target)
 
         # run the emulation
         build.run_FPGA()
 
         # post-process results
         from anasymod.wave import ConvertWaveform
-        ConvertWaveform(cfg=self.cfg, target=target)
+        ConvertWaveform(target=target)
 
     def simulate(self, target: SimulationTarget):
         """
@@ -170,8 +168,8 @@ class Analysis():
             self.finish_setup()
 
         # create sim result folder
-        if not os.path.exists(os.path.dirname(target.cfg['vcd_path'])):
-            mkdir_p(os.path.dirname(target.cfg['vcd_path']))
+        if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(target.cfg.vcd_path))
 
         # pick simulator
         sim_cls = {
@@ -181,7 +179,7 @@ class Analysis():
         }[self.args.simulator_name]
 
         # run simulation
-        sim = sim_cls(cfg=self.cfg, target=target)
+        sim = sim_cls(cfg=self.prj_cfg, target=target)
         sim.simulate()
 
     def probe(self, target: Union[FPGATarget, SimulationTarget], name):
@@ -225,11 +223,11 @@ class Analysis():
         }[self.args.viewer_name]
 
         # set config file location
-        self.cfg.gtkwave_config.gtkw_config = os.path.join(self.args.input, 'view.gtkw')
-        self.cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
+        self.prj_cfg.gtkwave_config.gtkw_config = os.path.join(self.args.input, 'view.gtkw')
+        self.prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
-        viewer = viewer_cls(cfg=self.cfg, target=target)
+        viewer = viewer_cls(cfg=self.prj_cfg, target=target)
         viewer.view()
 
 ##### Utility Functions
@@ -287,7 +285,7 @@ class Analysis():
         self.filesets.add_define(define=Define(name='CLK_MSDSL', value='top.emu_clk'))
         self.filesets.add_define(define=Define(name='RST_MSDSL', value='top.emu_rst'))
         self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value='top.emu_dec_thr'))
-        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.cfg.cfg['dec_bits']))
+        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.prj_cfg.cfg['dec_bits']))
 
         self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path))
 
@@ -307,26 +305,26 @@ class Analysis():
         # Create and setup simulation target
         #######################################################
 
-        self.sim = SimulationTarget(prj_cfg=self.cfg, name=r"sim")
+        self.sim = SimulationTarget(prj_cfg=self.prj_cfg, name=r"sim")
         self.sim.assign_fileset(fileset=filesets['default'])
         if 'sim' in filesets:
             self.sim.assign_fileset(fileset=filesets['sim'])
 
         # Update simulation target specific configuration
-        self.sim.cfg = update_config(cfg=self.sim.cfg, config_section=read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"sim"))
+        self.sim.cfg.update_config(subsection=r"sim")
         self.sim.set_tstop()
         self.sim.setup_vcd()
 
         #######################################################
         # Create and setup FPGA target
         #######################################################
-        self.fpga = FPGATarget(prj_cfg=self.cfg, name=r"fpga")
+        self.fpga = FPGATarget(prj_cfg=self.prj_cfg, name=r"fpga")
         self.fpga.assign_fileset(fileset=filesets['default'])
         if 'fpga' in filesets:
             self.fpga.assign_fileset(fileset=filesets['fpga'])
 
         # Update simulation target specific configuration
-        self.fpga.cfg = update_config(cfg=self.fpga.cfg, config_section=read_config(cfg_file=self.cfg_file, section=ConfigSections.TARGET, subsection=r"fpga"))
+        self.fpga.cfg.update_config(subsection=r"fpga")
         self.fpga.set_tstop()
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
@@ -350,7 +348,7 @@ class Analysis():
 
         #ToDo: In future it should be also possible to instantiate different probe objects, depending on data format that shall be read in
         if target_name not in target.probes.keys():
-            target.probes[target_name] = ProbeVCD(prj_config=self.cfg, target=target)
+            target.probes[target_name] = ProbeVCD(prj_config=self.prj_cfg, target=target)
 
         return target.probes[target_name]
 

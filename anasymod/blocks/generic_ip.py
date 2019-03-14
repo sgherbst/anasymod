@@ -10,6 +10,7 @@ class TemplGenericIp(JinjaTempl):
         # set defaults
         if props is None:
             props = {}
+
         if ip_module_name is None:
             ip_module_name = ip_name + '_0'
 

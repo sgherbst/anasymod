@@ -3,9 +3,8 @@ import os
 from anasymod.defines import Define
 from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource
-from anasymod.util import read_config
-from anasymod.probe import Probe
+from anasymod.base_config import BaseConfig
+from anasymod.enums import ConfigSections
 
 class Target():
     """
@@ -35,18 +34,13 @@ class Target():
         """:type : List[Define]"""
 
         # Initialize target_config
-        self.cfg = {}
-        self.cfg['tstop'] = 1e-05
-        self.cfg['emu_clk_freq'] =25e6
-        self.cfg['top_module'] = 'top'
-        self.cfg['vcd_name'] = f"{self.cfg['top_module']}_{self._name}.vcd"
-        self.cfg['vcd_path'] = os.path.join(self.prj_cfg.build_root, r"vcd", self.cfg['vcd_name'])
+        self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name)
 
     def set_tstop(self):
         """
         Add define statement to specify tstop
         """
-        self.content['defines'].append(Define(name='TSTOP_MSDSL', value=self.cfg['tstop']))
+        self.content['defines'].append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
 
     def assign_fileset(self, fileset: dict):
         """
@@ -68,7 +62,7 @@ class SimulationTarget(Target):
         super().__init__(prj_cfg=prj_cfg, name=name)
 
     def setup_vcd(self):
-        self.content['defines'].append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg['vcd_path'])))
+        self.content['defines'].append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
 
 class FPGATarget(Target):
     """
@@ -80,8 +74,8 @@ class FPGATarget(Target):
         super().__init__(prj_cfg=prj_cfg, name=name)
         self._ip_cores = []
 
-        self.cfg['csv_name'] = f"{self.cfg['top_module']}_{self._name}.csv"
-        self.cfg['csv_path'] = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg['csv_name'])
+        self.cfg.csv_name = f"{self.cfg.top_module}_{self._name}.csv"
+        self.cfg.csv_path = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg.csv_name)
 
         # ToDo: move these paths to toolchain specific config, which shall be instantiated in the target class
 
@@ -92,14 +86,27 @@ class FPGATarget(Target):
     @property
     def bitfile_path(self):
         return os.path.join(self.project_root, f'{self.prj_cfg.vivado_config.project_name}.runs', 'impl_1',
-                            f"{self.cfg['top_module']}.bit")
+                            f"{self.cfg.top_module}.bit")
 
     @property
     def ltxfile_path(self):
         return os.path.join(self.project_root, f'{self.prj_cfg.vivado_config.project_name}.runs', 'impl_1',
-                            f"{self.cfg['top_module']}.ltx")
+                            f"{self.cfg.top_module}.ltx")
 
     @property
     def ip_dir(self):
         return os.path.join(self.project_root, f'{self.prj_cfg.vivado_config.project_name}.srcs', 'sources_1', 'ip')
+
+class Config(BaseConfig):
+    """
+    Container to store all config attributes.
+    """
+    def __init__(self, cfg_file, prj_cfg, name):
+        super().__init__(cfg_file=cfg_file, section=ConfigSections.TARGET)
+        self.tstop = 1e-05
+        self.emu_clk_freq =25e6
+        self.top_module = 'top'
+        self.vcd_name = f"{self.top_module}_{name}.vcd"
+        self.vcd_path = os.path.join(prj_cfg.build_root, r"vcd", self.vcd_name)
+
 

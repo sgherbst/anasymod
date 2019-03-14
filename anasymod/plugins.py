@@ -1,11 +1,9 @@
 import os
 
-from anasymod.enums import ConfigSections
 from anasymod.sources import Sources, VerilogHeader, VerilogSource, VHDLSource
 from anasymod.defines import Define
-from anasymod.files import mkdir_p, rm_rf, get_from_module, which
-from argparse import ArgumentParser
-from anasymod.util import call, read_config, update_config
+from anasymod.enums import ConfigSections
+from anasymod.base_config import BaseConfig
 
 class Plugin():
     def __init__(self, cfg_file, prj_root, build_root, name):
@@ -24,7 +22,7 @@ class Plugin():
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
 
-        self.cfg = {}
+        self.cfg = Config(cfg_file=self._cfg_file)
 
     def _dump_defines(self):
         return self._defines
@@ -73,3 +71,11 @@ class Plugin():
 
     def _read_config(self, cfg_file, section, subsection=None):
         return read_config(cfg_file=cfg_file, section=section, subsection=subsection)
+
+class Config(BaseConfig):
+    """
+    Container to store all config attributes.
+    """
+
+    def __init__(self, cfg_file):
+        super().__init__(cfg_file=cfg_file, section=ConfigSections.PLUGIN)

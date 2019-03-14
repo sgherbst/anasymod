@@ -45,7 +45,7 @@ class Filesets():
                                 cfg = f.readlines()
                             self._parseconfig(cfg=cfg, cfg_path=file)
                         else:
-                            print(f"WARNING: provided path:'{config_path}' does not exist, skipping config file")
+                            print(f"WARNING: provided path:'{config}' does not exist, skipping config file")
 
             # Check if fileset paths exist
             if validate_paths:

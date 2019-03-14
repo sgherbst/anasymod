@@ -1,9 +1,7 @@
 
 from argparse import ArgumentParser
 
-from anasymod.enums import ConfigSections
 from anasymod.plugins import Plugin
-from anasymod.util import read_config, update_config
 
 class CustomPlugin(Plugin):
     def __init__(self, cfg_file, prj_root, build_root):
@@ -16,8 +14,7 @@ class CustomPlugin(Plugin):
         # Initialize stargazer config
 
         # Update stargazer config with stargazer section in config file
-        self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PLUGIN, subsection=self._name))
-
+        self.cfg.update_config(subsection=self._name)
         # Add defines according to command line arguments
 
         ###############################################################

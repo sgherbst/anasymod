@@ -1,5 +1,4 @@
 import os
-from glob import glob
 
 from anasymod.util import call, back2fwd
 from anasymod.codegen import CodeGenerator

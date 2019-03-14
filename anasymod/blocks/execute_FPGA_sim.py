@@ -16,14 +16,14 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # Necessary variables
         self.bit_file = back2fwd(target.bitfile_path)
         self.ltx_file = back2fwd(target.ltxfile_path)
-        self.device_name = cfg.board.cfg['short_part_name']
+        self.device_name = target.prj_cfg.board.cfg.short_part_name
 
-        self.vio_name = cfg.vivado_config.vio_inst_name
-        self.ila_name = cfg.vivado_config.ila_inst_name
+        self.vio_name = target.prj_cfg.vivado_config.vio_inst_name
+        self.ila_name = target.prj_cfg.vivado_config.ila_inst_name
         self.output = back2fwd(target.cfg['csv_path'])
-        self.ila_reset = cfg.vivado_config.ila_reset
+        self.ila_reset = target.prj_cfg.vivado_config.ila_reset
         #tbd remove vio_reset
-        self.vio_reset = cfg.vivado_config.vio_reset
+        self.vio_reset = target.prj_cfg.vivado_config.vio_reset
 
     TEMPLATE_TEXT = '''
 # Connect to hardware

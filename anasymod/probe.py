@@ -2,23 +2,21 @@ import numpy as np
 import os
 import csv
 
-from typing import Union
 
 from anasymod.utils.VCD_parser import VCDparser
-from anasymod.config import EmuConfig
+from typing import Union
 
-#from anasymod.targets import SimulationTarget, FPGATarget
+from anasymod.targets import SimulationTarget, FPGATarget
 
 class Probe():
     """
     Base class for simulation data access API
     """
-    def __init__(self, prj_config: EmuConfig, target):
+    def __init__(self, target: Union[SimulationTarget, FPGATarget]):
         """
         Constructor
         """
         self.handle = None
-        self.prj_config = prj_config
         self.target = target
 
         #self.__ref_analysis = weakref.proxy(ref_analysis)
@@ -109,11 +107,11 @@ class ProbeCSV(Probe):
     API for CSV remote data access
     """
 
-    def __init__(self, prj_config: EmuConfig, target):
+    def __init__(self, target: Union[SimulationTarget, FPGATarget]):
         """
         Constructor
         """
-        super().__init__(self, prj_config=prj_config, target=target)
+        super().__init__(self, target=target)
 
         # List of dictionaries containing probename-probevalue pairs for each simulation run (one dict per sweep point)
         self.probe_caches = []
@@ -226,11 +224,11 @@ class ProbeCSV(Probe):
         return self.probe_caches[run_num].keys()
 
 class ProbeVCD(Probe):
-    def __init__(self, prj_config: EmuConfig, target):
+    def __init__(self, target: Union[SimulationTarget, FPGATarget]):
         """
         Constructor for VCD reader.
         """
-        super().__init__(prj_config=prj_config, target=target)
+        super().__init__(target=target)
 
         # List of dictionaries containing probename-probevalue pairs for each simulation run (one dict per sweep point)
         self.probe_caches = []
@@ -337,7 +335,7 @@ class ProbeVCD(Probe):
 
     def path_for_sim_result_file(self):
         # Setup Simulation Result file names
-        return os.path.join(self.target.cfg['vcd_path'])
+        return os.path.join(self.target.cfg.vcd_path)
 
     def fetch_simdata(self, file_handle, name):
         """

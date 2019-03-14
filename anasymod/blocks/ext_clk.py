@@ -16,7 +16,7 @@ class TemplExtClk(JinjaTempl):
         else:
             raise ValueError(f"Definition of 'clk_pin' in FPGA board setup is wrong, provide either one or two arguments in list, not:{cfg.board.cfg['clk_pin']}")
 
-        period_ns = 1e9/cfg.board.cfg['clk_freq']
+        period_ns = 1e9/cfg.board.cfg.clk_freq
         self.ext_clk_full_period_ns = str(period_ns)
         self.ext_clk_half_period_ns = str(0.5*period_ns)
 
