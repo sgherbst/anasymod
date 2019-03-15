@@ -66,8 +66,13 @@ class Filesets():
         :return:
         """
 
-        for line in cfg:
+        for k, line in enumerate(cfg):
             line = line.strip()
+
+            if line.startswith('#'):
+                # skip comments
+                continue
+
             if line:
                 try:
                     line = eval(line)
@@ -90,9 +95,9 @@ class Filesets():
                     elif isinstance(line, Define):
                         self._defines.append(line)
                     else:
-                        print(f"Warning: Line'{line}' of config file: {cfg_path} does not fit do a specified source or config type")
+                        raise Exception(f"Line {k+1} of config file: {cfg_path} does not fit do a specified source or config type")
                 except:
-                    print(f"Warning: Line'{line}' of config file: {cfg_path} could not be processed properely")
+                    raise Exception(f"Line {k+1} of config file: {cfg_path} could not be processed properely")
 
     def populate_fileset_dict(self):
         """
