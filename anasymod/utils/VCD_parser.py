@@ -66,25 +66,26 @@ class VCDparser:
                     value = float(value)
                     if (code in data):
                         if (use_stdout):
-                            print(time, value)
+                            print(cycle_cnt, value)
                         else:
                             if 'tv' not in data[code]:
                                 data[code]['tv'] = []
-                            data[code]['tv'].append((time, value))
+                            data[code]['tv'].append((cycle_cnt, value))
 
                 elif line[0] in ('0', '1', 'x', 'X', 'z', 'Z'):
                     value = line[0]
                     code = line[1:]
                     if (code in data):
                         if (use_stdout):
-                            print(time, value)
+                            print(cycle_cnt, value)
                         else:
                             if 'tv' not in data[code]:
                                 data[code]['tv'] = []
-                            data[code]['tv'].append((time, value))
+                            data[code]['tv'].append((cycle_cnt, value))
 
                 elif line[0] == '#':
                     time = mult * int(line[1:])
+                    cycle_cnt = int(line[1:])
                     self.endtime = time
 
                 elif "$enddefinitions" in line:

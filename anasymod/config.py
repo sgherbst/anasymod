@@ -91,7 +91,9 @@ class VivadoConfig():
         self.project_name = 'project'
 
         # set path to Vivado
-        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
+        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.1', 'Vivado', '2018.2',
+                                           'bin')]
         self._vivado = vivado
 
         # set various project options
@@ -135,7 +137,8 @@ class IcarusConfig():
         self.parent = parent
 
         # set path to iverilog and vvp binaries
-        self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin')]
+        self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'iverilog-11.1.1.0', 'bin')]
         self._iverilog = iverilog
         self._vvp = vvp
 
@@ -164,7 +167,8 @@ class GtkWaveConfig():
         self.parent = parent
 
         # find binary
-        self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
+        self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'gtkwave-3.3.65.0', 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
 
@@ -201,7 +205,10 @@ def find_tool(name, hints=None):
     if tool_path is None:
         for hint in hints:
             try:
-                tool_path = shutil.which(name, path=hint())
+                if callable(hint):
+                    tool_path = shutil.which(name, path=hint())
+                else:
+                    tool_path = shutil.which(name, path=hint)
             except:
                 continue
 

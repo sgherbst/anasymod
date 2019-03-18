@@ -184,7 +184,7 @@ class Analysis():
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
 
-    def probe(self, target: Union[FPGATarget, SimulationTarget], name):
+    def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
         """
         Probe specified signal. Signal will be stored in a numpy array.
         """
@@ -194,7 +194,7 @@ class Analysis():
 
         probeobj = self._setup_probeobj(target=target)
 
-        return probeobj._probe(name=name)
+        return probeobj._probe(name=name, emu_time=emu_time)
 
     def probes(self, target: Union[FPGATarget, SimulationTarget]):
         """
@@ -361,6 +361,8 @@ class Analysis():
         """
         if not self._setup_finished:
             raise ValueError("The project setup changed after data aquisition; Data might be out of sync!")
+
+
 
 
 

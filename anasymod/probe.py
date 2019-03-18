@@ -42,7 +42,7 @@ class Probe():
     def __del__(self):
         self.discardloadedsimdatafiles()
 
-    def _probe(self, name, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access probed waveform trace(s)
 
@@ -133,7 +133,7 @@ class ProbeCSV(Probe):
     def path_for_sim_result_file(self):
         return os.path.join(self.target.cfg['csv_path'])
 
-    def _probe(self, name, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access csv logfile data for specified run number simulation parameter
 
@@ -242,6 +242,8 @@ class ProbeVCD(Probe):
 
         self.init_rundata()
 
+        self._emu_time_probe = ""
+
     def __del__(self):
         """
         Destructor
@@ -254,7 +256,7 @@ class ProbeVCD(Probe):
         self.probe_caches = [{} for _ in range(10)] # this needs a fix later, shall be depenent on number of signals that were stored during simulation
         self._data_valid = True
 
-    def _probe(self, name, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access vcd data for specified run number simulation parameter
 
@@ -277,8 +279,15 @@ class ProbeVCD(Probe):
             run_cache = []
             cache = False
 
+        if self._emu_time_probe == "":
+            self._emu_time_probe = self.fetch_simdata(vcd_handle, 'emu_time_probe', emu_time=False)
+
         if name not in run_cache:
-            data = self.fetch_simdata(vcd_handle, name)
+            data = self.fetch_simdata(vcd_handle, name, emu_time)
+            if emu_time:
+                print("test")
+                #intpol_data = np.interp(x=self._emu_time_probe['time'], xp=data['time'], fp=data['data'])
+                #data['time'] =
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
@@ -286,6 +295,7 @@ class ProbeVCD(Probe):
 
         else:
             data = run_cache[name]
+
         return data
 
     def _probes(self):
@@ -339,7 +349,7 @@ class ProbeVCD(Probe):
         # Setup Simulation Result file names
         return os.path.join(self.target.cfg['vcd_path'])
 
-    def fetch_simdata(self, file_handle, name):
+    def fetch_simdata(self, file_handle, name, emu_time):
         """
         Load VCD signals and store values as dictionary
 
@@ -348,26 +358,38 @@ class ProbeVCD(Probe):
         """
 
         signal = r""
-        if name.lower() == r"time":
+        time = r""
+        if name.lower() == r"emu_time_probe":
             signals = file_handle.list_sigs()
-            signal_dict = file_handle.parse_vcd(siglist=[signals[0]])
+            name = [s for s in signals if name in s]
+            signal_dict = file_handle.parse_vcd(siglist=name)
             """ :type : dict()"""
 
             for key in signal_dict.keys():
-                signal = [i[0] for i in signal_dict[key]['tv']]
-        elif r"_sig_time" in name:
-            signal_dict = file_handle.parse_vcd(siglist=[name])
-            """ :type : dict()"""
-
-            for key in signal_dict.keys():
-                signal = [i[0] for i in signal_dict[key]['tv']]
+                signal = signal_dict[key]['tv']
+                #signal = [i[1] for i in signal_dict[key]['tv']]
+                #time = [i[0] for i in signal_dict[key]['tv']]
         else:
             signal_dict = file_handle.parse_vcd(siglist=[name])
             """ :type : dict()"""
 
             for key in signal_dict.keys():
-                signal = [i[1] for i in signal_dict[key]['tv']]
+                signal = signal_dict[key]['tv']
+                #signal = [i[1] for i in signal_dict[key]['tv']]
+                #time = [i[0] for i in signal_dict[key]['tv']]
 
-        if signal in [""]:
-            raise ValueError("No data found for signal:{0}".format(name))
-        return np.array(signal)
+            if signal in [""]:
+                raise ValueError("No data found for signal:{0}".format(name))
+
+            #if np.array(signal).dtype == '<U11':        # catch boolean probing, because of 'x' and 'z' states
+            #    data = np.array(signal, dtype=[('time', '<i8'), ('data', '<U11')])
+            #else:
+            #    data = np.array(signal, dtype=[('time', '<i8'),('data', '<f8')]) # first element is time in cycle counts, second is data as float
+
+            ## first element is time in cycle counts (int), second is data as dtype of signal (float or string)
+        data = np.array(signal, dtype=[('time', '<i8'), ('data', np.array(signal[0]).dtype)])
+
+        #data = (np.array(time, dtype=[('time',np.array(time).dtype)]), np.array(signal, dtype=[('signal', np.array(signal).dtype )]))
+        #data = [time, signal]
+        #return np.array(data)
+        return data
