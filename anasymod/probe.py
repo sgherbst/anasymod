@@ -279,15 +279,8 @@ class ProbeVCD(Probe):
             run_cache = []
             cache = False
 
-        if self._emu_time_probe == "":
-            self._emu_time_probe = self.fetch_simdata(vcd_handle, 'emu_time_probe', emu_time=False)
-
         if name not in run_cache:
             data = self.fetch_simdata(vcd_handle, name, emu_time)
-            if emu_time:
-                print("test")
-                #intpol_data = np.interp(x=self._emu_time_probe['time'], xp=data['time'], fp=data['data'])
-                #data['time'] =
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
@@ -358,7 +351,6 @@ class ProbeVCD(Probe):
         """
 
         signal = r""
-        time = r""
         if name.lower() == r"emu_time_probe":
             signals = file_handle.list_sigs()
             name = [s for s in signals if name in s]
@@ -366,30 +358,18 @@ class ProbeVCD(Probe):
             """ :type : dict()"""
 
             for key in signal_dict.keys():
-                signal = signal_dict[key]['tv']
-                #signal = [i[1] for i in signal_dict[key]['tv']]
-                #time = [i[0] for i in signal_dict[key]['tv']]
+                if emu_time:
+                    signal = [i[1] for i in signal_dict[key]['tv']]
+                else:
+                    signal = [i[0] for i in signal_dict[key]['tv']]
         else:
             signal_dict = file_handle.parse_vcd(siglist=[name])
             """ :type : dict()"""
 
             for key in signal_dict.keys():
-                signal = signal_dict[key]['tv']
-                #signal = [i[1] for i in signal_dict[key]['tv']]
-                #time = [i[0] for i in signal_dict[key]['tv']]
+                signal = [i[1] for i in signal_dict[key]['tv']]
 
             if signal in [""]:
                 raise ValueError("No data found for signal:{0}".format(name))
 
-            #if np.array(signal).dtype == '<U11':        # catch boolean probing, because of 'x' and 'z' states
-            #    data = np.array(signal, dtype=[('time', '<i8'), ('data', '<U11')])
-            #else:
-            #    data = np.array(signal, dtype=[('time', '<i8'),('data', '<f8')]) # first element is time in cycle counts, second is data as float
-
-            ## first element is time in cycle counts (int), second is data as dtype of signal (float or string)
-        data = np.array(signal, dtype=[('time', '<i8'), ('data', np.array(signal[0]).dtype)])
-
-        #data = (np.array(time, dtype=[('time',np.array(time).dtype)]), np.array(signal, dtype=[('signal', np.array(signal).dtype )]))
-        #data = [time, signal]
-        #return np.array(data)
-        return data
+        return np.array(signal)

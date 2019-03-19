@@ -44,6 +44,7 @@ class VCDparser:
         num_sigs = 0
         hier = []
         time = 0
+        cycle_cnt = ""
 
         with open(self.vcd_file, 'r') as fh:
             while True:
@@ -84,6 +85,14 @@ class VCDparser:
                             data[code]['tv'].append((cycle_cnt, value))
 
                 elif line[0] == '#':
+                    if cycle_cnt != "":
+                        cycle_cnt_old = cycle_cnt
+                        # check if data has changed before, otherwise repeat old value again to keep for all signals the same vector length
+                        for d in data.keys():
+                            length = len(data[d]['tv']) - 1
+                            if data[d]['tv'][length][0] != cycle_cnt_old:
+                                data[d]['tv'].append((cycle_cnt_old, data[d]['tv'][length][1]))
+
                     time = mult * int(line[1:])
                     cycle_cnt = int(line[1:])
                     self.endtime = time
