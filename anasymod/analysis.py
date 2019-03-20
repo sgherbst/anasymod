@@ -154,7 +154,7 @@ class Analysis():
             build = VivadoBuild(cfg=self.cfg, target=target)
 
         # run the emulation
-        build.run_FPGA(decimation=self.args.decimation)
+        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg['dt'])
 
         # post-process results
         from anasymod.wave import ConvertWaveform
@@ -251,7 +251,8 @@ class Analysis():
         parser.add_argument('--view', action='store_true')
         parser.add_argument('--build', action='store_true')
         parser.add_argument('--emulate', action='store_true')
-        parser.add_argument('--decimation', type=int, default=1)
+        parser.add_argument('--start_time', type=float, default=0)
+        parser.add_argument('--stop_time', type=float, default=10e-6)
         parser.add_argument('--preprocess_only', action='store_true')
 
         self.args, _ = parser.parse_known_args()

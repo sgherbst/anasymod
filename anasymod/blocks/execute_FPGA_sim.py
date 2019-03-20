@@ -4,13 +4,16 @@ from anasymod.util import back2fwd
 from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
+from math import ceil
+
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, cfg: EmuConfig, target: FPGATarget, decimation: int):
+    def __init__(self, cfg: EmuConfig, target: FPGATarget, start_time: float, stop_time: float, dt: float):
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
         # Necessary variables
         self.bit_file = back2fwd(target.bitfile_path)
         self.ltx_file = back2fwd(target.ltxfile_path)
+        self.jtag_freq = str(int(cfg.cfg['jtag_freq']))
         self.device_name = cfg.fpga_board_config.board.cfg['short_part_name']
 
         self.vio_name = cfg.vivado_config.vio_inst_name
@@ -20,13 +23,31 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         #tbd remove vio_reset
         self.vio_reset = cfg.vivado_config.vio_reset
         self.window_count = str(cfg.ila_depth//2)
-        self.decimation = str(decimation)
+
+        # calculate decimation ratio
+        # note that we have to subtract 1 from decimation ratio due to the FPGA implementation of this feature
+        # also note that a minimum decimation ratio of 2 is used since that is unfortunately the minimum window_count
+        # allowed
+        self.decimation_ratio = ((stop_time-start_time)/dt)/(cfg.ila_depth/2)
+        self.decimation_ratio = int(round(self.decimation_ratio)) - 1
+        self.decimation_ratio = max(self.decimation_ratio, 2)
+        self.decimation_ratio = str(self.decimation_ratio)
+
+        # extract details of time signal
+        # note that these are all strings...
+        self.time_name, time_width, time_exponent = self.probe_signals.time_signal[0]
+        time_exponent = int(time_exponent)
+
+        # determine starting time as an integer value
+        self.start_time_int = int(round(start_time*(2**(-time_exponent))))
+        self.start_time_int = f"{time_width}'u{self.start_time_int}"
 
     TEMPLATE_TEXT = '''
 # Connect to hardware
 open_hw
 catch {disconnect_hw_server}
 connect_hw_server
+set_property PARAM.FREQUENCY {{subst.jtag_freq}} [get_hw_targets]
 open_hw_target
 
 # Configure files to be programmed
@@ -54,7 +75,7 @@ startgroup
 set_property CONTROL.CAPTURE_MODE BASIC $my_hw_ila
 set_property CONTROL.TRIGGER_POSITION 0 $my_hw_ila
 endgroup
-set_property TRIGGER_COMPARE_VALUE eq1'b0 [get_hw_probes {{subst.ila_reset}} -of_objects $my_hw_ila]
+set_property TRIGGER_COMPARE_VALUE gt{{subst.start_time_int}} [get_hw_probes {{subst.time_name}} -of_objects $my_hw_ila]
 
 # Capture setup
 # TODO: use variable for emu_dec_cmp_probe
@@ -66,7 +87,7 @@ set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes emu_dec_cmp_probe -of_o
 # VIO: decimation ratio
 # TODO: use variable for emu_dec_thr
 set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
-set_property OUTPUT_VALUE {{subst.decimation}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+set_property OUTPUT_VALUE {{subst.decimation_ratio}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
 commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
 
 # Radix setup: real numbers
