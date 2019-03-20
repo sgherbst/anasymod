@@ -98,10 +98,10 @@ class VivadoBuild():
         constrs.println('# Custom user-provided IP cores')
         for xci_file in self.target.content['xci_files']:
             for file in xci_file.files:
-                self.v.println(f'read_ip "{file}"')
+                self.v.println(f'read_ip "{back2fwd(file)}"')
 
-        # upgrade IPs
-        # TODO: make this more selective; only upgrade IPs that have to be upgraded
+        # upgrade IPs as necessary
+        # TODO: should this be more selective?  Vivado does seem to avoid unecessarily upgrading IPs, so maybe it's OK...
         self.v.println('upgrade_ip [get_ips]')
 
         # generate all IPs
@@ -122,7 +122,8 @@ class VivadoBuild():
         constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, depth=self.cfg.ila_depth,
                                    inst_name=self.cfg.vivado_config.ila_inst_name))
 
-        constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.cfg.cfg['dbg_hub_clk_freq']))
+        constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.cfg.cfg['dbg_hub_clk_freq'],
+                                      conn_dbg_clk=self.cfg.cfg['conn_dbg_clk']))
         constrs.write_to_file(cpath)
 
         # Open project

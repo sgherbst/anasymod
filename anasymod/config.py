@@ -31,6 +31,7 @@ class EmuConfig:
         self.cfg['emu_clk_freq'] = 25e6
         self.cfg['emu_gated_clocks'] = 0
         self.cfg['dbg_hub_clk_freq'] = 100e6
+        self.cfg['conn_dbg_clk'] = 'clk_gen_i/clk_wiz_0_i/clk_out2'
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
         #self.cfg['plugins'].append('netexplorer')
