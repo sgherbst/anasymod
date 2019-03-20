@@ -242,7 +242,7 @@ class Analysis():
         parser = ArgumentParser()
 
         parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
-        parser.add_argument('--simulator_name', type=str, default='icarus' if os.name == 'nt' else 'xcelium')
+        parser.add_argument('--simulator_name', type=str, default='icarus' if os.name == 'nt' else 'xrun')
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default='gtkwave' if os.name == 'nt' else 'simvision')
         parser.add_argument('--sim_target', type=str, default='sim')
@@ -283,14 +283,35 @@ class Analysis():
         # self.filesets.add_define(define=Define())
         config_path = os.path.join(self.args.input, 'source.config')
 
+        # Add some default files depending on whether there is a custom top level
+        # TODO: clean this part up with generated top level
         self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'vio_gen.sv'), config_path=config_path))
+        for fileset in ['sim', 'fpga']:
+            try:
+                custom_top = self.cfg_file['TARGET'][fileset]['custom_top']
+                print(f'Using custom top for fileset {fileset}.')
+            except:
+                custom_top = False
 
-        self.filesets.add_define(define=Define(name='CLK_MSDSL', value='anasim_top.emu_clk'))
-        self.filesets.add_define(define=Define(name='RST_MSDSL', value='anasim_top.emu_rst'))
-        self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value='anasim_top.emu_dec_thr'))
+            if not custom_top:
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'top.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'clk_gen.sv'), config_path=config_path, fileset=fileset))
+
+        # Set define variables specifying the emulator control architecture
+        # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
         self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.cfg.cfg['dec_bits']))
+        for fileset in ['sim', 'fpga']:
+            try:
+                top_module = self.cfg_file['TARGET'][fileset]['top_module']
+            except:
+                top_module = 'top'
 
-        self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path))
+            print(f'Using top module {top_module} for fileset {fileset}.')
+            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
+            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
+
 
     def _setup_targets(self):
         """

@@ -26,7 +26,7 @@ class CodeGenerator:
 
     def read_from_file(self, filename):
         with open(filename, 'r') as f:
-            self.text = f.read()
+            self.text += f.read()
 
     def dump(self):
         return self.text

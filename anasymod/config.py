@@ -22,14 +22,15 @@ class EmuConfig:
         self._cfg_file = cfg_file
 
         # Initialize config options
-        self.emu_clk_freq = 25e6
-        self.dbg_hub_clk_freq = 100e6
         self.preprocess_only = False
 
         # Initialize config  dict
         self.cfg = {}
         self.cfg['dec_bits'] = 24
         self.cfg['board_name'] = BoardNames.PYNQ_Z1
+        self.cfg['emu_clk_freq'] = 25e6
+        self.cfg['emu_gated_clocks'] = 0
+        self.cfg['dbg_hub_clk_freq'] = 100e6
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
         #self.cfg['plugins'].append('netexplorer')
@@ -78,10 +79,12 @@ class FPGABoardConfig():
         :return:
         """
 
-        if board_name is BoardNames.PYNQ_Z1:
+        if board_name == BoardNames.PYNQ_Z1:
             return PYNQ_Z1()
-        elif board_name is BoardNames.VC707:
-            return
+        elif board_name == BoardNames.VC707:
+            return VC707()
+        else:
+            raise Exception(f'The requested board {board_name} could not be found.')
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):

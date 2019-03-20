@@ -33,11 +33,16 @@ class Target():
         """:type : List[VHDLSource]"""
         self.content['defines'] = []
         """:type : List[Define]"""
+        self.content['xci_files'] = []
+        """:type : List[XCIFile]"""
+        self.content['xdc_files'] = []
+        """:type : List[XDCFile]"""
 
         # Initialize target_config
         self.cfg = {}
         self.cfg['tstop'] = 1e-05
         self.cfg['top_module'] = 'top'
+        self.cfg['custom_top'] = False
         self.cfg['vcd_name'] = f"{self.cfg['top_module']}_{self._name}.vcd"
         self.cfg['vcd_path'] = os.path.join(self.prj_cfg.build_root, r"vcd", self.cfg['vcd_name'])
 
