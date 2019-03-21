@@ -1,49 +1,32 @@
-from anasymod.structures.signal_base import SignalBase
+from anasymod.structures.signal_base import Signal
+from anasymod.enums import PortDir
 
-class PortBase():
+class Port():
     """
     This is the base class for port generation.
     """
-    def __init__(self, name, num_bits):
+    def __init__(self, name, width, direction=None, **kwargs):
         self.name = name
-        self.num_bits = num_bits
+        self.width = width
         self.connection = None
+        self.direction = direction
+        self.__init_value = kwargs['init_value'] if 'init_value' in kwargs else None
 
-    def dump(self):
-        """
-        Dump string for module instantiation.
+    @property
+    def init_value(self):
+        if self.direction == PortDir.OUT:
+            return self.__init_value
 
-        :return: Module instantiation string for Port
-        """
-        raise NotImplementedError()
-
-    def connect(self, signal: SignalBase):
+    def connect(self, signal: Signal):
         """
         Connects a signal to the port.
         """
         self.connection = signal.name
 
-class PortIN(PortBase):
-    def __init__(self, name, num_bits=1):
-        super().__init__(name=name, num_bits=num_bits)
+class PortIN(Port):
+    def __init__(self, name, width=1):
+        super().__init__(name=name, width=width, direction=PortDir.IN)
 
-    def dump(self):
-        """
-        Dump string for module instantiation.
-
-        :return: Module instantiation string for Port
-        """
-        return f"input wire logic {self.name}"
-
-class PortOUT(PortBase):
-    def __init__(self, name, num_bits=1, init=None):
-        super().__init__(name=name, num_bits=num_bits)
-        self.init = init
-
-    def dump(self):
-        """
-        Dump string for module instantiation.
-
-        :return: Module instantiation string for Port
-        """
-        return f"output wire logic {self.name}"
+class PortOUT(Port):
+    def __init__(self, name, width=1, direction=PortDir.OUT, init_value=None):
+        super().__init__(name=name, width=width)

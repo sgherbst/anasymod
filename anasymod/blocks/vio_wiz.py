@@ -1,50 +1,33 @@
 from anasymod.blocks.generic_ip import TemplGenericIp
 from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
+from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.port_base import PortOUT, PortIN
 from typing import Union
 
 class TemplVIO(TemplGenericIp):
-    def __init__(self, target: FPGATarget, ports: dict(list(Union[PortIN, PortOUT]))):
+    def __init__(self, target: FPGATarget):
         # set defaults
         self.target = target
-
-        ####################################################
-        # Add module ports
-        ####################################################
-        self.ports = ports
-        """ type : {[PortBase]}"""
-
-        # Invert direction
-        for port in self.ports['vio_ports']:
-            port.invert_direction()
-
-        # Add ports that are created in this module
-        self.add_ports()
 
         ####################################################
         # Generate ip core config for clk wizard
         ####################################################
 
         props = {}
-        num_inputs = 0
-        num_outputs = 0
 
-        for port in self.ports['vio_ports']:
-            # handle input ports
-            if isinstance(port, PortIN):
-                num_inputs += 1
-                props[f'CONFIG.C_PROBE_IN{num_inputs}_WIDTH'] = str(port.num_bits)
+        # handle input ports
+        for k, port in enumerate(self.target.str_cfg.vio_i_ports):
+            props[f'CONFIG.C_PROBE_IN{k+1}_WIDTH'] = str(port.width)
 
-            # handle input ports
-            elif isinstance(port, PortOUT):
-                num_outputs += 1
-                props[f'CONFIG.C_PROBE_OUT{num_outputs}_INIT_VAL'] = str(port.num_bits)
-                if port.init is not None:
-                    props[f'CONFIG.C_PROBE_OUT{num_outputs}_INIT_VAL'] = str(port.init)
+        # handle input ports
+        for k, port in enumerate(self.target.str_cfg.vio_r_ports + self.target.str_cfg.vio_s_ports + self.target.str_cfg.vio_o_ports):
+                props[f'CONFIG.C_PROBE_OUT{k+1}_WIDTH'] = str(port.width)
+                if port.init_value is not None:
+                    props[f'CONFIG.C_PROBE_OUT{k+1}_INIT_VAL'] = str(port.init_value)
 
-        props['CONFIG.C_NUM_PROBE_IN'] = str(num_inputs)
-        props['CONFIG.C_NUM_PROBE_OUT'] = str(num_outputs)
+        props['CONFIG.C_NUM_PROBE_IN'] = str(len(self.target.str_cfg.vio_i_ports))
+        props['CONFIG.C_NUM_PROBE_OUT'] = str(len(self.target.str_cfg.vio_r_ports + self.target.str_cfg.vio_s_ports + self.target.str_cfg.vio_o_ports))
 
         ####################################################
         # Prepare Template substitutions
@@ -61,7 +44,7 @@ class TemplVIO(TemplGenericIp):
         pass
 
 def main():
-    print(TemplVIO(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file='')), ports={'vio_ports' : []}).render())
+    print(TemplVIO(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
 if __name__ == "__main__":
     main()

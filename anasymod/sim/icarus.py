@@ -10,7 +10,7 @@ class IcarusSimulator(Simulator):
                self.target.cfg.top_module]
 
         # if desired, only preprocess
-        if self.cfg.preprocess_only:
+        if self.cfg.cfg.preprocess_only:
             cmd.append('-E')
 
         # add defines
@@ -44,5 +44,5 @@ class IcarusSimulator(Simulator):
     def simulate(self):
         self.compile()
 
-        if not self.cfg.cfg['preprocess_only']:
+        if not self.cfg.cfg.preprocess_only:
             self.run()

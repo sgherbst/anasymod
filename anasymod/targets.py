@@ -5,6 +5,7 @@ from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
 from anasymod.base_config import BaseConfig
 from anasymod.enums import ConfigSections
+from anasymod.structures.structure_config import StructureConfig
 
 class Target():
     """
@@ -16,6 +17,10 @@ class Target():
     """
     def __init__(self, prj_cfg: EmuConfig, name):
         self.prj_cfg = prj_cfg
+
+        # Initialize structure configuration
+        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
+
         self._name = name
 
         # Initialize Probe Objs; there can be a probe obj for each supported simulator and synthesizer
@@ -52,6 +57,9 @@ class Target():
 
         for k in fileset.keys():
             self.content[k] += fileset[k]
+
+    def update_structure_config(self):
+        self.str_cfg.cfg.update_config(subsection=self._name)
 
     @property
     def project_root(self):

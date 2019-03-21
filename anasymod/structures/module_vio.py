@@ -1,32 +1,49 @@
 from anasymod.templ import JinjaTempl
-from anasymod.structures.signal_base import SignalBase
-from anasymod.structures.port_base import PortBase
+from anasymod.structures.signal_base import Signal
+from anasymod.structures.port_base import Port
 from anasymod.blocks.clk_wiz import TemplClkWiz
 from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
+from anasymod.enums import PortDir
+from anasymod.gen_api import SVAPI
 
-class ModuleClkManager(JinjaTempl):
-    def __init__(self, cfg: EmuConfig, target: FPGATarget, num_out_clks=3, ext_clk_name='ext_clk', emu_clk_name='emu_clk', dbg_clk_name='dbg_hub_clk', clk_out_name='clk_out'):
+class ModuleVIOManager(JinjaTempl):
+    def __init__(self, target: FPGATarget):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        self.prj_cfg = cfg
-        self.target = target
-        self.num_out_clks = num_out_clks
-        self.ext_clk_name = ext_clk_name
-        self.emu_clk_name = emu_clk_name
+        self.str_cfg = target.str_cfg
 
-        self.clk_wiz = TemplVIO(cfg=self.prj_cfg, target=target, num_out_clks=self.num_out_clks)
-        self.clk_wiz_ports = self.clk_wiz.ports
+        #####################################################
+        # Create module interface
+        #####################################################
+        self.module_ifc = SVAPI()
 
-TEMPLATE_TEXT = '''
+        vio_i_ports = self.str_cfg.vio_i_ports
+        for port in vio_i_ports:
+            port.direction = PortDir.IN
+            self.module_ifc.gen_port(port)
+
+        vio_o_ports = self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports
+        for port in vio_o_ports:
+            port.direction = PortDir.OUT
+            self.module_ifc.gen_port(port)
+
+        #####################################################
+        # Instantiate vio wizard
+        #####################################################
+        self.vio_wiz_ifc = SVAPI()
+
+        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports:
+            port.connection = port.name
+            self.vio_wiz_ifc.println(f".{port.name}({port.connection})")
+
+    TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
 `default_nettype none
-module vio_gen #(
-    parameter dec_bits = 1
-)(
-	input wire logic emu_clk,
-	output wire logic emu_rst,
-	output wire logic [(dec_bits-1):0] emu_dec_thr
+module vio_gen (
+{% for line in subst.module_ifc.text.splitlines() %}
+    {{line}}{{ "," if not loop.last }}
+{% endfor %}
 );
 
 `ifdef SIMULATION_MODE_MSDSL
@@ -46,12 +63,18 @@ module vio_gen #(
 `else
 	// VIO instantiation
 	vio_0 vio_0_i (
-		.clk(emu_clk),
-		.probe_out0(emu_rst),
-		.probe_out1(emu_dec_thr)
+    {% for line in subst.vio_wiz_ifc.text.splitlines() %}
+        {{line}}{{ "," if not loop.last }}
+    {% endfor %}
 	);
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule
 `default_nettype wire
 '''
+
+def main():
+    print(ModuleVIOManager(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
+
+if __name__ == "__main__":
+    main()

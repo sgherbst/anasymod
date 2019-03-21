@@ -18,6 +18,7 @@ from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.files import mkdir_p
 from anasymod.probe import ProbeCSV, ProbeVCD
+from anasymod.structures.structure_config import StructureConfig
 from typing import Union
 
 from importlib import import_module
@@ -80,7 +81,7 @@ class Analysis():
             # Set options from to command line arguments
             ###############################################################
 
-            self.prj_cfg.cfg['preprocess_only'] = self.args.preprocess_only
+            self.prj_cfg.cfg.preprocess_only = self.args.preprocess_only
 
             ###############################################################
             # Execute actions according to command line arguments
@@ -285,7 +286,7 @@ class Analysis():
         self.filesets.add_define(define=Define(name='CLK_MSDSL', value='top.emu_clk'))
         self.filesets.add_define(define=Define(name='RST_MSDSL', value='top.emu_rst'))
         self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value='top.emu_dec_thr'))
-        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.prj_cfg.cfg['dec_bits']))
+        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.prj_cfg.cfg.dec_bits))
 
         self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path))
 

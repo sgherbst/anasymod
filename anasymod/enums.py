@@ -18,3 +18,10 @@ class BoardNames:
     """
     PYNQ_Z1 = 'PYNQ_Z1'
     VC707 = 'VC707'
+
+class PortDir:
+    """
+    Container including enums for all supported port directions.
+    """
+    IN = "IN"
+    OUT = "OUT"

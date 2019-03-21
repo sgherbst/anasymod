@@ -42,7 +42,7 @@ class VivadoBuild():
         # write constraints to file
         constrs = CodeGenerator()
 
-        constrs.use_templ(TemplExtClk(cfg=self.prj_cfg))
+        constrs.use_templ(TemplExtClk(target=self.prj_cfg))
 
         cpath = os.path.join(self.prj_cfg.build_root, 'constrs.xdc')
         constrs.write_to_file(cpath)
