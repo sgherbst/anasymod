@@ -13,7 +13,7 @@ def main():
     # parse command line arguments
     parser = ArgumentParser()
     parser.add_argument('-o', '--output', type=str)
-    parser.add_argument('--dt', type=float)
+    parser.add_argument('--dt', type=float, default=0.1e-6)
     args = parser.parse_args()
 
     # create the model
