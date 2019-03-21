@@ -81,13 +81,18 @@ class FPGATarget(Target):
         _ip_cores        List of ip_core objects associated with target, those will generated during the build process
     """
     def __init__(self, prj_cfg: EmuConfig, name=r"fpga"):
+        # call the super constructor
         super().__init__(prj_cfg=prj_cfg, name=name)
+
+        # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
+        # emulation time for most purposes.
+        self.cfg['tstop'] = 10.0
+
         self._ip_cores = []
 
+        # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
         self.cfg['csv_name'] = f"{self.cfg['top_module']}_{self._name}.csv"
         self.cfg['csv_path'] = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg['csv_name'])
-
-        # ToDo: move these paths to toolchain specific config, which shall be instantiated in the target class
 
     @property
     def probe_cfg_path(self):

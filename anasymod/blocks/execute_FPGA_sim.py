@@ -4,43 +4,65 @@ from anasymod.util import back2fwd
 from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
-from math import ceil
-
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, cfg: EmuConfig, target: FPGATarget, start_time: float, stop_time: float, dt: float):
+        # read in probe signals from the probe config file
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
-        # Necessary variables
+        # set the paths to the BIT and LTX file
         self.bit_file = back2fwd(target.bitfile_path)
         self.ltx_file = back2fwd(target.ltxfile_path)
+
+        # set the JTAG frequency.  sometimes it is useful to try a slower frequency than default if there
+        # are problems with the debug hub clock
         self.jtag_freq = str(int(cfg.cfg['jtag_freq']))
+
+        # set the "short" device name which is used to distinguish the FPGA part from other USB devices
         self.device_name = cfg.fpga_board_config.board.cfg['short_part_name']
 
-        self.vio_name = cfg.vivado_config.vio_inst_name
-        self.ila_name = cfg.vivado_config.ila_inst_name
+        # set the path where the CSV file of results from the ILA should be written
         self.output = back2fwd(target.cfg['csv_path'])
-        self.ila_reset = cfg.vivado_config.ila_reset
-        #tbd remove vio_reset
-        self.vio_reset = cfg.vivado_config.vio_reset
+
+        # set the window count to half the ILA depth.  this is required because the window depth will be "2"
+        # unfortunately a window depth of "1" is not allowed in "BASIC" capture mode, which needed to allow
+        # decimation of the sampling rate.
         self.window_count = str(cfg.ila_depth//2)
 
         # calculate decimation ratio
-        # note that we have to subtract 1 from decimation ratio due to the FPGA implementation of this feature
-        # also note that a minimum decimation ratio of 2 is used since that is unfortunately the minimum window_count
-        # allowed
-        self.decimation_ratio = ((stop_time-start_time)/dt)/(cfg.ila_depth/2)
-        self.decimation_ratio = int(round(self.decimation_ratio)) - 1
-        self.decimation_ratio = max(self.decimation_ratio, 2)
-        self.decimation_ratio = str(self.decimation_ratio)
+        if stop_time is None:
+            decimation_ratio_float = 2.0
+        else:
+            decimation_ratio_float = ((stop_time-start_time)/dt)/(cfg.ila_depth/2)
 
-        # extract details of time signal
-        # note that these are all strings...
-        self.time_name, time_width, time_exponent = self.probe_signals.time_signal[0]
+        # enforce a minimum decimation ratio of 2x since the window depth is 2
+        decimation_ratio_float = max(decimation_ratio_float, 2.0)
+
+        # we have to subtract 1 from decimation ratio due to the FPGA implementation of this feature
+        # that is, a decimation ratio setting of "1" actually corresponds to a decimation factor of "2"; a setting
+        # of "2" corresponds to a decimation ratio of "3", and so on.
+        decimation_ratio_setting = int(round(decimation_ratio_float)) - 1
+
+        # extract the time signal
+        # note that time_signal is actually a list (should have exactly one value)
+        if len(self.probe_signals.time_signal) == 0:
+            raise Exception('Time signal not found -- check the probe config file.')
+        elif len(self.probe_signals.time_signal) > 1:
+            raise Exception('Multiple time signals not found  -- check the probe config file.')
+        else:
+            time_signal = self.probe_signals.time_signal[0]
+
+        # extract properties from the time signal, which is a 3-tuple of strings
+        time_name, time_width, time_exponent = time_signal
+        time_width = int(time_width)
         time_exponent = int(time_exponent)
 
         # determine starting time as an integer value
-        self.start_time_int = int(round(start_time*(2**(-time_exponent))))
-        self.start_time_int = f"{time_width}'u{self.start_time_int}"
+        start_time_int = int(round(start_time*(2**(-time_exponent))))
+
+        # export the decimation ratio, starting time, and time signal name to the template
+        self.time_name = time_name
+        self.decimation_ratio_setting = str(decimation_ratio_setting)
+        self.start_time_int = f"{time_width}'u{start_time_int}"
 
     TEMPLATE_TEXT = '''
 # Connect to hardware
@@ -87,7 +109,7 @@ set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes emu_dec_cmp_probe -of_o
 # VIO: decimation ratio
 # TODO: use variable for emu_dec_thr
 set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
-set_property OUTPUT_VALUE {{subst.decimation_ratio}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
 commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
 
 # Radix setup: real numbers

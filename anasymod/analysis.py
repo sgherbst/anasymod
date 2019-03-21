@@ -252,7 +252,7 @@ class Analysis():
         parser.add_argument('--build', action='store_true')
         parser.add_argument('--emulate', action='store_true')
         parser.add_argument('--start_time', type=float, default=0)
-        parser.add_argument('--stop_time', type=float, default=10e-6)
+        parser.add_argument('--stop_time', type=float, default=None)
         parser.add_argument('--preprocess_only', action='store_true')
 
         self.args, _ = parser.parse_known_args()
