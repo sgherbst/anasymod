@@ -96,7 +96,7 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
 
-        # set path to Vivado
+        # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
         self._vivado = vivado
 
@@ -119,7 +119,8 @@ class XceliumConfig():
         # save reference to parent config
         self.parent = parent
 
-        # set path to iverilog and vvp binaries
+        # set path to xrun binary
+        self.hints = [lambda: os.path.join(env['XCELIUM_INSTALL_PATH'], 'bin')]
         self._xrun = xrun
 
         # name of TCL file
@@ -128,7 +129,7 @@ class XceliumConfig():
     @property
     def xrun(self):
         if self._xrun is None:
-            self._xrun = find_tool(name='xrun')
+            self._xrun = find_tool(name='xrun', hints=self.hints)
         return self._xrun
 
     @property
@@ -169,7 +170,7 @@ class GtkWaveConfig():
         # save reference to parent config
         self.parent = parent
 
-        # find binary
+        # find gtkwave binary
         self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
@@ -185,37 +186,36 @@ class SimVisionConfig():
         # save reference to parent config
         self.parent = parent
 
-        # find binary
+        # find simvision binary
+        self.hints = [lambda: os.path.join(env['SIMVISION_INSTALL_PATH'], 'bin')]
         self._simvision = simvision
         self.svcf_config = None
 
     @property
     def simvision(self):
         if self._simvision is None:
-            self._simvision = find_tool(name='simvision')
+            self._simvision = find_tool(name='simvision', hints=self.hints)
         return self._simvision
 
-def find_tool(name, hints=None):
+def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:
         hints = []
 
-    # first check the system path for the tool
-    tool_path = shutil.which(name)
+    # add system path as the last "hint" if desired (default behavior)
+    if sys_path_hint:
+        hints.append(lambda: None)
 
-    # if the tool isn't found in the system path, then try out the hints in order
-    if tool_path is None:
-        for hint in hints:
-            try:
-                tool_path = shutil.which(name, path=hint())
-            except:
-                continue
+    # check the hints in order
+    for hint in hints:
+        try:
+            tool_path = shutil.which(name, path=hint())
+        except:
+            continue
 
-            if tool_path is not None:
-                break
-
-    # finally get the fully path to the tool if it was found and if not raise an exception
-    if tool_path is not None:
-        return get_full_path(tool_path)
+        if tool_path is not None:
+            return get_full_path(tool_path)
     else:
         raise KeyError(f'Tool:{name} could not be found')
+
+
