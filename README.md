@@ -1,4 +1,4 @@
-# anasymod
+# ANASYMOD: A framework for FPGA emulation of mixed-signal systems
 
 ## Requirements
 1. Python
@@ -33,7 +33,7 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 From within the folder **anasymod/tests**, run
 
 ```shell
-> python test.py -i filter --models --sim --view
+> anasymod -i filter --models --sim --view
 ```
 
 This will generate the models, run the simulation
@@ -46,13 +46,17 @@ This will generate the models, run the simulation
 3. Move the Pynq board power switch to "ON"
 4. Go to the folder **anasymod/tests** and run the following command.  This will take ~10 min to build the bitstream.
 ```shell
-> python test.py -i filter --models --build
+> anasymod -i filter --models --build
 ```
 5. Run the emulation with the following command
 ```shell
-> python test.py -i filter --emulate
+> anasymod -i filter --emulate
 ```
 6. View the results with the following command:
 ```shell
-> python test.py -i filter --view
+> anasymod -i filter --view
+```
+7. Note that you can adjust the emulation time using the --start_time and/or --stop_time options:
+```shell
+> anasymod -i filter --emulate --start_time 1.23e-6 --stop_time 4.56e-6
 ```
