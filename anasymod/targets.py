@@ -3,9 +3,6 @@ import os
 from anasymod.defines import Define
 from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource
-from anasymod.util import read_config
-from anasymod.probe import Probe
 
 class Target():
     """

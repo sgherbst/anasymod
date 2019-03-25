@@ -15,7 +15,7 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 ## Installation
 1. Open a terminal and navigate to a convenient directory.
 ```shell
-> git clone ssh://git@bitbucket.vih.infineon.com:7999/inicio/anasymod.git --recursive
+> ???????????????????????????????????
 ```
 2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.
 ```shell

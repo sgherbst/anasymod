@@ -19,7 +19,6 @@ from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.enums import ConfigSections
 from anasymod.files import mkdir_p
 from anasymod.util import read_config, update_config
-from anasymod.probe import ProbeCSV, ProbeVCD
 from typing import Union
 
 from importlib import import_module
@@ -373,6 +372,8 @@ class Analysis():
 
         #ToDo: In future it should be also possible to instantiate different probe objects, depending on data format that shall be read in
         if target_name not in target.probes.keys():
+            # TODO: clean up
+            from anasymod.probe import ProbeVCD
             target.probes[target_name] = ProbeVCD(prj_config=self.cfg, target=target)
 
         return target.probes[target_name]

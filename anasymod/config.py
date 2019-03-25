@@ -35,8 +35,6 @@ class EmuConfig:
         self.cfg['jtag_freq'] = 15e6
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
-        #self.cfg['plugins'].append('netexplorer')
-        #self.cfg['plugins'].append('stargazer')
 
         # Update config options by reading from config file
         self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))
