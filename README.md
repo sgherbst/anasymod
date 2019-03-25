@@ -15,7 +15,7 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 ## Installation
 1. Open a terminal and navigate to a convenient directory.
 ```shell
-> git clone https://github.com/sgherbst/anasymod.git
+> git clone --recurse-submodules https://github.com/sgherbst/anasymod.git
 ```
 2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.
 ```shell
