@@ -52,6 +52,7 @@ class VivadoBuild():
                                       clk_freq=self.cfg.fpga_board_config.board.cfg['clk_freq']))
 
         # append user constraints
+        # TODO: investigate using read_xdc instead of read_from_file
         constrs.println('##################################')
         constrs.println('# Custom user-supplied constraints')
         constrs.println('##################################')

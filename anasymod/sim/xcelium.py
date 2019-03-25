@@ -28,6 +28,9 @@ class XceliumSimulator(Simulator):
             cmd += ['-licqueue']
 
         # 64-bit or 32-bit mode
+        # TODO: is this actually necessary?  the problem is that sometimes xrun is submitted through a bsub command,
+        # so the remote machine architecture isn't necessarily the same as that of the local machine that submits
+        # the job.
         if '64bit' in platform.architecture():
             cmd += ['-64bit']
 
@@ -54,6 +57,9 @@ class XceliumSimulator(Simulator):
                 cmd.append(src)
 
         # add VHDL source files
+        # TODO: is it actually necessary to consolidate makelib commands together?  if subsequent makelib commands
+        # append rather than replace files, then it should be OK (and simpler) to have a separate makelib for
+        # each file in each library.
         libraries = OrderedDict()
         for sources in self.target.content['vhdl_sources']:
             library = sources.library
