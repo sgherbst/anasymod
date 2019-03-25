@@ -1,6 +1,7 @@
 import os
 import os.path
 import json
+import numpy as np
 
 from argparse import ArgumentParser
 
@@ -231,6 +232,33 @@ class Analysis():
         # run viewer
         viewer = viewer_cls(cfg=self.cfg, target=target)
         viewer.view()
+
+    def compress(self, wave=np.ndarray):
+        """
+        This function compress the waveform wave and removes redundant values
+        :param wave: 2d numpy.ndarray
+        :return: 2d numpy.ndarray
+        """
+        temp_data = ""
+        temp_time = ""
+        compressed =[]
+
+        for d in wave.transpose():
+            if d[0] == temp_time:
+                compressed.pop()
+                compressed.append(d)
+            else:
+                if d[1] != temp_data:
+                    if temp_data != "":
+                        compressed.append([temp_time, temp_data])
+                    compressed.append(d)
+            temp_data = d[1]
+            temp_time = d[0]
+        # check if last value was taken otherwise append it
+        if wave.transpose()[-1][0] != compressed[-1][0]:
+            compressed.append(wave.transpose()[-1])
+        return np.array(compressed, dtype='float').transpose()
+
 
 ##### Utility Functions
 

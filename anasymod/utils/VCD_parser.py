@@ -50,6 +50,7 @@ class VCDparser:
             while True:
                 line = fh.readline()
                 if line == '':  # EOF
+                    self.update_data(cycle_cnt=cycle_cnt, data=data)
                     break
 
                 # chomp
@@ -85,14 +86,7 @@ class VCDparser:
                             data[code]['tv'].append((cycle_cnt, value))
 
                 elif line[0] == '#':
-                    if cycle_cnt != "":
-                        cycle_cnt_old = cycle_cnt
-                        # check if data has changed before, otherwise repeat old value again to keep for all signals the same vector length
-                        for d in data.keys():
-                            length = len(data[d]['tv']) - 1
-                            if data[d]['tv'][length][0] != cycle_cnt_old:
-                                data[d]['tv'].append((cycle_cnt_old, data[d]['tv'][length][1]))
-
+                    self.update_data(cycle_cnt=cycle_cnt, data=data)
                     time = mult * int(line[1:])
                     cycle_cnt = int(line[1:])
                     self.endtime = time
@@ -145,7 +139,8 @@ class VCDparser:
                     type = ls[1]
                     size = ls[2]
                     code = ls[3]
-                    name = "".join(ls[4:-1])
+                    #name = "".join(ls[4:-1])
+                    name = ls[4]
                     path = '.'.join(hier)
                     full_name = path + '.' + name
                     if (full_name in usigs) or all_sigs:
@@ -165,6 +160,15 @@ class VCDparser:
         fh.close()
 
         return data
+    
+    def update_data(self, cycle_cnt, data):
+        if cycle_cnt != "":
+            cycle_cnt_old = cycle_cnt
+            # check if data has changed before, otherwise repeat old value again to keep for all signals the same vector length
+            for d in data.keys():
+                length = len(data[d]['tv']) - 1
+                if data[d]['tv'][length][0] != cycle_cnt_old:
+                    data[d]['tv'].append((cycle_cnt_old, data[d]['tv'][length][1]))
 
     def list_sigs(self):
         """
