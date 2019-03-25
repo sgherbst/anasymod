@@ -60,6 +60,19 @@ def update_config(cfg: dict, config_section: dict):
     return cfg
 
 ########################
+# file_len: modified from https://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
+
+def file_len(fname):
+    with open(fname) as f:
+        i = 0
+
+        for i, l in enumerate(f, 1):
+            pass
+
+        return i
+########################
+
+########################
 # JSON to object: from https://stackoverflow.com/questions/6578986/how-to-convert-json-data-into-a-python-object
 
 def _json_object_hook(d):
