@@ -1,23 +1,20 @@
 from anasymod.templ import JinjaTempl
-from anasymod.structures.signal_base import Signal
-from anasymod.structures.port_base import Port
-from anasymod.blocks.clk_wiz import TemplClkWiz
-from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
 from anasymod.enums import PortDir
 from anasymod.gen_api import SVAPI
+from anasymod.structures.structure_config import StructureConfig
 
 class ModuleVIOManager(JinjaTempl):
-    def __init__(self, target: FPGATarget):
+    def __init__(self, str_cfg: StructureConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        self.str_cfg = target.str_cfg
+        self.str_cfg = str_cfg
 
         #####################################################
         # Create module interface
         #####################################################
         self.module_ifc = SVAPI()
 
-        vio_i_ports = self.str_cfg.vio_i_ports
+        vio_i_ports = self.str_cfg.vio_i_ports + [self.str_cfg.clk_m_ports[0]]
         for port in vio_i_ports:
             port.direction = PortDir.IN
             self.module_ifc.gen_port(port)

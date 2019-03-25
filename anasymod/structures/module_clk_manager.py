@@ -1,8 +1,4 @@
 from anasymod.templ import JinjaTempl
-from anasymod.structures.signal_base import Signal
-from anasymod.structures.port_base import PortIN, PortOUT
-from anasymod.blocks.clk_wiz import TemplClkWiz
-from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
 from anasymod.gen_api import SVAPI
 from anasymod.enums import PortDir
@@ -11,7 +7,7 @@ class ModuleClkManager(JinjaTempl):
     """
     This is the generator for clk_gen.sv wrapper.
     """
-    def __init__(self, target: FPGATarget):
+    def __init__(self, target):
         #, num_out_clks=3, ext_clk_name='ext_clk', emu_clk_name='emu_clk', dbg_clk_name='dbg_hub_clk', clk_out_name='clk_out'
         super().__init__(trim_blocks=True, lstrip_blocks=True)
         self.target = target

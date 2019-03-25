@@ -168,8 +168,8 @@ class Config(BaseConfig):
     def __init__(self, cfg_file):
         super().__init__(cfg_file=cfg_file, section=ConfigSections.PROJECT)
         self.dec_bits = 24
-        #self.board_name = BoardNames.PYNQ_Z1
-        self.board_name = BoardNames.VC707
+        self.board_name = BoardNames.PYNQ_Z1
+        #self.board_name = BoardNames.VC707
         self.emu_clk_freq = 25e6
         self.preprocess_only = False
         self.plugins = []

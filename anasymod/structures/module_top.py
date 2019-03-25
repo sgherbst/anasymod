@@ -1,4 +1,4 @@
-from anasymod.targets import FPGATarget
+#from anasymod.targets import FPGATarget, Target
 from anasymod.enums import PortDir
 from anasymod.gen_api import SVAPI
 from anasymod.templ import JinjaTempl
@@ -8,7 +8,7 @@ class ModuleTop(JinjaTempl):
     """
     This is the generator for top.sv.
     """
-    def __init__(self, target: FPGATarget):
+    def __init__(self, target):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
         self.str_cfg = target.str_cfg
 
@@ -24,6 +24,19 @@ class ModuleTop(JinjaTempl):
         #####################################################
         # Instantiate clk management
         #####################################################
+
+        # Add clk in signals for simulation case
+        self.clk_in_sim_sigs = SVAPI()
+
+        for port in self.str_cfg.clk_i_ports:
+            self.clk_in_sim_sigs.gen_signal(port=port)
+
+        # Add dbg clk signals
+        self.dbg_clk_sigs = SVAPI()
+
+        for port in self.str_cfg.clk_d_ports:
+            self.dbg_clk_sigs.gen_signal(port=port)
+
         self.clk_ifc = SVAPI()
 
         for port in self.str_cfg.clk_i_ports + self.str_cfg.clk_o_ports + self.str_cfg.clk_m_ports + self.str_cfg.clk_d_ports + self.str_cfg.clk_g_ports:
@@ -77,7 +90,15 @@ module top(
 // create ext_clk signal when running in simulation mode
 `ifdef SIMULATION_MODE_MSDSL
     logic ext_clk;
+    {% for line in subst.clk_in_sim_sigs.text.splitlines() %}
+        {{line}}
+    {% endfor %}
 `endif // `ifdef SIMULATION_MODE_MSDSL
+
+// debug clk declaration
+{% for line in subst.dbg_clk_sigs.text.splitlines() %}
+    {{line}}
+{% endfor %}
 
 // emulation clock and reset declarations
 logic emu_clk, emu_rst;

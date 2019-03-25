@@ -92,11 +92,11 @@ class Config(BaseConfig):
         #########################################################
         # VIO settings
         #########################################################
-        self.vio_i_num = 3
-        self.vio_i_widths = [4, 5, 6]
+        self.vio_i_num = 0
+        self.vio_i_widths = []
 
-        self.vio_o_num = 2
-        self.vio_o_widths = [7, 8]
+        self.vio_o_num = 0
+        self.vio_o_widths = []
 
         #########################################################
         # CLK manager settings

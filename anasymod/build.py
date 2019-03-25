@@ -2,21 +2,20 @@ import os.path
 
 from anasymod.vivado import VivadoControl
 from anasymod.codegen import CodeGenerator
-from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 
 from anasymod.blocks.ila import TemplILA
 from anasymod.blocks.dbg_hub import TemplDbgHub
 from anasymod.blocks.ext_clk import TemplExtClk
 from anasymod.blocks.clk_wiz import TemplClkWiz
+from anasymod.blocks.vio_wiz import TemplVIO
 from anasymod.blocks.probe_extract import TemplPROBE_EXTRACT
 from anasymod.blocks.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.targets import FPGATarget
 
 class VivadoBuild():
-    def __init__(self, cfg: EmuConfig, target: FPGATarget):
+    def __init__(self, target: FPGATarget):
         # save settings
-        self.prj_cfg = cfg
         self.target = target
 
         # TCL generators
@@ -24,9 +23,9 @@ class VivadoBuild():
 
     def build(self):
         # create a new project
-        self.v.create_project(project_name=self.prj_cfg.vivado_config.project_name,
+        self.v.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
                               project_directory=self.target.project_root,
-                              full_part_name=self.prj_cfg.board.cfg['full_part_name'],
+                              full_part_name=self.target.prj_cfg.board.full_part_name,
                               force=True)
 
         # add all source files to the project (including header files)
@@ -42,9 +41,9 @@ class VivadoBuild():
         # write constraints to file
         constrs = CodeGenerator()
 
-        constrs.use_templ(TemplExtClk(target=self.prj_cfg))
+        constrs.use_templ(TemplExtClk(target=self.target))
 
-        cpath = os.path.join(self.prj_cfg.build_root, 'constrs.xdc')
+        cpath = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
         constrs.write_to_file(cpath)
 
         # add constraints to project
@@ -52,43 +51,42 @@ class VivadoBuild():
 
         # generate the IP blocks
         self.v.use_templ(TemplClkWiz(target=self.target))
-        self.v.use_templ(TemplVIO(outputs=[VioOutput(width=1), VioOutput(width=self.prj_cfg.cfg.dec_bits)],
-                                  ip_dir=self.target.ip_dir, ip_module_name=self.prj_cfg.vivado_config.vio_name))
+        self.v.use_templ(TemplVIO(target=self.target))
 
         # generate all IPs
         self.v.println('generate_target all [get_ips]')
 
         # run synthesis
         self.v.println('reset_run synth_1')
-        self.v.println('launch_runs synth_1 -jobs {0}'.format(self.prj_cfg.vivado_config.num_cores))
+        self.v.println('launch_runs synth_1 -jobs {0}'.format(self.target.prj_cfg.vivado_config.num_cores))
         self.v.println('wait_on_run synth_1')
 
         # extact probes from design
-        self.v.use_templ(TemplPROBE_EXTRACT(cfg=self.prj_cfg, target=self.target))
+        self.v.use_templ(TemplPROBE_EXTRACT(target=self.target))
 
-        self.v.run(vivado=self.prj_cfg.vivado_config.vivado, build_dir=self.prj_cfg.build_root, filename=r"synthesis.tcl")
+        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"synthesis.tcl")
 
         # append const file with ILA according to extracted probes
         constrs.read_from_file(cpath)
-        constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, inst_name=self.prj_cfg.vivado_config.ila_inst_name))
+        constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, inst_name=self.target.prj_cfg.vivado_config.ila_inst_name))
 
-        constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.prj_cfg.board.dbg_hub_clk_freq))
+        constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.target.prj_cfg.board.dbg_hub_clk_freq))
         constrs.write_to_file(cpath)
 
         # Open project
-        project_path = os.path.join(self.target.project_root, self.prj_cfg.vivado_config.project_name + '.xpr')
+        project_path = os.path.join(self.target.project_root, self.target.prj_cfg.vivado_config.project_name + '.xpr')
         self.v.println(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish
-        self.v.println('launch_runs impl_1 -to_step write_bitstream -jobs {0}'.format(self.prj_cfg.vivado_config.num_cores))
+        self.v.println('launch_runs impl_1 -to_step write_bitstream -jobs {0}'.format(self.target.prj_cfg.vivado_config.num_cores))
         self.v.println('wait_on_run impl_1')
 
         # self.v.println('refresh_design')
         # self.v.println('puts [get_nets - hier - filter {MARK_DEBUG}]')
 
         # run bitstream generation
-        self.v.run(vivado=self.prj_cfg.vivado_config.vivado, build_dir=self.prj_cfg.build_root, filename=r"bitstream.tcl")
+        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"bitstream.tcl")
 
     def run_FPGA(self):
-        self.v.use_templ(TemplEXECUTE_FPGA_SIM(cfg=self.prj_cfg, target=self.target))
-        self.v.run(vivado=self.prj_cfg.vivado_config.vivado, build_dir=self.prj_cfg.build_root, filename=r"run_FPGA.tcl")
+        self.v.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target))
+        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"run_FPGA.tcl")

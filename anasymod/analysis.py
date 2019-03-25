@@ -18,8 +18,8 @@ from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.files import mkdir_p
 from anasymod.probe import ProbeCSV, ProbeVCD
-from anasymod.structures.structure_config import StructureConfig
 from typing import Union
+
 
 from importlib import import_module
 
@@ -130,7 +130,7 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        build = VivadoBuild(cfg=self.prj_cfg, target=target)
+        build = VivadoBuild(target=target)
         build.build()
 
     def emulate(self, target: FPGATarget):
@@ -281,7 +281,7 @@ class Analysis():
         # self.filesets.add_define(define=Define())
         config_path = os.path.join(self.args.input, 'source.config')
 
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', '*.sv'), config_path=config_path))
+        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'tb.sv'), config_path=config_path))
 
         self.filesets.add_define(define=Define(name='CLK_MSDSL', value='top.emu_clk'))
         self.filesets.add_define(define=Define(name='RST_MSDSL', value='top.emu_rst'))
@@ -313,6 +313,8 @@ class Analysis():
 
         # Update simulation target specific configuration
         self.sim.cfg.update_config(subsection=r"sim")
+        self.sim.update_structure_config()
+        self.sim.gen_structure()
         self.sim.set_tstop()
         self.sim.setup_vcd()
 
@@ -326,6 +328,8 @@ class Analysis():
 
         # Update simulation target specific configuration
         self.fpga.cfg.update_config(subsection=r"fpga")
+        self.fpga.update_structure_config()
+        self.fpga.gen_structure()
         self.fpga.set_tstop()
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):

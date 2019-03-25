@@ -6,6 +6,11 @@ from anasymod.config import EmuConfig
 from anasymod.base_config import BaseConfig
 from anasymod.enums import ConfigSections
 from anasymod.structures.structure_config import StructureConfig
+from anasymod.structures.module_top import ModuleTop
+from anasymod.structures.module_vio import ModuleVIOManager
+from anasymod.structures.module_clk_manager import ModuleClkManager
+from typing import Union
+from anasymod.sources import VerilogSource
 
 class Target():
     """
@@ -60,6 +65,35 @@ class Target():
 
     def update_structure_config(self):
         self.str_cfg.cfg.update_config(subsection=self._name)
+
+    def gen_structure(self):
+        """
+        Generate toplevel, IPCore wrappers, debug infrastructure for FPGA and clk manager
+        """
+
+        # Generate toplevel
+        toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
+        with (open(toplevel_path, 'w')) as top_file:
+            top_file.write(ModuleTop(target=self).render())
+
+        # Add toplevel to target sources
+        self.content['verilog_sources'] += [VerilogSource(files=toplevel_path)]
+
+        # Generate vio wrapper
+        viowrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_vio_wrap.sv')
+        with (open(viowrapper_path, 'w')) as top_file:
+            top_file.write(ModuleVIOManager(str_cfg=self.str_cfg).render())
+
+        # Add vio wrapper to target sources
+        self.content['verilog_sources'] += [VerilogSource(files=viowrapper_path)]
+
+        # Generate clk management wrapper
+        clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
+        with (open(clkmanagerwrapper_path, 'w')) as top_file:
+            top_file.write(ModuleClkManager(target=self).render())
+
+        # Add clk management wrapper to target sources
+        self.content['verilog_sources'] += [VerilogSource(files=clkmanagerwrapper_path)]
 
     @property
     def project_root(self):

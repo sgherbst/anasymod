@@ -6,7 +6,7 @@ from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, cfg: EmuConfig, target: FPGATarget):
+    def __init__(self, target: FPGATarget):
         super().__init__()
         self.toggle_reset_template = CodeGenerator()
         self._toggle_reset()
