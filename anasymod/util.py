@@ -79,7 +79,7 @@ def parallel_calls(calls, num=None):
 # file_len: modified from https://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
 
 def file_len(fname):
-    with open(fname) as f:
+    with open(fname, encoding='utf-8') as f:
         i = 0
 
         for i, l in enumerate(f, 1):
