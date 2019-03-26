@@ -17,7 +17,7 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 ```shell
 > git clone --recurse-submodules https://github.com/sgherbst/anasymod.git
 ```
-2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.
+2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.  If you don't have admin permissions, you may need to add the "--local" flag to "pip install".
 ```shell
 > pip install -e .
 > cd msdsl
