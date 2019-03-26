@@ -30,7 +30,7 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 
 If you don't have admin permissions, you may need to add the "--user" flag to "pip install".  For example, the first command would be "pip install -e . --user".
 
-Also, if you're on Linux, you may need to add "~/.local/bin" to your PATH variable in order for the "anasymod" script to be found.  For example, in the TCSH shell you can run **set path=(~/.local/bin $path)**. 
+Also, if you're on Linux, you may need to add "\~/.local/bin" to your PATH variable in order for the "anasymod" script to be found.  For example, in the TCSH shell you can run **set path=(\~/.local/bin $path)**. 
 
 ## Running the Simulation Example
 
