@@ -17,7 +17,7 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 ```shell
 > git clone --recurse-submodules https://github.com/sgherbst/anasymod.git
 ```
-2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.  If you don't have admin permissions, you may need to add the "--user" flag to "pip install".
+2. Install all of the Python packages in the project.  From the top-level **anasymod** directory.  
 ```shell
 > pip install -e .
 > cd msdsl
@@ -27,6 +27,10 @@ Make sure that **pip**, **python**, **gtkwave**, **iverilog**, and **vvp** are i
 > pip install -e .
 > cd ..
 ```
+
+If you don't have admin permissions, you may need to add the "--user" flag to "pip install".  For example, the first command would be "pip install -e . --user".
+
+Also, if you're on Linux, you may need to add "~/.local/bin" to your PATH variable in order for the "anasymod" script to be found.  For example, in the TCSH shell you can run **set path=(~/.local/bin $path)**. 
 
 ## Running the Simulation Example
 
