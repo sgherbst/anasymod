@@ -70,7 +70,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 
     TEMPLATE_TEXT = '''
 # Connect to hardware
-{% if {{subst.local_setup}} is None %}
+{% if subst.local_setup is None %}
 open_hw
 catch {disconnect_hw_server}
 connect_hw_server
