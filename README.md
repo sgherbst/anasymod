@@ -1,4 +1,4 @@
-# ANASYMOD: A framework for FPGA emulation of mixed-signal systems
+# ANASYMOD
 
 ## Requirements
 1. Python
