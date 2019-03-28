@@ -3,12 +3,14 @@ import os.path
 import json
 
 from argparse import ArgumentParser
+from sys import platform
 
 from anasymod.config import EmuConfig
 from anasymod.sim.vivado import VivadoSimulator
 from anasymod.sim.icarus import IcarusSimulator
 from anasymod.sim.xcelium import XceliumSimulator
 from anasymod.viewer.gtkwave import GtkWaveViewer
+from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, get_from_module
@@ -221,7 +223,8 @@ class Analysis():
         # pick viewer
         viewer_cls = {
             'gtkwave': GtkWaveViewer,
-            'simvision': SimVisionViewer
+            'simvision': SimVisionViewer,
+            'scansion': ScansionViewer
         }[self.args.viewer_name]
 
         # set config file location
@@ -239,12 +242,32 @@ class Analysis():
         Read command line arguments. This supports convenient usage from command shell e.g.:
         python analysis.py -i filter --models --sim --view
         """
+
         parser = ArgumentParser()
 
+        # pick default values for simulator and viewer based on the operating system
+        if platform == 'linux' or platform == 'linux2':
+            # Linux
+            default_simulator_name = 'xrun'
+            default_viewer_name = 'simvision'
+        elif platform == 'darwin':
+            # MacOS
+            default_simulator_name = 'icarus'
+            default_viewer_name = 'scansion'
+        elif platform == 'win32':
+            # Windows
+            default_simulator_name = 'icarus'
+            default_viewer_name = 'gtkwave'
+        else:
+            # Unknown...
+            print(f'Unknown OS ("{platform}"), falling back to unknown simulator/viewer defaults.  These can be overridden via --simulator_name and --viewer_name.')
+            default_simulator_name = 'icarus'
+            default_viewer_name = 'gtkwave'
+
         parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
-        parser.add_argument('--simulator_name', type=str, default='icarus' if os.name == 'nt' else 'xrun')
+        parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
-        parser.add_argument('--viewer_name', type=str, default='gtkwave' if os.name == 'nt' else 'simvision')
+        parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
         parser.add_argument('--sim_target', type=str, default='sim')
         parser.add_argument('--fpga_target', type=str, default='fpga')
         parser.add_argument('--sim', action='store_true')

@@ -49,7 +49,6 @@ tb tb_i();
     end
 
     // dump waveforms to a specified VCD file
-    `define ADD_QUOTES_TO_MACRO(macro) `"macro`"
     initial begin
         $dumpfile(`ADD_QUOTES_TO_MACRO(`VCD_FILE_MSDSL));
     end
