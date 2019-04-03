@@ -1,6 +1,0 @@
-[submodule "svreal"]
-	path = svreal
-	url = https://github.com/sgherbst/svreal.git
-[submodule "msdsl"]
-	path = msdsl
-	url = https://github.com/sgherbst/msdsl.git
