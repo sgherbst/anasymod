@@ -185,7 +185,7 @@ class Analysis():
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
 
-    def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
+    def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False ,compress=True, preserve=False):
         """
         Probe specified signal. Signal will be stored in a numpy array.
         """
@@ -195,7 +195,7 @@ class Analysis():
 
         probeobj = self._setup_probeobj(target=target)
 
-        return probeobj._probe(name=name, emu_time=emu_time)
+        return probeobj._probe(name=name, emu_time=emu_time, compress=compress, preserve=preserve)
 
     def probes(self, target: Union[FPGATarget, SimulationTarget]):
         """

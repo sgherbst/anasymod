@@ -42,7 +42,7 @@ class Probe():
     def __del__(self):
         self.discardloadedsimdatafiles()
 
-    def _probe(self, name, emu_time, cache=True):
+    def _probe(self, name, emu_time, compress, preserve, cache=True):
         """
         Access probed waveform trace(s)
 
@@ -138,7 +138,7 @@ class ProbeCSV(Probe):
     def path_for_sim_result_file(self):
         return os.path.join(self.target.cfg['csv_path'])
 
-    def _probe(self, name, emu_time, mode, preserve, cache=True):
+    def _probe(self, name, emu_time, compress, preserve, cache=True):
         """
         Access csv logfile data for specified run number simulation parameter
 
@@ -259,9 +259,9 @@ class ProbeVCD(Probe):
         self.probe_caches = [{} for _ in range(10)] # this needs a fix later, shall be depenent on number of signals that were stored during simulation
         self._data_valid = True
 
-    def _probe(self, name, emu_time, mode="complete", preserve=False, cache=True):
+    def _probe(self, name, emu_time, compress=True, preserve=False, cache=True):
         """
-        Access vcd data for specified run number simulation parameter
+        Access VCD data for specified run number simulation parameter
         :param name: Column name in csv log, omit/None for all
         :type name: str
         :param emu_time: Use emu_time as time basis or cycle_count
@@ -319,10 +319,16 @@ class ProbeVCD(Probe):
         if emu_time and name != emu_time_probe:
             print("Using emulation time")
             emu_data = np.array([run_cache[emu_time_probe][1], data[1]])
-            return self._compress(emu_data)
+            if compress:
+                return self._compress(emu_data, preserve)
+            else:
+                return emu_data
         else:
             print("Using cycle counts as time basis")
-            return self._compress(data)
+            if compress:
+                return self._compress(data, preserve)
+            else:
+                return data
 
     def _probes(self):
         """
@@ -397,7 +403,7 @@ class ProbeVCD(Probe):
 
         return np.array([cycle_cnt,signal], dtype='O')
 
-    def _compress(self, wave=np.ndarray):
+    def _compress(self, wave=np.ndarray, preserve=False):
         """
         This function compress the waveform wave and removes redundant values
         :param wave: 2d numpy.ndarray
@@ -415,7 +421,8 @@ class ProbeVCD(Probe):
             #else:
             if temp_data != "":
                 if d[1] != temp_data:
-                    compressed.append([d[0],temp_data]) #old value with same timestep to preserve stepping
+                    if preserve:
+                        compressed.append([d[0],temp_data]) #old value with same timestep to preserve stepping
                     compressed.append(d)
             else:
                 compressed.append(d)
