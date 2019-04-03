@@ -23,7 +23,7 @@ class VCDparser:
     def __del__(self):
         pass
 
-    def parse_vcd(self, only_sigs=0, use_stdout=0, siglist=[]):
+    def parse_vcd(self, only_sigs=0, use_stdout=0, siglist=[], update_data=False):
         """
         Parse input VCD file into data structure.
 
@@ -40,21 +40,16 @@ class VCDparser:
             all_sigs = 1
 
         data = {}
-        mult = 0
         num_sigs = 0
         hier = []
-        time = 0
         cycle_cnt = ""
 
         with open(self.vcd_file, 'r') as fh:
             while True:
                 line = fh.readline()
                 if line == '':  # EOF
-                    self.update_data(cycle_cnt=cycle_cnt, data=data)
+                    if update_data: self.update_data(cycle_cnt=cycle_cnt, data=data)
                     break
-
-                # chomp
-                # s/ ^ \s+ //x
                 line = line.strip()
 
                 # if nothing left after we strip whitespace, go to next line
@@ -86,10 +81,8 @@ class VCDparser:
                             data[code]['tv'].append((cycle_cnt, value))
 
                 elif line[0] == '#':
-                    self.update_data(cycle_cnt=cycle_cnt, data=data)
-                    time = mult * int(line[1:])
+                    if update_data: self.update_data(cycle_cnt=cycle_cnt, data=data)
                     cycle_cnt = int(line[1:])
-                    self.endtime = time
 
                 elif "$enddefinitions" in line:
                     num_sigs = len(data)
@@ -121,7 +114,7 @@ class VCDparser:
                             if "$end" in line:
                                 break
 
-                    mult = self.calc_mult(statement)
+                    #mult = self.calc_mult(statement)
 
                 elif "$scope" in line:
                     # assumes all on one line
@@ -186,74 +179,74 @@ class VCDparser:
 
         return sigs
 
-    def calc_mult(self, statement):
-        """
-        Calculate a new multiplier for time values.
-        Input statement is complete timescale, for example:
-          timescale 10ns end
-        Input new_units is one of s|ms|us|ns|ps|fs.
-        Return numeric multiplier.
-        Also sets the package timescale variable.
-        """
-
-        fields = statement.split()
-        fields.pop()  # delete end from array
-        fields.pop(0)  # delete timescale from array
-        tscale = ''.join(fields)
-
-        new_units = ''
-        if (self.opt_timescale != ''):
-            new_units = self.opt_timescale.lower()
-            new_units = re.sub(r"\s", '', new_units)
-            self.timescale = "1" + new_units
-
-        else:
-            self.timescale = tscale
-            return 1
-
-        mult = 0
-        units = 0
-        ts_match = re.match(r"([\d.]+)([a-z]+)", tscale)
-        if ts_match:
-            mult = ts_match.group(1)
-            units = ts_match.group(2).lower()
-
-        else:
-            VCDParseError("Error: Unsupported timescale found in VCD " \
-                          "file: " + tscale + ".  Refer to the Verilog LRM.")
-
-        mults = {
-            'fs': 1e-15,
-            'ps': 1e-12,
-            'ns': 1e-09,
-            'us': 1e-06,
-            'ms': 1e-03,
-            's': 1e-00,
-        }
-        mults_keys = list(mults.keys())
-        mults_keys.sort(key=lambda x: mults[x])
-        usage = '|'.join(mults_keys)
-
-        scale = 0
-        if units in mults:
-            scale = mults[units]
-
-        else:
-            VCDParseError("Error: Unsupported timescale units found in VCD " \
-                          "file: " + units + ".  Supported values are: " + usage)
-
-        new_scale = 0
-        if new_units in mults:
-            new_scale = mults[new_units]
-
-        else:
-            VCDParseError("Error: Illegal user-supplied " \
-                          "timescale: " + new_units + ".  Legal values are: " + usage)
-
-        return ((float(mult) * float(scale)) / float(new_scale))
-
-    def get_timescale(self):
-        return self.timescale
-
-    def get_endtime(self):
-        return self.endtime
+    # def calc_mult(self, statement):
+    #     """
+    #     Calculate a new multiplier for time values.
+    #     Input statement is complete timescale, for example:
+    #       timescale 10ns end
+    #     Input new_units is one of s|ms|us|ns|ps|fs.
+    #     Return numeric multiplier.
+    #     Also sets the package timescale variable.
+    #     """
+    #
+    #     fields = statement.split()
+    #     fields.pop()  # delete end from array
+    #     fields.pop(0)  # delete timescale from array
+    #     tscale = ''.join(fields)
+    #
+    #     new_units = ''
+    #     if (self.opt_timescale != ''):
+    #         new_units = self.opt_timescale.lower()
+    #         new_units = re.sub(r"\s", '', new_units)
+    #         self.timescale = "1" + new_units
+    #
+    #     else:
+    #         self.timescale = tscale
+    #         return 1
+    #
+    #     mult = 0
+    #     units = 0
+    #     ts_match = re.match(r"([\d.]+)([a-z]+)", tscale)
+    #     if ts_match:
+    #         mult = ts_match.group(1)
+    #         units = ts_match.group(2).lower()
+    #
+    #     else:
+    #         VCDParseError("Error: Unsupported timescale found in VCD " \
+    #                       "file: " + tscale + ".  Refer to the Verilog LRM.")
+    #
+    #     mults = {
+    #         'fs': 1e-15,
+    #         'ps': 1e-12,
+    #         'ns': 1e-09,
+    #         'us': 1e-06,
+    #         'ms': 1e-03,
+    #         's': 1e-00,
+    #     }
+    #     mults_keys = list(mults.keys())
+    #     mults_keys.sort(key=lambda x: mults[x])
+    #     usage = '|'.join(mults_keys)
+    #
+    #     scale = 0
+    #     if units in mults:
+    #         scale = mults[units]
+    #
+    #     else:
+    #         VCDParseError("Error: Unsupported timescale units found in VCD " \
+    #                       "file: " + units + ".  Supported values are: " + usage)
+    #
+    #     new_scale = 0
+    #     if new_units in mults:
+    #         new_scale = mults[new_units]
+    #
+    #     else:
+    #         VCDParseError("Error: Illegal user-supplied " \
+    #                       "timescale: " + new_units + ".  Legal values are: " + usage)
+    #
+    #     return ((float(mult) * float(scale)) / float(new_scale))
+    #
+    # def get_timescale(self):
+    #     return self.timescale
+    #
+    # def get_endtime(self):
+    #     return self.endtime
