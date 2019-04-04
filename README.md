@@ -46,8 +46,7 @@ A GUI will pop up and guide you through the rest of the installation.  Note that
 
 To install GTKWave and Icarus Verilog, run the following in a terminal:
 ```shell
-> sudo apt-get install gtkwave
-> sudo apt-get install iverilog
+> sudo apt-get install gtkwave iverilog
 ```
 
 ## Running the Simulation Example
