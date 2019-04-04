@@ -18,7 +18,7 @@ setup(
         'console_scripts': [
             'anasymod=anasymod.analysis:main'
         ]
-    }
+    },
     include_package_data=True,
     zip_safe=False,
 )
