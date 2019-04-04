@@ -4,23 +4,59 @@
 
 # Installation
 
-Clone the repository in a convenient location, then use **pip** to install the package.
+1. Open a terminal, and note the current directory, since the **pip** commands below will clone some code from GitHub and place it in a subdirectory called **src**.  If you prefer to place the cloned code in a different directory, you can specify that by providing the **--src** flag to **pip**.
+2. If you haven't already, install **msdsl** and **svreal**:
 ```shell
-> git clone https://github.com/sgherbst/anasymod.git
-> cd anasymod
-> pip install -e .
+> pip install -e git+https://github.com/sgherbst/svreal.git#egg=svreal
+> pip install -e git+https://github.com/sgherbst/msdsl.git#egg=msdsl
+```
+3. Then install **anasymod**.
+```shell
+pip install -e git+https://github.com/sgherbst/anasymod.git#egg=anasymod
 ```
 
-If you get a permissions error when running **pip**, you can add the **--user** flag, so that the command becomes:
+If you get a permissions error when running one of the **pip** commands, you can try adding the **--user** flag to the **pip** command.  This will cause **pip** to install packages in your user directory rather than to a system-wide location.
 ```shell
 pip install -e . --user
 ```
 
 Also, if you're on Linux, you may need to add "\~/.local/bin" to your PATH variable in order for the "anasymod" script to be found.  For example, in the TCSH shell you can run **set path=(\~/.local/bin $path)**. 
 
-# Running the Examples
+# Prerequites to run the examples
 
-The examples included with **anasymod** use [Icarus Verilog](http://iverilog.icarus.com) for running simulations, [Xilinx Vivado](https://www.xilinx.com/products/design-tools/vivado.html) for running synthesis and place-and-route, and [GTKWave](http://gtkwave.sourceforge.net) for viewing the simulation and emulation results.  Please make sure that those tools are installed, and note that on Windows, GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).
+The examples included with **anasymod** use [Icarus Verilog](http://iverilog.icarus.com) for running simulations, [Xilinx Vivado](https://www.xilinx.com/products/design-tools/vivado.html) for running synthesis and place-and-route, and [GTKWave](http://gtkwave.sourceforge.net) for viewing the simulation and emulation results.  The instructions for setting up these tools are included below for various platforms
+
+## Windows
+
+
+
+GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).  Please make sure to add the binary directory containing **iverilog**, **vvp**, and **gtkwave** to the system path.
+
+## Linux
+
+Install Xilinx Vivado by going to the [downloads page](https://www.xilinx.com/support/download.html).  Scroll to the latest version of the "Full Product Installation", and download the Linux self-extracting web installer.  Then, in a terminal:
+
+```shell
+> sudo ./Xilinx_Vivado_SDK_Web_*.bin
+```
+
+A GUI will pop up and guide you through the rest of the installation.  Note that you'll need a Xilinx account (free), and that you can select the free WebPACK license option if you're planning to work with relatively small FPGAs like the one on the Pynq-Z1 board.
+
+After the Xilinx installation finishes, please add the binary directory containing **vivado** to the system path (the default location is **/tools/Xilinx/Vivado/\*/bin/**).
+
+To install GTKWave and Icarus Verilog, run the following in a terminal:
+```shell
+> sudo apt-get install gtkwave
+> sudo apt-get install iverilog
+```
+
+## Installing Vivado
+
+## Installing Icarus Verilog
+
+## Installing 
+
+Please make sure that those tools are installed, and note that on Windows, GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).
 
 After installing those tools, please make sure that the binary directories for Icarus Verilog, GTKWave, and Vivado are in your system path.  (The tool locations can also be defined with special environment variables, but this is usually not as convenient as just adding the tools to your system path.)
 
