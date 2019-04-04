@@ -1,6 +1,6 @@
 # Introduction
 
-**anasymod** is a Python package for running FPGA emulations of mixed-signal systems.  It supports digital blocks described with Verilog or VHDL and synthesizable analog models created using [msdsl](https://github.com/sgherbst/msdsl).
+**anasymod** is a Python package for running FPGA emulations of mixed-signal systems.  It supports digital blocks described with Verilog or VHDL and synthesizable analog models created using [msdsl](https://github.com/sgherbst/msdsl) and [svreal](https://github.com/sgherbst/svreal).
 
 # Installation
 
@@ -48,6 +48,10 @@ To install GTKWave and Icarus Verilog, run the following in a terminal:
 ```shell
 > sudo apt-get install gtkwave iverilog
 ```
+
+## macOS
+
+Unfortunately Xilinx Vivado does not run natively on macOS.  But running Windows or Linux through a virtual machine on macOS should work.
 
 ## Running the Simulation Example
 
