@@ -72,7 +72,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 # Connect to hardware
 open_hw
 catch {disconnect_hw_server}
-{% if subst.local_setup %}
+{% if subst.server_addr is none %}
 connect_hw_server
 {% else %}
 connect_hw_server -url {{subst.server_addr}}

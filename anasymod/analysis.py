@@ -5,7 +5,7 @@ import json
 from argparse import ArgumentParser
 from sys import platform
 
-from anasymod.config import EmuConfig
+from anasymod.config import EmuConfig, SimVisionConfig, XceliumConfig
 from anasymod.sim.vivado import VivadoSimulator
 from anasymod.sim.icarus import IcarusSimulator
 from anasymod.sim.xcelium import XceliumSimulator
@@ -245,24 +245,22 @@ class Analysis():
 
         parser = ArgumentParser()
 
-        # pick default values for simulator and viewer based on the operating system
-        if platform == 'linux' or platform == 'linux2':
-            # Linux
+        # set default values for simulator and viewer 
+        default_simulator_name = 'icarus'
+        default_viewer_name = 'gtkwave'
+
+        # if the Cadence tools are available, use those as defaults instead
+        try:
+            XceliumConfig(None).xrun
             default_simulator_name = 'xrun'
+        except:
+            pass
+
+        try:
+            SimVisionConfig(None).simvision 
             default_viewer_name = 'simvision'
-        elif platform == 'darwin':
-            # MacOS
-            default_simulator_name = 'icarus'
-            default_viewer_name = 'scansion'
-        elif platform == 'win32':
-            # Windows
-            default_simulator_name = 'icarus'
-            default_viewer_name = 'gtkwave'
-        else:
-            # Unknown...
-            print(f'Unknown OS ("{platform}"), falling back to unknown simulator/viewer defaults.  These can be overridden via --simulator_name and --viewer_name.')
-            default_simulator_name = 'icarus'
-            default_viewer_name = 'gtkwave'
+        except:
+            pass
 
         parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)

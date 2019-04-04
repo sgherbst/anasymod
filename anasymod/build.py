@@ -110,7 +110,10 @@ class VivadoBuild():
 
         # run synthesis
         self.v.println('reset_run synth_1')
-        self.v.println('launch_runs synth_1 -jobs {0}'.format(self.cfg.vivado_config.num_cores))
+        self.v.print('launch_runs synth_1')
+        if self.cfg.vivado_config.num_cores > 1:
+            self.v.print(f' -jobs {self.cfg.vivado_config.num_cores}')
+        self.v.println()
         self.v.println('wait_on_run synth_1')
 
         # extact probes from design
@@ -132,7 +135,10 @@ class VivadoBuild():
         self.v.println(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish
-        self.v.println('launch_runs impl_1 -to_step write_bitstream -jobs {0}'.format(self.cfg.vivado_config.num_cores))
+        self.v.print('launch_runs impl_1 -to_step write_bitstream')
+        if self.cfg.vivado_config.num_cores > 1:
+            self.v.print(f' -jobs {self.cfg.vivado_config.num_cores}')
+        self.v.println()
         self.v.println('wait_on_run impl_1')
 
         # self.v.println('refresh_design')

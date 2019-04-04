@@ -10,7 +10,7 @@ class CodeGenerator:
     def print(self, s):
         self.text += s
 
-    def println(self, s):
+    def println(self, s=''):
         self.print(s + self.line_ending)
 
     def reset(self):
