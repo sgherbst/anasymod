@@ -22,7 +22,7 @@ Check to see if the **anasymod** command-line script is accessible by running:
 > anasymod -h
 ```
 
-If the **anasymod** script isn't found, then you'll have to add the directory containing it to the path.  On Windows, a typical location is **C:\\Python3*\\Scripts**, while on Linux or macOS you might want to check **~/.local/bin** (particularly if you used the **--user** flag).
+If the **anasymod** script isn't found, then you'll have to add the directory containing it to the path.  On Windows, a typical location is **C:\\Python3\*\\Scripts**, while on Linux or macOS you might want to check **~/.local/bin** (particularly if you used the **--user** flag).
 
 # Prerequites to run the examples
 
@@ -30,7 +30,9 @@ The examples included with **anasymod** use [Icarus Verilog](http://iverilog.ica
 
 ## Windows
 
-GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).  Please make sure to add the binary directory containing **iverilog**, **vvp**, and **gtkwave** to the system path.
+Install Xilinx Vivado by going to the [downloads page](https://www.xilinx.com/support/download.html).  Scroll to the latest version of the "Full Product Installation", and download the Windows self-extracting web installer.  Launch the installer and follow the instructions.  You'll need a Xilinx account (free), and will have to select a license, although the free WebPACK license option is fine you're just planning to work with small FPGAs like the one on the Pynq-Z1 board.
+
+GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).
 
 ## Linux
 
@@ -42,23 +44,11 @@ Install Xilinx Vivado by going to the [downloads page](https://www.xilinx.com/su
 
 A GUI will pop up and guide you through the rest of the installation.  Note that you'll need a Xilinx account (free), and that you can select the free WebPACK license option if you're planning to work with relatively small FPGAs like the one on the Pynq-Z1 board.
 
-After the Xilinx installation finishes, please add the binary directory containing **vivado** to the system path (the default location is **/tools/Xilinx/Vivado/\*/bin/**).
-
 To install GTKWave and Icarus Verilog, run the following in a terminal:
 ```shell
 > sudo apt-get install gtkwave
 > sudo apt-get install iverilog
 ```
-
-## Installing Vivado
-
-## Installing Icarus Verilog
-
-## Installing 
-
-Please make sure that those tools are installed, and note that on Windows, GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).
-
-After installing those tools, please make sure that the binary directories for Icarus Verilog, GTKWave, and Vivado are in your system path.  (The tool locations can also be defined with special environment variables, but this is usually not as convenient as just adding the tools to your system path.)
 
 ## Running the Simulation Example
 
@@ -72,26 +62,26 @@ This will generate a synthesizable model for a buck converter, run a simulation,
 
 ## Running the Emulation Example
 
-For this test, you'll need a [Pynq-Z1](https://store.digilentinc.com/pynq-z1-python-productivity-for-zynq-7000-arm-fpga-soc/) board.  Other FPGA boards can be used in a straightforward manner, but this is the default board.
+For this test, you'll need a [Pynq-Z1](https://store.digilentinc.com/pynq-z1-python-productivity-for-zynq-7000-arm-fpga-soc/) board.
 
-1. To start, make sure that your Pynq board is set up correctly:
+1. To start, make sure that your board is set up correctly:
     1. Jumper JP4 should be set for "JTAG"
     2. Jumper "JP5" should be set for "USB"
 2. Plug the Pynq board into your computer using a micro USB cable.
 3. Move the Pynq board power switch to "ON"
-4. Go to the folder **anasymod/tests** and run the following command.  This will take ~10 min to build the bitstream.
+4. Go to the folder **anasymod/tests** and run the following command.  It will take ~10 min to build the bitstream.
 ```shell
-> anasymod -i filter --models --build
+> anasymod -i buck --models --build
 ```
-5. Run the emulation with the following command
+5. Run the emulation with the following command:
 ```shell
-> anasymod -i filter --emulate
+> anasymod -i buck --emulate
 ```
 6. View the results with the following command:
 ```shell
-> anasymod -i filter --view
+> anasymod -i buck --view
 ```
 7. Note that you can adjust the emulation time using the --start_time and/or --stop_time options:
 ```shell
-> anasymod -i filter --emulate --start_time 1.23e-6 --stop_time 4.56e-6
+> anasymod -i buck --emulate --start_time 1.23e-6 --stop_time 4.56e-6
 ```
