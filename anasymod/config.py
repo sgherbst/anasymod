@@ -2,8 +2,10 @@ import os.path
 import multiprocessing
 import shutil
 
+from sys import platform
+from glob import glob
 from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.util import back2fwd, read_config, update_config
+from anasymod.util import back2fwd, read_config, update_config, vivado_search_key
 from anasymod.filesets import Filesets
 from os import environ as env
 from anasymod.enums import ConfigSections, BoardNames
@@ -95,7 +97,13 @@ class VivadoConfig():
         self.project_name = 'project'
 
         # set path to vivado binary
-        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
+        self.hints = []
+        self.hints.append(lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'))
+
+        if platform == 'linux' or platform == 'linux2':
+            sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
+            self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
+
         self._vivado = vivado
 
         # set various project options

@@ -60,6 +60,12 @@ def update_config(cfg: dict, config_section: dict):
                 print(f"Warning: Processing config section:{config_section}; provided key: {k} does not exist in config")
     return cfg
 
+def vivado_search_key(dir_):
+    year, version = os.path.basename(dir_).split('.')
+    year, version = int(year), int(version)
+
+    return -year, -version
+
 ########################
 # parallel_scripts
 # ref: https://stackoverflow.com/questions/26774781/python-multiple-subprocess-with-a-pool-queue-recover-output-as-soon-as-one-finis
