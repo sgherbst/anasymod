@@ -16,19 +16,19 @@ pip install -e git+https://github.com/sgherbst/anasymod.git#egg=anasymod
 ```
 
 If you get a permissions error when running one of the **pip** commands, you can try adding the **--user** flag to the **pip** command.  This will cause **pip** to install packages in your user directory rather than to a system-wide location.
+
+Check to see if the **anasymod** command-line script is accessible by running:
 ```shell
-pip install -e . --user
+> anasymod -h
 ```
 
-Also, if you're on Linux, you may need to add "\~/.local/bin" to your PATH variable in order for the "anasymod" script to be found.  For example, in the TCSH shell you can run **set path=(\~/.local/bin $path)**. 
+If the **anasymod** script isn't found, then you'll have to add the directory containing it to the path.  On Windows, a typical location is **C:\\Python3*\\Scripts**, while on Linux or macOS you might want to check **~/.local/bin** (particularly if you used the **--user** flag).
 
 # Prerequites to run the examples
 
 The examples included with **anasymod** use [Icarus Verilog](http://iverilog.icarus.com) for running simulations, [Xilinx Vivado](https://www.xilinx.com/products/design-tools/vivado.html) for running synthesis and place-and-route, and [GTKWave](http://gtkwave.sourceforge.net) for viewing the simulation and emulation results.  The instructions for setting up these tools are included below for various platforms
 
 ## Windows
-
-
 
 GTKwave and Icarus Verilog can be installed at the same time using the latest Icarus binary [here](http://bleyer.org/icarus/).  Please make sure to add the binary directory containing **iverilog**, **vvp**, and **gtkwave** to the system path.
 
