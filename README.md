@@ -44,6 +44,21 @@ Install Xilinx Vivado by going to the [downloads page](https://www.xilinx.com/su
 
 A GUI will pop up and guide you through the rest of the installation.  Note that you'll need a Xilinx account (free), and that you can select the free WebPACK license option if you're planning to work with relatively small FPGAs like the one on the Pynq-Z1 board.
 
+After the installation finishes, some permissions cleanup is required (see (AR #62240)[https://www.xilinx.com/support/answers/62240.html])
+
+```shell
+> cd ~/.Xilinx/Vivado
+> sudo chown -R $USER *
+> sudo chmod -R 777 *
+> sudo chgrp -R $USER *
+```
+
+Finally, the Xilinx cable drivers must be installed ((AR #66440)[https://www.xilinx.com/support/answers/66440.html]):
+```shell
+> cd <YOUR_XILINX_INSTALL>/data/xicom/cable_drivers/lin(32|64)/install_script/install_drivers
+> sudo install_script
+```
+
 To install GTKWave and Icarus Verilog, run the following in a terminal:
 ```shell
 > sudo apt-get install gtkwave iverilog
