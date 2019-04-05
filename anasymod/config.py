@@ -87,6 +87,8 @@ class FPGABoardConfig():
             return VC707()
         elif board_name == BoardNames.ULTRA96:
             return ULTRA96()
+        elif board_name == BoardNames.TE0720:
+            return TE0720()
         else:
             raise Exception(f'The requested board {board_name} could not be found.')
 
