@@ -85,6 +85,8 @@ class FPGABoardConfig():
             return PYNQ_Z1()
         elif board_name == BoardNames.VC707:
             return VC707()
+        elif board_name == BoardNames.ULTRA96:
+            return ULTRA96()
         else:
             raise Exception(f'The requested board {board_name} could not be found.')
 
