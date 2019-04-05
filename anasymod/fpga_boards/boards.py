@@ -30,3 +30,14 @@ class VC707():
         'full_part_name' : 'xc7vx485tffg1761-2',
         'short_part_name' : 'xc7vx485t'
         }
+
+class ULTRA96():
+    def __init__(self):
+        self.cfg = {
+        'clk_pin_p' : 'L19',
+        'clk_pin_n' : 'L20',
+        'clk_io' : 'LVDS',
+        'clk_freq' : 26e6,
+        'full_part_name' : 'xczu3eg-sbva484-???',
+        'short_part_name' : 'xczu3eg'
+        }
