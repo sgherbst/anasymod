@@ -47,7 +47,7 @@ A GUI will pop up and guide you through the rest of the installation.  Note that
 Next, the Xilinx cable drivers must be installed ([AR #66440](https://www.xilinx.com/support/answers/66440.html)):
 ```shell
 > cd <YOUR_XILINX_INSTALL>/data/xicom/cable_drivers/lin(32|64)/install_script/install_drivers
-> sudo install_script
+> sudo ./install_drivers
 ```
 
 Finally, some permissions cleanup is required ([AR #62240](https://www.xilinx.com/support/answers/62240.html))
