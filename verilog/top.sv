@@ -6,13 +6,13 @@
 
 module top(
     `ifndef SIMULATION_MODE_MSDSL
-        input wire logic ext_clk
+        input wire logic clk_port_p
     `endif // `ifndef SIMULATION_MODE_MSDSL
 );
 
-// create ext_clk signal when running in simulation mode
+// create clk_port_p signal when running in simulation mode
 `ifdef SIMULATION_MODE_MSDSL
-    logic ext_clk;
+    logic clk_port_p;
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 // emulation clock and reset declarations
@@ -30,7 +30,7 @@ vio_gen #(
 
 // Clock generator
 clk_gen clk_gen_i(
-    .ext_clk(ext_clk),
+    .clk_port_p(clk_port_p),
     .emu_clk(emu_clk)
 );
 

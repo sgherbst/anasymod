@@ -1,13 +1,11 @@
 import os
 
-from glob import glob
-
 from anasymod.viewer.viewer import Viewer
 from anasymod.util import call
 
 class GtkWaveViewer(Viewer):
     def view(self):
-       # build command
+        # build command
         cmd = [self.cfg.gtkwave_config.gtkwave, self.target.cfg['vcd_path']]
 
         # add waveform file if it exists

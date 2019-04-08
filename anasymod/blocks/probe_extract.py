@@ -57,7 +57,7 @@ set mb_s_widths [list]
 
 foreach {signal} $mb_s {
 	append signal [0]
-	lappend mb_s_widths [get_property fp_width [get_nets $signal]]
+	lappend mb_s_widths [get_property BUS_WIDTH [get_nets $signal]]
 }
 
 set outputFile [open "{{subst.project_dir}}/probe_config.txt" w]

@@ -2,7 +2,7 @@
 
 `default_nettype none
 module clk_gen(
-	input wire logic ext_clk,
+	input wire logic clk_port_p,
 	output wire logic emu_clk
 );
 
@@ -28,7 +28,7 @@ module clk_gen(
 	logic dbg_hub_clk, locked;
 	clk_wiz_0 clk_wiz_0_i(
 		// input clock
-		.clk_in1(ext_clk),
+		.clk_in1(clk_port_p),
 		// output clocks
 		.clk_out1(emu_clk),
 		.clk_out2(dbg_hub_clk),

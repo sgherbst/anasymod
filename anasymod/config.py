@@ -22,18 +22,19 @@ class EmuConfig:
         self._cfg_file = cfg_file
 
         # Initialize config options
-        self.emu_clk_freq = 25e6
-        self.dbg_hub_clk_freq = 100e6
         self.preprocess_only = False
 
         # Initialize config  dict
         self.cfg = {}
         self.cfg['dec_bits'] = 24
         self.cfg['board_name'] = BoardNames.PYNQ_Z1
+        self.cfg['emu_clk_freq'] = 25e6
+        self.cfg['emu_gated_clocks'] = 0
+        self.cfg['dbg_hub_clk_freq'] = 100e6
+        self.cfg['conn_dbg_clk'] = 'clk_gen_i/clk_wiz_0_i/clk_out2'
+        self.cfg['jtag_freq'] = 15e6
         self.cfg['plugins'] = []
         self.cfg['plugins'].append('msdsl')
-        #self.cfg['plugins'].append('netexplorer')
-        #self.cfg['plugins'].append('stargazer')
 
         # Update config options by reading from config file
         self.cfg = update_config(cfg=self.cfg, config_section=read_config(cfg_file=self._cfg_file, section=ConfigSections.PROJECT))
@@ -56,8 +57,9 @@ class EmuConfig:
         # Xcelium configuration
         self.xcelium_config = XceliumConfig(parent=self)
 
-    def setup_ila(self):
-        self.ila_depth = 1024
+    @property
+    def ila_depth(self):
+        return 4096
 
 class FPGABoardConfig():
     def __init__(self, board_name):
@@ -77,10 +79,12 @@ class FPGABoardConfig():
         :return:
         """
 
-        if board_name is BoardNames.PYNQ_Z1:
+        if board_name == BoardNames.PYNQ_Z1:
             return PYNQ_Z1()
-        elif board_name is BoardNames.VC707:
-            return
+        elif board_name == BoardNames.VC707:
+            return VC707()
+        else:
+            raise Exception(f'The requested board {board_name} could not be found.')
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):
@@ -90,7 +94,7 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
 
-        # set path to Vivado
+        # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.1', 'Vivado', '2018.2',
                                            'bin')]
@@ -115,7 +119,8 @@ class XceliumConfig():
         # save reference to parent config
         self.parent = parent
 
-        # set path to iverilog and vvp binaries
+        # set path to xrun binary
+        self.hints = [lambda: os.path.join(env['XCELIUM_INSTALL_PATH'], 'bin')]
         self._xrun = xrun
 
         # name of TCL file
@@ -124,7 +129,7 @@ class XceliumConfig():
     @property
     def xrun(self):
         if self._xrun is None:
-            self._xrun = find_tool(name='xrun')
+            self._xrun = find_tool(name='xrun', hints=self.hints)
         return self._xrun
 
     @property
@@ -166,7 +171,7 @@ class GtkWaveConfig():
         # save reference to parent config
         self.parent = parent
 
-        # find binary
+        # find gtkwave binary
         self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'gtkwave-3.3.65.0', 'bin')]
         self._gtkwave = gtkwave
@@ -183,23 +188,25 @@ class SimVisionConfig():
         # save reference to parent config
         self.parent = parent
 
-        # find binary
+        # find simvision binary
+        self.hints = [lambda: os.path.join(env['SIMVISION_INSTALL_PATH'], 'bin')]
         self._simvision = simvision
         self.svcf_config = None
 
     @property
     def simvision(self):
         if self._simvision is None:
-            self._simvision = find_tool(name='simvision')
+            self._simvision = find_tool(name='simvision', hints=self.hints)
         return self._simvision
 
-def find_tool(name, hints=None):
+def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:
         hints = []
 
-    # first check the system path for the tool
-    tool_path = shutil.which(name)
+    # add system path as the last "hint" if desired (default behavior)
+    if sys_path_hint:
+        hints.append(lambda: None)
 
     # if the tool isn't found in the system path, then try out the hints in order
     if tool_path is None:
@@ -212,11 +219,9 @@ def find_tool(name, hints=None):
             except:
                 continue
 
-            if tool_path is not None:
-                break
-
-    # finally get the fully path to the tool if it was found and if not raise an exception
-    if tool_path is not None:
-        return get_full_path(tool_path)
+        if tool_path is not None:
+            return get_full_path(tool_path)
     else:
         raise KeyError(f'Tool:{name} could not be found')
+
+

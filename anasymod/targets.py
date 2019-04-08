@@ -3,9 +3,6 @@ import os
 from anasymod.defines import Define
 from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource
-from anasymod.util import read_config
-from anasymod.probe import Probe
 
 class Target():
     """
@@ -33,11 +30,16 @@ class Target():
         """:type : List[VHDLSource]"""
         self.content['defines'] = []
         """:type : List[Define]"""
+        self.content['xci_files'] = []
+        """:type : List[XCIFile]"""
+        self.content['xdc_files'] = []
+        """:type : List[XDCFile]"""
 
         # Initialize target_config
         self.cfg = {}
         self.cfg['tstop'] = 1e-05
         self.cfg['top_module'] = 'top'
+        self.cfg['custom_top'] = False
         self.cfg['vcd_name'] = f"{self.cfg['top_module']}_{self._name}.vcd"
         self.cfg['vcd_path'] = os.path.join(self.prj_cfg.build_root, r"vcd", self.cfg['vcd_name'])
 
@@ -76,13 +78,18 @@ class FPGATarget(Target):
         _ip_cores        List of ip_core objects associated with target, those will generated during the build process
     """
     def __init__(self, prj_cfg: EmuConfig, name=r"fpga"):
+        # call the super constructor
         super().__init__(prj_cfg=prj_cfg, name=name)
+
+        # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
+        # emulation time for most purposes.
+        self.cfg['tstop'] = 10.0
+
         self._ip_cores = []
 
+        # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
         self.cfg['csv_name'] = f"{self.cfg['top_module']}_{self._name}.csv"
         self.cfg['csv_path'] = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg['csv_name'])
-
-        # ToDo: move these paths to toolchain specific config, which shall be instantiated in the target class
 
     @property
     def probe_cfg_path(self):

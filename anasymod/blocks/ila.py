@@ -3,11 +3,12 @@ from anasymod.util import next_pow_2
 from anasymod.probe_config import ProbeConfig
 
 class TemplILA(JinjaTempl):
-    def __init__(self, probe_cfg_path, depth=1024, inst_name='u_ila_0', ila_clk='emu_clk'):
+    def __init__(self, probe_cfg_path, depth=4096, inst_name='u_ila_0', ila_clk='emu_clk'):
         # set defaults
 
-        # adjust depth if necessary
-        depth = max(next_pow_2(depth), 1024)
+        # Sanity checking for ILA depth
+        assert next_pow_2(depth) == depth, 'The ILA depth must be a power of 2.'
+        assert depth >= 1024, 'The ILA depth must be at least 1024.'
 
         self.inst_name = inst_name
 
