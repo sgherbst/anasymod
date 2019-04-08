@@ -4,7 +4,7 @@ import csv
 
 from typing import Union
 
-from anasymod.utils.VCD_parser import VCDparser
+from anasymod.utils.VCD_parser import ParseVCD
 from anasymod.config import EmuConfig
 
 #from anasymod.targets import SimulationTarget, FPGATarget
@@ -356,7 +356,7 @@ class ProbeVCD(Probe):
 
     def setup_data_access(self):
         """
-        :rtype: VCDparser
+        :rtype: ParseVCD
         """
         if not self._data_valid:
             raise ValueError("No data available (no succesful simulation run / dataset reload)")
@@ -372,7 +372,7 @@ class ProbeVCD(Probe):
         vcd_handle = "_".join([self.target._name])
         vcd_file_name = self.path_for_sim_result_file()
         if vcd_handle not in self.vcd_handle.keys():
-            self.vcd_handle[vcd_handle] = VCDparser(vcd_file_name)
+            self.vcd_handle[vcd_handle] = ParseVCD(vcd_file_name)
         vcd_handle = self.vcd_handle[vcd_handle]
 
         return vcd_handle
@@ -391,12 +391,12 @@ class ProbeVCD(Probe):
 
         signal = r""
 
-        signal_dict = file_handle.parse_vcd(siglist=[name], update_data=True)
+        signal_dict = file_handle.parse_vcd(sigs=[name], update_data=True)
         """ :type : dict()"""
 
         for key in signal_dict.keys():
-            signal = [i[1] for i in signal_dict[key]['tv']]
-            cycle_cnt = [i[0] for i in signal_dict[key]['tv']]
+            signal = [i[1] for i in signal_dict[key]['cv']]
+            cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
 
         if signal in [""]:
             raise ValueError("No data found for signal:{0}".format(name))

@@ -143,7 +143,7 @@ class IcarusConfig():
 
         # set path to iverilog and vvp binaries
         self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'iverilog-11.1.1.0', 'bin')]
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'iverilog-10.1.1.0', 'bin')]
         self._iverilog = iverilog
         self._vvp = vvp
 
