@@ -300,7 +300,7 @@ class ProbeVCD(Probe):
             emu_time_probe = matching[0]
 
         if emu_time_probe not in run_cache:
-            data = self.fetch_simdata(vcd_handle, emu_time_probe)
+            data = self.fetch_simdata(vcd_handle, emu_time_probe, update_data=True)
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
@@ -318,17 +318,14 @@ class ProbeVCD(Probe):
 
         if emu_time and name != emu_time_probe:
             print("Using emulation time")
-            emu_data = np.array([run_cache[emu_time_probe][1], data[1]])
-            if compress:
-                return self._compress(emu_data, preserve)
-            else:
-                return emu_data
+            emutime_data = data.copy()
+            for i in range(data[0].__len__()):
+                extract_timevalue = np.extract(run_cache[emu_time_probe][0] == data[0][i], run_cache[emu_time_probe][1])
+                emutime_data[0][i] = float(extract_timevalue)
+            return emutime_data
         else:
             print("Using cycle counts as time basis")
-            if compress:
-                return self._compress(data, preserve)
-            else:
-                return data
+            return data
 
     def _probes(self):
         """
@@ -381,7 +378,7 @@ class ProbeVCD(Probe):
         # Setup Simulation Result file names
         return os.path.join(self.target.cfg['vcd_path'])
 
-    def fetch_simdata(self, file_handle, name):
+    def fetch_simdata(self, file_handle, name, update_data=False):
         """
         Load VCD signals and store values as dictionary
 
@@ -391,7 +388,8 @@ class ProbeVCD(Probe):
 
         signal = r""
 
-        signal_dict = file_handle.parse_vcd(sigs=[name], update_data=True)
+        # TODO: update_data should be accessible through top level probing function
+        signal_dict = file_handle.parse_vcd(sigs=[name], update_data=update_data)
         """ :type : dict()"""
 
         for key in signal_dict.keys():
@@ -402,37 +400,3 @@ class ProbeVCD(Probe):
             raise ValueError("No data found for signal:{0}".format(name))
 
         return np.array([cycle_cnt,signal], dtype='O')
-
-    def _compress(self, wave=np.ndarray, preserve=False):
-        """
-        This function compress the waveform wave and removes redundant values
-        :param wave: 2d numpy.ndarray
-        :return: 2d numpy.ndarray
-        """
-        temp_data = ""
-        temp_time = ""
-        compressed =[]
-
-        for d in wave.transpose():
-            #if d[0] == temp_time:
-                # same time value should replace with latest data value
-                #compressed.pop()
-                #compressed.append(d)
-            #else:
-            if temp_data != "":
-                if d[1] != temp_data:
-                    if preserve:
-                        compressed.append([d[0],temp_data]) #old value with same timestep to preserve stepping
-                    compressed.append(d)
-            else:
-                compressed.append(d)
-            temp_data = d[1]
-            temp_time = d[0]
-        # check if last value was taken otherwise append it
-        if wave.transpose()[-1][0] != compressed[-1][0]:
-            compressed.append(wave.transpose()[-1])
-        try:
-            return np.array(compressed, dtype='float').transpose()
-        except:
-            return np.array(compressed, dtype='O').transpose()
-
