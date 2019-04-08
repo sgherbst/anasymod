@@ -208,6 +208,9 @@ def find_tool(name, hints=None, sys_path_hint=True):
     if sys_path_hint:
         hints.append(lambda: None)
 
+    # first check the system path for the tool
+    tool_path = shutil.which(name)
+
     # if the tool isn't found in the system path, then try out the hints in order
     if tool_path is None:
         for hint in hints:
@@ -218,6 +221,9 @@ def find_tool(name, hints=None, sys_path_hint=True):
                     tool_path = shutil.which(name, path=hint)
             except:
                 continue
+
+            if tool_path is not None:
+                break
 
         if tool_path is not None:
             return get_full_path(tool_path)
