@@ -388,9 +388,5 @@ class Analysis():
         if not self._setup_finished:
             raise ValueError("The project setup changed after data aquisition; Data might be out of sync!")
 
-
-
-
-
 if __name__ == '__main__':
     analysis = Analysis(op_mode='commandline')
