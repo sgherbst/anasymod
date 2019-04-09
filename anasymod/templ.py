@@ -9,6 +9,6 @@ class JinjaTempl:
         t = Environment(trim_blocks=self.trim_blocks, lstrip_blocks=self.lstrip_blocks).from_string(self.TEMPLATE_TEXT)
         #t = Template(self.TEMPLATE_TEXT)
 
-        return t.render(subst=self)
+        return t.render(subst=self)+'\n'
 
     TEMPLATE_TEXT = ''

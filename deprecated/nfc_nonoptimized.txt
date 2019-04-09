@@ -1,9 +1,0 @@
-Resources used by non-optimized NFC example
-Might want to vary argument widths of multipliers to see if # DSPs can be halved
-
-LUT	2578	53200	4.845865
-LUTRAM	313	17400	1.7988505
-FF	3552	106400	3.338346
-BRAM	5	140	3.5714288
-DSP	50	220	22.727274
-

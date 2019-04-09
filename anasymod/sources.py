@@ -94,3 +94,10 @@ class VHDLSource(Sources):
     def generate(self):
         self.dump()
 
+class XCIFile(Sources):
+    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None):
+        super().__init__(files=files, fileset=fileset, config_path=config_path)
+
+class XDCFile(Sources):
+    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None):
+        super().__init__(files=files, fileset=fileset, config_path=config_path)

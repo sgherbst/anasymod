@@ -1,5 +1,5 @@
 import os
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile
 from anasymod.defines import Define
 
 class Filesets():
@@ -14,6 +14,12 @@ class Filesets():
 
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
+
+        self._xci_files = []
+        """:type : List[XCIFile]"""
+
+        self._xdc_files = []
+        """:type : List[XDCFile]"""
 
         self._defines = []
         """:type : List[Define]"""
@@ -66,8 +72,13 @@ class Filesets():
         :return:
         """
 
-        for line in cfg:
+        for k, line in enumerate(cfg):
             line = line.strip()
+
+            if line.startswith('#'):
+                # skip comments
+                continue
+
             if line:
                 try:
                     line = eval(line)
@@ -83,6 +94,14 @@ class Filesets():
                         line.config_path = cfg_path
                         line.expand_paths()
                         self._vhdl_sources.append(line)
+                    elif isinstance(line, XCIFile):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._xci_files.append(line)
+                    elif isinstance(line, XDCFile):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._xdc_files.append(line)
                     elif isinstance(line, SubConfig):
                         line.config_path = cfg_path
                         line.expand_paths()
@@ -90,9 +109,9 @@ class Filesets():
                     elif isinstance(line, Define):
                         self._defines.append(line)
                     else:
-                        print(f"Warning: Line'{line}' of config file: {cfg_path} does not fit do a specified source or config type")
+                        raise Exception(f"Line {k+1} of config file: {cfg_path} does not fit do a specified source or config type")
                 except:
-                    print(f"Warning: Line'{line}' of config file: {cfg_path} could not be processed properely")
+                    raise Exception(f"Line {k+1} of config file: {cfg_path} could not be processed properely")
 
     def populate_fileset_dict(self):
         """
@@ -108,6 +127,12 @@ class Filesets():
 
         # Read in vhdlsource objects to fileset dict
         self._add_to_fileset_dict(name='vhdl_sources', container=self._vhdl_sources)
+
+        # Read in xcifile objects to fileset dict
+        self._add_to_fileset_dict(name='xci_files', container=self._xci_files)
+
+        # Read in xdcfile objects to fileset dict
+        self._add_to_fileset_dict(name='xdc_files', container=self._xdc_files)
 
         # Read in define objects to fileset dict
         self._add_to_fileset_dict(name='defines', container=self._defines)
@@ -138,6 +163,12 @@ class Filesets():
 
     def add_define(self, define: Define):
         self._defines.append(define)
+
+    def add_xci_file(self, xci_file: XCIFile):
+        self._xci_files.append(xci_file)
+
+    def add_xdc_file(self, xdc_file: XDCFile):
+        self._xdc_files.append(xdc_file)
 
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")

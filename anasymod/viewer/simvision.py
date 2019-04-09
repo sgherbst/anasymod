@@ -6,7 +6,7 @@ from anasymod.util import call
 class SimVisionViewer(Viewer):
     def view(self):
        # build command
-        cmd = [self.cfg.simvision_config.simvision, '-wave', self.cfg.vcd_path]
+        cmd = [self.cfg.simvision_config.simvision, '-wave', self.target.cfg['vcd_path']]
 
         # add waveform file if it exists
         if self.cfg.simvision_config.svcf_config is not None:

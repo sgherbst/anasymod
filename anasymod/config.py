@@ -21,6 +21,7 @@ class EmuConfig:
 
         # Initialize config  dict
         self.cfg = Config(cfg_file=self.cfg_file)
+        self.cfg['jtag_freq'] = 15e6
 
         # Update config options by reading from config file
         self.cfg.update_config()
@@ -43,16 +44,21 @@ class EmuConfig:
         # Xcelium configuration
         self.xcelium_config = XceliumConfig(parent=self)
 
+    @property
+    def ila_depth(self):
+        return 4096
 
     def fetch_board(self):
         """
         Fetch FPGA board info.
         """
 
-        if self.cfg.board_name is BoardNames.PYNQ_Z1:
-            return PYNQ_Z1
-        elif self.cfg.board_name is BoardNames.VC707:
-            return VC707
+        if board_name == BoardNames.PYNQ_Z1:
+            return PYNQ_Z1()
+        elif board_name == BoardNames.VC707:
+            return VC707()
+        else:
+            raise Exception(f'The requested board {board_name} could not be found.')
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):
@@ -62,8 +68,10 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
 
-        # set path to Vivado
-        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
+        # set path to vivado binary
+        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.1', 'Vivado', '2018.2',
+                                           'bin')]
         self._vivado = vivado
 
         # set various project options
@@ -85,7 +93,8 @@ class XceliumConfig():
         # save reference to parent config
         self.parent = parent
 
-        # set path to iverilog and vvp binaries
+        # set path to xrun binary
+        self.hints = [lambda: os.path.join(env['XCELIUM_INSTALL_PATH'], 'bin')]
         self._xrun = xrun
 
         # name of TCL file
@@ -94,7 +103,7 @@ class XceliumConfig():
     @property
     def xrun(self):
         if self._xrun is None:
-            self._xrun = find_tool(name='xrun')
+            self._xrun = find_tool(name='xrun', hints=self.hints)
         return self._xrun
 
     @property
@@ -107,7 +116,8 @@ class IcarusConfig():
         self.parent = parent
 
         # set path to iverilog and vvp binaries
-        self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin')]
+        self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'iverilog-10.1.1.0', 'bin')]
         self._iverilog = iverilog
         self._vvp = vvp
 
@@ -135,8 +145,9 @@ class GtkWaveConfig():
         # save reference to parent config
         self.parent = parent
 
-        # find binary
-        self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin')]
+        # find gtkwave binary
+        self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'gtkwave-3.3.65.0', 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
 
@@ -151,14 +162,15 @@ class SimVisionConfig():
         # save reference to parent config
         self.parent = parent
 
-        # find binary
+        # find simvision binary
+        self.hints = [lambda: os.path.join(env['SIMVISION_INSTALL_PATH'], 'bin')]
         self._simvision = simvision
         self.svcf_config = None
 
     @property
     def simvision(self):
         if self._simvision is None:
-            self._simvision = find_tool(name='simvision')
+            self._simvision = find_tool(name='simvision', hints=self.hints)
         return self._simvision
 
 class Config(BaseConfig):
@@ -182,6 +194,10 @@ def find_tool(name, hints=None):
     if hints is None:
         hints = []
 
+    # add system path as the last "hint" if desired (default behavior)
+    if sys_path_hint:
+        hints.append(lambda: None)
+
     # first check the system path for the tool
     tool_path = shutil.which(name)
 
@@ -189,15 +205,19 @@ def find_tool(name, hints=None):
     if tool_path is None:
         for hint in hints:
             try:
-                tool_path = shutil.which(name, path=hint())
+                if callable(hint):
+                    tool_path = shutil.which(name, path=hint())
+                else:
+                    tool_path = shutil.which(name, path=hint)
             except:
                 continue
 
             if tool_path is not None:
                 break
 
-    # finally get the fully path to the tool if it was found and if not raise an exception
-    if tool_path is not None:
-        return get_full_path(tool_path)
+        if tool_path is not None:
+            return get_full_path(tool_path)
     else:
         raise KeyError(f'Tool:{name} could not be found')
+
+

@@ -3,6 +3,7 @@ import subprocess
 import sys
 import json
 
+from multiprocessing.pool import ThreadPool
 from math import ceil, log2
 from collections import namedtuple
 
@@ -31,6 +32,34 @@ def call(args, cwd=None, wait=True):
 
 def next_pow_2(x):
     return 2**int(ceil(log2(x)))
+
+########################
+# parallel_scripts
+# ref: https://stackoverflow.com/questions/26774781/python-multiple-subprocess-with-a-pool-queue-recover-output-as-soon-as-one-finis
+
+def parallel_calls(calls, num=None):
+    tp = ThreadPool(num)
+
+    for arg_list in calls:
+        tp.apply_async(call, (arg_list,))
+
+    tp.close()
+    tp.join()
+
+########################
+
+########################
+# file_len: modified from https://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
+
+def file_len(fname):
+    with open(fname, encoding='utf-8') as f:
+        i = 0
+
+        for i, l in enumerate(f, 1):
+            pass
+
+        return i
+########################
 
 ########################
 # JSON to object: from https://stackoverflow.com/questions/6578986/how-to-convert-json-data-into-a-python-object
