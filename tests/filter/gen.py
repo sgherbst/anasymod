@@ -9,7 +9,7 @@ from msdsl.eqn.deriv import Deriv
 from anasymod.files import get_full_path
 
 class Filter(MixedSignalModel):
-    def __init__(self, name='filter', tau=1e-6, dt=0.1e-6):
+    def __init__(self, name='filter', res=1e3, cap=1e-9, dt=0.1e-6):
         # call the super constructor
         super().__init__(name, dt=dt)
 
@@ -19,7 +19,7 @@ class Filter(MixedSignalModel):
 
         # define dynamics
         self.add_eqn_sys([
-            Deriv(self.v_out) == (self.v_in - self.v_out) / tau
+            Deriv(self.v_out) == (self.v_in - self.v_out) / (res*cap)
         ])
 
 def main():
