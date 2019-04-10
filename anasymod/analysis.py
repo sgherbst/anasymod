@@ -227,8 +227,24 @@ class Analysis():
             'scansion': ScansionViewer
         }[self.args.viewer_name]
 
-        # set config file location
-        self.cfg.gtkwave_config.gtkw_config = os.path.join(self.args.input, 'view.gtkw')
+        # set config file location for GTKWave
+        # TODO: clean this up; it's a bit messy...
+        if isinstance(target, FPGATarget):
+            gtkw_search_order = ['view_fpga.gtkw', 'view.gtkw']
+        elif isinstance(target, SimulationTarget):
+            gtkw_search_order = ['view_sim.gtkw', 'view.gtkw']
+        else:
+            gtkw_search_order = ['view.gtkw']
+
+        for basename in gtkw_search_order:
+            candidate_path = os.path.join(self.args.input, basename)
+            if os.path.isfile(candidate_path):
+                self.cfg.gtkwave_config.gtkw_config = candidate_path
+                break
+        else:
+            self.cfg.gtkwave_config.gtkw_config = None
+
+        # set config file location for SimVision
         self.cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
