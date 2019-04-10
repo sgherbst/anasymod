@@ -1,22 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Fri Apr  5 20:57:55 2019
+[*] Wed Apr 10 04:40:57 2019
 [*]
 [dumpfile] "/home/sgherbst/Code/anasymod/tests/buck/build/vcd/top_fpga.vcd"
-[dumpfile_mtime] "Fri Apr  5 20:53:17 2019"
-[dumpfile_size] 399922
-[savefile] "/home/sgherbst/Code/anasymod/tests/buck/view_fpga_2.gtkw"
+[dumpfile_mtime] "Wed Apr 10 04:40:10 2019"
+[dumpfile_size] 399780
+[savefile] "/home/sgherbst/Code/anasymod/tests/buck/view_fpga.gtkw"
 [timestart] 0
 [size] 1000 600
 [pos] 49 42
-*-15.200609 26800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-14.166062 26800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_i.
 [sst_width] 223
 [signals_width] 182
 [sst_expanded] 1
 [sst_vpaned_height] 153
 @28
-emu_dec_cmp_probe
 tb_i.hs_probe
 tb_i.ls_probe
 @8028
@@ -30,6 +29,13 @@ tb_i.i_ind_probe
 -
 -
 -
+-
+-
+@8028
+tb_i.buck_i.v_snub_probe
+@20001
+-
+@20000
 -
 -
 [pattern_trace] 1
