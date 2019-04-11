@@ -43,9 +43,13 @@ class ModuleClkManager(JinjaTempl):
         #####################################################
         self.clk_wiz_ifc = SVAPI()
 
-        for port in self.str_cfg.clk_i_ports + self.str_cfg.clk_o_ports + self.str_cfg.clk_m_ports + self.str_cfg.clk_d_ports + self.str_cfg.clk_g_ports:
+        for k, port in enumerate(self.str_cfg.clk_i_ports):
             port.connection = port.name
             self.clk_wiz_ifc.println(f".{port.name}({port.connection})")
+
+        for k, port in enumerate(self.str_cfg.clk_o_ports + self.str_cfg.clk_m_ports + self.str_cfg.clk_d_ports + self.str_cfg.clk_g_ports):
+            port.connection = port.name
+            self.clk_wiz_ifc.println(f".clk_out{k+1}({port.connection})")
 
         #####################################################
         # Add additional attributes for instantiation of sim clk gates
@@ -90,7 +94,7 @@ module clk_gen(
 
 	clk_wiz_0 clk_wiz_0_i(
     {% for line in subst.clk_wiz_ifc.text.splitlines() %}
-        {{line}}{{ "," if not loop.last }}
+        {{line}},
     {% endfor %}
         .reset(1'b0),
 		.locked(locked)

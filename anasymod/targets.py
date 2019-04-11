@@ -49,7 +49,6 @@ class Target():
 
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name)
-        self.cfg['custom_top'] = False
 
     def set_tstop(self):
         """
@@ -123,13 +122,7 @@ class FPGATarget(Target):
 
         # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
         # emulation time for most purposes.
-        self.cfg['tstop'] = 10.0
-
         self._ip_cores = []
-
-        # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
-        self.cfg['csv_name'] = f"{self.cfg['top_module']}_{self._name}.csv"
-        self.cfg['csv_path'] = os.path.join(self.prj_cfg.build_root, r"csv", self.cfg['csv_name'])
 
     @property
     def probe_cfg_path(self):
@@ -155,10 +148,14 @@ class Config(BaseConfig):
     """
     def __init__(self, cfg_file, prj_cfg, name):
         super().__init__(cfg_file=cfg_file, section=ConfigSections.TARGET)
-        self.tstop = 1e-05
+        self.tstop = 10.0
         self.emu_clk_freq =25e6
         self.top_module = 'top'
+        self.custom_top = False
         self.vcd_name = f"{self.top_module}_{name}.vcd"
         self.vcd_path = os.path.join(prj_cfg.build_root, r"vcd", self.vcd_name)
+        # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
+        self.csv_name = f"{self.top_module}_{name}.csv"
+        self.csv_path = os.path.join(prj_cfg.build_root, r"csv", self.csv_name)
 
 

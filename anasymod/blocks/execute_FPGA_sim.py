@@ -5,11 +5,10 @@ from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-<<<<<<< .mine
-    def __init__(self, target: FPGATarget):
-=======
-    def __init__(self, cfg: EmuConfig, target: FPGATarget, start_time: float, stop_time: float, dt: float):
->>>>>>> .theirs
+    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, dt: float):
+        super().__init__(trim_blocks=False, lstrip_blocks=False)
+        cfg = target.prj_cfg
+
         # read in probe signals from the probe config file
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
@@ -19,13 +18,13 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 
         # set the JTAG frequency.  sometimes it is useful to try a slower frequency than default if there
         # are problems with the debug hub clock
-        self.jtag_freq = str(int(cfg.cfg['jtag_freq']))
+        self.jtag_freq = str(int(cfg.cfg.jtag_freq))
 
         # set the "short" device name which is used to distinguish the FPGA part from other USB devices
-        self.device_name = cfg.fpga_board_config.board.cfg['short_part_name']
+        self.device_name = cfg.board.short_part_name
 
         # set the path where the CSV file of results from the ILA should be written
-        self.output = back2fwd(target.cfg['csv_path'])
+        self.output = back2fwd(target.cfg.csv_path)
         self.ila_reset = target.prj_cfg.vivado_config.ila_reset
         #tbd remove vio_reset
         self.vio_reset = target.prj_cfg.vivado_config.vio_reset

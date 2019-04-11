@@ -66,11 +66,11 @@ class Plugin():
         """
         pass
 
-    def _update_config(self, cfg, config_section):
-        return update_config(cfg=cfg, config_section=config_section)
+    #def _update_config(self, cfg, config_section):
+    #    return self.cfg.update_config(cfg=cfg, config_section=config_section)
 
-    def _read_config(self, cfg_file, section, subsection=None):
-        return read_config(cfg_file=cfg_file, section=section, subsection=subsection)
+    #def _read_config(self, cfg_file, section, subsection=None):
+    #    return read_config(cfg_file=cfg_file, section=section, subsection=subsection)
 
 class Config(BaseConfig):
     """

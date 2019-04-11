@@ -21,7 +21,6 @@ class EmuConfig:
 
         # Initialize config  dict
         self.cfg = Config(cfg_file=self.cfg_file)
-        self.cfg['jtag_freq'] = 15e6
 
         # Update config options by reading from config file
         self.cfg.update_config()
@@ -53,12 +52,12 @@ class EmuConfig:
         Fetch FPGA board info.
         """
 
-        if board_name == BoardNames.PYNQ_Z1:
+        if self.cfg.board_name == BoardNames.PYNQ_Z1:
             return PYNQ_Z1()
-        elif board_name == BoardNames.VC707:
+        elif self.cfg.board_name == BoardNames.VC707:
             return VC707()
         else:
-            raise Exception(f'The requested board {board_name} could not be found.')
+            raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):
@@ -184,15 +183,18 @@ class Config(BaseConfig):
         #self.board_name = BoardNames.VC707
         self.emu_clk_freq = 25e6
         self.preprocess_only = False
+        self.jtag_freq = 15e6
         self.plugins = []
         self.plugins.append('msdsl')
         #self.plugins.append('netexplorer')
         #self.plugins.append('stargazer')
 
-def find_tool(name, hints=None):
+def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:
         hints = []
+
+
 
     # add system path as the last "hint" if desired (default behavior)
     if sys_path_hint:

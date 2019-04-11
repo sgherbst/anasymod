@@ -150,10 +150,10 @@ class Analysis():
 
         # create VivadoBuild object if necessary (this does not actually build the design)
         if r"build" not in locals():
-            build = VivadoBuild(cfg=self.prj_cfg, target=target)
+            build = VivadoBuild(target=target)
 
         # run the emulation
-        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg['dt'])
+        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
@@ -180,7 +180,7 @@ class Analysis():
         }[self.args.simulator_name]
 
         # run simulation
-        sim = sim_cls(cfg=self.prj_cfg, target=target)
+        sim = sim_cls(target=target)
         sim.simulate()
 
     def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False ,compress=True, preserve=False):
@@ -228,7 +228,7 @@ class Analysis():
         self.prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
-        viewer = viewer_cls(cfg=self.prj_cfg, target=target)
+        viewer = viewer_cls(target=target)
         viewer.view()
 
 
@@ -335,6 +335,8 @@ class Analysis():
         if 'sim' in filesets:
             self.sim.assign_fileset(fileset=filesets['sim'])
 
+
+
         # Update simulation target specific configuration
         self.sim.cfg.update_config(subsection=r"sim")
         self.sim.update_structure_config()
@@ -377,9 +379,8 @@ class Analysis():
 
         #ToDo: In future it should be also possible to instantiate different probe objects, depending on data format that shall be read in
         if target_name not in target.probes.keys():
-            # TODO: clean up
             from anasymod.probe import ProbeVCD
-            target.probes[target_name] = ProbeVCD(prj_config=self.cfg, target=target)
+            target.probes[target_name] = ProbeVCD(target=target)
 
         return target.probes[target_name]
 

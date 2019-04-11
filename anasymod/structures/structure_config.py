@@ -28,7 +28,7 @@ class StructureConfig():
         self.vio_r_names = ['emu_rst']
         self.vio_r_ports = [Port(name=self.vio_r_names[i], width=self.vio_r_widths[i]) for i in range(self.vio_r_num)]
 
-        # vio sim constrol
+        # vio sim control
         self.vio_s_num = 1
         self.vio_s_widths = [int(prj_cfg.cfg.dec_bits)]
         self.vio_s_names = ['emu_dec_thr']

@@ -32,13 +32,13 @@ class TemplClkWiz(TemplGenericIp):
 
         # Add master output clk (emu_clk)
         props[f'CONFIG.CLKOUT1_USED'] = 'true'
-        props[f'CONFIG.CLKOUT1_PORT'] = self.target.str_cfg.clk_m_names[0]
+        #props[f'CONFIG.CLKOUT1_PORT'] = self.target.str_cfg.clk_m_names[0]
         props['CONFIG.CLKOUT1_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.cfg.emu_clk_freq * 1e-6)
 
         # Add debug clks
         for k, port in enumerate(self.target.str_cfg.clk_d_ports):
             props[f'CONFIG.CLKOUT{k+2}_USED'] = 'true'
-            props[f'CONFIG.CLKOUT{k+2}_PORT'] = port.name
+            #props[f'CONFIG.CLKOUT{k+2}_PORT'] = port.name
             props[f'CONFIG.CLKOUT{k+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.board.dbg_hub_clk_freq * 1e-6)
 
         # Add additional output clks
@@ -46,7 +46,7 @@ class TemplClkWiz(TemplGenericIp):
             props['CONFIG.FEEDBACK_SOURCE'] = 'FDBK_AUTO'
 
         for k, port in enumerate(self.target.str_cfg.clk_o_ports):
-            props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_PORT'] = port.name
+            #props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_PORT'] = port.name
             props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_USED'] = 'true'
             props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.cfg.emu_clk_freq * 1e-6)
             props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_DRIVES'] = 'BUFGCE'

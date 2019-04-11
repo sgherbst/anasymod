@@ -29,9 +29,18 @@ class ModuleVIOManager(JinjaTempl):
         #####################################################
         self.vio_wiz_ifc = SVAPI()
 
-        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports:
+        for k, port in enumerate(self.str_cfg.vio_i_ports):
             port.connection = port.name
-            self.vio_wiz_ifc.println(f".{port.name}({port.connection})")
+            self.vio_wiz_ifc.println(f".probe_in{k+1}({port.connection})")
+
+        for k, port in enumerate(self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports):
+            port.connection = port.name
+            self.vio_wiz_ifc.println(f".probe_out{k}({port.connection})")
+
+        # add master clk to vio instantiation
+        vio_clk_port = self.str_cfg.clk_m_ports[0]
+        vio_clk_port.connect = vio_clk_port.name
+        self.vio_wiz_ifc.println(f".clk({vio_clk_port.connection})")
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
