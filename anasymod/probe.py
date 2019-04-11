@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import csv
+import time
 
 from typing import Union
 
@@ -42,7 +43,7 @@ class Probe():
     def __del__(self):
         self.discardloadedsimdatafiles()
 
-    def _probe(self, name, emu_time, compress, preserve, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access probed waveform trace(s)
 
@@ -108,6 +109,14 @@ class Probe():
         """Compresses redundant data from 2d numpy array"""
         raise NotImplementedError()
 
+    def parse_emu_time(self, data, emu_time):
+        """
+
+        :param data:
+        :param emu_time:
+        :return:
+        """
+        raise NotImplementedError()
 
 class ProbeCSV(Probe):
     """
@@ -138,7 +147,7 @@ class ProbeCSV(Probe):
     def path_for_sim_result_file(self):
         return os.path.join(self.target.cfg['csv_path'])
 
-    def _probe(self, name, emu_time, compress, preserve, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access csv logfile data for specified run number simulation parameter
 
@@ -253,23 +262,50 @@ class ProbeVCD(Probe):
 
         Remote Data interface is automatically closed when Api is destructed
         """
+        self.probe_caches = []
         pass
 
     def init_rundata(self):
         self.probe_caches = [{} for _ in range(10)] # this needs a fix later, shall be depenent on number of signals that were stored during simulation
         self._data_valid = True
 
-    def _probe(self, name, emu_time, compress=True, preserve=False, cache=True):
+    def parse_emu_time(self, data, emu_time):
+        """
+        Parse Emu_time end returns new vector with emu_time instead of cycle count
+        :param data:
+        :return:
+        """
+        emutime_data = data.copy()
+        emutime_data.setflags(write=True)
+        #j = 0
+        #emu_index = 0
+        # for i in range(emu_time):
+        #     if data[0][j] == emu_time[0][i]:
+        #         data[0][j] = emu_time[1][i]
+        #     else:
+        #         j += 1
+        #
+        t = 0
+        for i in range(int(len(emutime_data[0]))):
+            dat = emutime_data[0][i]
+            time = emu_time[0][t+i]
+            while emutime_data[0][i] != emu_time[0][t+i]:
+                t += 1
+                if t + i >= len(emu_time[0]):
+                    break
+            if t + i >= len(emu_time[0]):
+                break
+            emutime_data[0][i] = emu_time[1][t+i]
+
+        return emutime_data
+
+    def _probe(self, name, emu_time, cache=True):
         """
         Access VCD data for specified run number simulation parameter
         :param name: Column name in csv log, omit/None for all
         :type name: str
         :param emu_time: Use emu_time as time basis or cycle_count
         :type emu_time: bool
-        :param mode: Probe data for all time steps, or only when value changed
-        :type mode: str
-        :param preserve: When probing value changed data
-        :type preserve: bool
         :param cache:
         :return:
         """
@@ -294,34 +330,47 @@ class ProbeVCD(Probe):
             run_cache = []
             cache = False
 
-        # check complete name of emu_time_probe
+        # check if empty run_cache and parse all signals and store in run_cache
+        if len(run_cache) == 0 and cache:
+            run_cache = self.fetch_simdata(vcd_handle, update_data=False)
+            self.probe_caches[run_num] = run_cache
+
+        #check complete name of emu_time_probe
         matching = [s for s in self._probes() if 'emu_time_probe' in s]
         if len(matching) == 1:
             emu_time_probe = matching[0]
 
         if emu_time_probe not in run_cache:
-            data = self.fetch_simdata(vcd_handle, emu_time_probe, update_data=True)
+            data = self.fetch_simdata(vcd_handle, name=emu_time_probe, update_data=True)
+            print("Emu_time not in cache: " + name)
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
                 run_cache[emu_time_probe] = data
 
         if name not in run_cache:
-            data = self.fetch_simdata(vcd_handle, name)
+            data = self.fetch_simdata(vcd_handle, name=name)
+            print("Data not in cache: " + name)
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
                 run_cache[name] = data
-
         else:
             data = run_cache[name]
+            print("Data already in cache: " + name)
+
+
 
         if emu_time and name != emu_time_probe:
             print("Using emulation time")
-            emutime_data = data.copy()
-            for i in range(data[0].__len__()):
-                extract_timevalue = np.extract(run_cache[emu_time_probe][0] == data[0][i], run_cache[emu_time_probe][1])
-                emutime_data[0][i] = float(extract_timevalue)
+            #emutime_data = data.copy()
+            #start = time.time()
+            emutime_data = self.parse_emu_time(data=data, emu_time=run_cache[emu_time_probe])
+
+            #emutime_data.setflags(write=True)
+            #emutime_data[0] = run_cache[emu_time_probe][1]
+            #end = time.time()
+            #print("Time consumed: ", end - start)
             return emutime_data
         else:
             print("Using cycle counts as time basis")
@@ -347,6 +396,7 @@ class ProbeVCD(Probe):
             vcd_handle = self.vcd_handle[key]
             try:
                 del vcd_handle
+                del self.probe_caches
             except:
                 pass
         self.vcd_handle = dict()
@@ -378,25 +428,41 @@ class ProbeVCD(Probe):
         # Setup Simulation Result file names
         return os.path.join(self.target.cfg['vcd_path'])
 
-    def fetch_simdata(self, file_handle, name, update_data=False):
+    def fetch_simdata(self, file_handle, name="", update_data=False):
         """
         Load VCD signals and store values as dictionary
 
         :return: Dict of numpy arrays (keys are column titles, values are column values)
         :rtype: dict[numpy.array]
         """
+        signal = ''
+        cycle_cnt = ''
+        if name is not "":
+            signal_dict = file_handle.parse_vcd(update_data=update_data)
+            """ :type : dict()"""
 
-        signal = r""
+            for key in signal_dict.keys():
+                signal = [i[1] for i in signal_dict[key]['cv']]
+                cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
 
-        # TODO: update_data should be accessible through top level probing function
-        signal_dict = file_handle.parse_vcd(sigs=[name], update_data=update_data)
-        """ :type : dict()"""
+            if signal in [""]:
+                raise ValueError("No data found for signal:{0}".format(name))
+            return np.array([cycle_cnt, signal], dtype='O')
 
-        for key in signal_dict.keys():
-            signal = [i[1] for i in signal_dict[key]['cv']]
-            cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
+        else:
+            signal_dict = file_handle.parse_vcd(sigs=name, update_data=update_data)
+            """ :type : dict()"""
+            data = {}
+            for key in signal_dict.keys():
+                signal = [i[1] for i in signal_dict[key]['cv']]
+                cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
+                net = signal_dict[key]['nets'][0]
+                name = net['hier'] + '.' + net['name']
+                data[name] = np.array([cycle_cnt,signal], dtype='O')
+                data[name].setflags(write=False)
 
-        if signal in [""]:
-            raise ValueError("No data found for signal:{0}".format(name))
+            if signal in [""]:
+                raise ValueError("No data found for signal:{0}".format(name))
 
-        return np.array([cycle_cnt,signal], dtype='O')
+            return data
+
