@@ -216,24 +216,20 @@ class Analysis():
         :param wave: 2d numpy.ndarray
         :return: 2d numpy.ndarray
         """
-        temp_data = ""
-        wave_step =[]
+        temp_data = None
+        wave_step = np.array([[], []])
 
-        for d in wave.transpose():
-            if temp_data != "":
-                if d[1] != temp_data:
-                    wave_step.append([d[0],temp_data]) #old value with same timestep to preserve stepping
-                    wave_step.append(d)
-            else:
-                wave_step.append(d)
-            temp_data = d[1]
-        # check if last value was taken otherwise append it
-        if wave.transpose()[-1][0] != wave_step[-1][0]:
-            wave_step.append(wave.transpose()[-1])
+        for tv_pair in zip(wave[0], wave[1]):
+            if temp_data:
+                if tv_pair[1] != temp_data:
+                    wave_step = np.concatenate((wave_step, np.array([[tv_pair[0]], [temp_data]])), axis=1)
+            wave_step = np.concatenate((wave_step, np.array([tv_pair]).T), axis=1)
+            temp_data = tv_pair[1]
+
         try:
-            return np.array(wave_step, dtype='float').transpose()
+            return np.array(wave_step, dtype='float')
         except:
-            return np.array(wave_step, dtype='O').transpose()
+            return np.array(wave_step, dtype='O')
 
     def view(self, target: Target):
         """

@@ -278,13 +278,12 @@ class ProbeVCD(Probe):
         emutime_data = data.copy()
         emutime_data.setflags(write=True)
 
+        # emu_time vector index
         t = 0
         for i in range(int(len(emutime_data[0]))):
-            dat = emutime_data[0][i]
-            time = emu_time[0][t+i]
             while emutime_data[0][i] > emu_time[0][t+i]:
                 t += 1
-                # break if no data was found and it reaches the end of the array
+                # break while loop, if it reaches the end of the array of emu_time
                 if t + i >= len(emu_time[0]):
                     break
             # break for loop because whole emu_time vector was parsed
@@ -297,6 +296,7 @@ class ProbeVCD(Probe):
             else:
                 emutime_data[0][i] = emu_time[1][t+i]
 
+        emutime_data.setflags(write=False)
         return emutime_data
 
     def _probe(self, name, emu_time, cache=True):
