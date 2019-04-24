@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import csv
+import time
 
 
 from anasymod.utils.VCD_parser import ParseVCD
@@ -40,7 +41,7 @@ class Probe():
     def __del__(self):
         self.discardloadedsimdatafiles()
 
-    def _probe(self, name, emu_time, compress, preserve, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access probed waveform trace(s)
 
@@ -106,6 +107,14 @@ class Probe():
         """Compresses redundant data from 2d numpy array"""
         raise NotImplementedError()
 
+    def parse_emu_time(self, data, emu_time):
+        """
+
+        :param data:
+        :param emu_time:
+        :return:
+        """
+        raise NotImplementedError()
 
 class ProbeCSV(Probe):
     """
@@ -136,7 +145,7 @@ class ProbeCSV(Probe):
     def path_for_sim_result_file(self):
         return os.path.join(self.target.cfg['csv_path'])
 
-    def _probe(self, name, emu_time, compress, preserve, cache=True):
+    def _probe(self, name, emu_time, cache=True):
         """
         Access csv logfile data for specified run number simulation parameter
 
@@ -251,23 +260,50 @@ class ProbeVCD(Probe):
 
         Remote Data interface is automatically closed when Api is destructed
         """
+        self.probe_caches = []
         pass
 
     def init_rundata(self):
         self.probe_caches = [{} for _ in range(10)] # this needs a fix later, shall be depenent on number of signals that were stored during simulation
         self._data_valid = True
 
-    def _probe(self, name, emu_time, compress=True, preserve=False, cache=True):
+    def parse_emu_time(self, data, emu_time):
+        """
+        Parse Emu_time end returns new vector with emu_time instead of cycle count
+        :param data:
+        :return:
+        """
+        emutime_data = data.copy()
+        emutime_data.setflags(write=True)
+
+        # emu_time vector index
+        t = 0
+        for i in range(int(len(emutime_data[0]))):
+            while emutime_data[0][i] > emu_time[0][t+i]:
+                t += 1
+                # break while loop, if it reaches the end of the array of emu_time
+                if t + i >= len(emu_time[0]):
+                    break
+            # break for loop because whole emu_time vector was parsed
+            if t + i >= len(emu_time[0]):
+                break
+            # if there is a data point with no coresponding emu_time cyclecount, take the last common cycle count value
+            if emutime_data[0][i] < emu_time[0][t+i]:
+                emutime_data[0][i] = emu_time[1][t]
+            # if cycle count of data and emu_time vector is the same, take the time value
+            else:
+                emutime_data[0][i] = emu_time[1][t+i]
+
+        emutime_data.setflags(write=False)
+        return emutime_data
+
+    def _probe(self, name, emu_time, cache=True):
         """
         Access VCD data for specified run number simulation parameter
         :param name: Column name in csv log, omit/None for all
         :type name: str
         :param emu_time: Use emu_time as time basis or cycle_count
         :type emu_time: bool
-        :param mode: Probe data for all time steps, or only when value changed
-        :type mode: str
-        :param preserve: When probing value changed data
-        :type preserve: bool
         :param cache:
         :return:
         """
@@ -292,41 +328,42 @@ class ProbeVCD(Probe):
             run_cache = []
             cache = False
 
-        # check complete name of emu_time_probe
+        # check if empty run_cache and parse all signals and store in run_cache
+        if len(run_cache) == 0 and cache:
+            run_cache = self.fetch_simdata(vcd_handle, update_data=False)
+            self.probe_caches[run_num] = run_cache
+
+        #check complete name of emu_time_probe
         matching = [s for s in self._probes() if 'emu_time_probe' in s]
         if len(matching) == 1:
             emu_time_probe = matching[0]
 
         if emu_time_probe not in run_cache:
-            data = self.fetch_simdata(vcd_handle, emu_time_probe)
+            data = self.fetch_simdata(vcd_handle, name=emu_time_probe, update_data=True)
+            print("Emu_time not in cache: " + name)
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
                 run_cache[emu_time_probe] = data
 
         if name not in run_cache:
-            data = self.fetch_simdata(vcd_handle, name)
+            data = self.fetch_simdata(vcd_handle, name=name)
+            print("Data not in cache: " + name)
             if cache:
                 # Cached - make it read-only to prevent nasty overwriting bugs
                 data.setflags(write=False)
                 run_cache[name] = data
-
         else:
             data = run_cache[name]
+            print("Data already in cache: " + name)
 
         if emu_time and name != emu_time_probe:
             print("Using emulation time")
-            emu_data = np.array([run_cache[emu_time_probe][1], data[1]])
-            if compress:
-                return self._compress(emu_data, preserve)
-            else:
-                return emu_data
+            emutime_data = self.parse_emu_time(data=data, emu_time=run_cache[emu_time_probe])
+            return emutime_data
         else:
             print("Using cycle counts as time basis")
-            if compress:
-                return self._compress(data, preserve)
-            else:
-                return data
+            return data
 
     def _probes(self):
         """
@@ -348,6 +385,7 @@ class ProbeVCD(Probe):
             vcd_handle = self.vcd_handle[key]
             try:
                 del vcd_handle
+                del self.probe_caches
             except:
                 pass
         self.vcd_handle = dict()
@@ -379,58 +417,43 @@ class ProbeVCD(Probe):
         # Setup Simulation Result file names
         return os.path.join(self.target.cfg.vcd_path)
 
-    def fetch_simdata(self, file_handle, name):
+    def fetch_simdata(self, file_handle, name="", update_data=False):
         """
         Load VCD signals and store values as dictionary
 
         :return: Dict of numpy arrays (keys are column titles, values are column values)
         :rtype: dict[numpy.array]
         """
+        signal = ''
+        cycle_cnt = ''
+        if name is not "":
+            # parse only single signal name
+            signal_dict = file_handle.parse_vcd(update_data=update_data)
+            """ :type : dict()"""
 
-        signal = r""
+            for key in signal_dict.keys():
+                signal = [i[1] for i in signal_dict[key]['cv']]
+                cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
 
-        signal_dict = file_handle.parse_vcd(sigs=[name], update_data=True)
-        """ :type : dict()"""
+            if signal in [""]:
+                raise ValueError("No data found for signal:{0}".format(name))
+            return np.array([cycle_cnt, signal], dtype='O')
 
-        for key in signal_dict.keys():
-            signal = [i[1] for i in signal_dict[key]['cv']]
-            cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
+        else:
+            # parse all signals into run_cache
+            signal_dict = file_handle.parse_vcd(sigs=name, update_data=update_data)
+            """ :type : dict()"""
+            data = {}
+            for key in signal_dict.keys():
+                signal = [i[1] for i in signal_dict[key]['cv']]
+                cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
+                net = signal_dict[key]['nets'][0]
+                name = net['hier'] + '.' + net['name']
+                data[name] = np.array([cycle_cnt,signal], dtype='O')
+                data[name].setflags(write=False)
 
-        if signal in [""]:
-            raise ValueError("No data found for signal:{0}".format(name))
+            if signal in [""]:
+                raise ValueError("No data found for signal:{0}".format(name))
 
-        return np.array([cycle_cnt,signal], dtype='O')
-
-    def _compress(self, wave=np.ndarray, preserve=False):
-        """
-        This function compress the waveform wave and removes redundant values
-        :param wave: 2d numpy.ndarray
-        :return: 2d numpy.ndarray
-        """
-        temp_data = ""
-        temp_time = ""
-        compressed =[]
-
-        for d in wave.transpose():
-            #if d[0] == temp_time:
-                # same time value should replace with latest data value
-                #compressed.pop()
-                #compressed.append(d)
-            #else:
-            if temp_data != "":
-                if d[1] != temp_data:
-                    if preserve:
-                        compressed.append([d[0],temp_data]) #old value with same timestep to preserve stepping
-                    compressed.append(d)
-            else:
-                compressed.append(d)
-            temp_data = d[1]
-            temp_time = d[0]
-        # check if last value was taken otherwise append it
-        if wave.transpose()[-1][0] != compressed[-1][0]:
-            compressed.append(wave.transpose()[-1])
-        try:
-            return np.array(compressed, dtype='float').transpose()
-        except:
-            return np.array(compressed, dtype='O').transpose()
+            return data
 
