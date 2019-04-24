@@ -184,7 +184,7 @@ class Analysis():
         sim = sim_cls(cfg=self.cfg, target=target)
         sim.simulate()
 
-    def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False ,compress=True, preserve=False):
+    def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
         """
         Probe specified signal. Signal will be stored in a numpy array.
         """
@@ -194,7 +194,7 @@ class Analysis():
 
         probeobj = self._setup_probeobj(target=target)
 
-        return probeobj._probe(name=name, emu_time=emu_time, compress=compress, preserve=preserve)
+        return probeobj._probe(name=name, emu_time=emu_time)
 
     def probes(self, target: Union[FPGATarget, SimulationTarget]):
         """
@@ -209,6 +209,28 @@ class Analysis():
         probeobj = self._setup_probeobj(target=target)
 
         return probeobj._probes()
+
+    def preserve(self, wave=np.ndarray(shape=(2,2))):
+        """
+        This function preserve the stepping of the waveform wave
+        :param wave: 2d numpy.ndarray
+        :return: 2d numpy.ndarray
+        """
+        temp_data = None
+        wave_step =[]
+
+        for d in wave.transpose():
+            if temp_data:
+                if d[1] != temp_data:
+                    wave_step.append([d[0],temp_data]) #old value with same timestep to preserve stepping
+            wave_step.append(d)
+            temp_data = d[1]
+
+        try:
+            return np.array(wave_step, dtype='float').transpose()
+        except:
+            return np.array(wave_step, dtype='O').transpose()
+
 
     def view(self, target: Target):
         """

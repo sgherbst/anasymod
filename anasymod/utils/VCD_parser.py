@@ -25,7 +25,7 @@ class ParseVCD:
             while True:
                 line = file.readline()
                 if line == '':  # End-of-File
-                    if update_data: self.update_data(cycle_cnt=cycle_cnt, data=data)
+                    self.update_data(cycle_cnt=cycle_cnt, data=data)
                     break
                 line = line.strip()
 
