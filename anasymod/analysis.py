@@ -210,26 +210,27 @@ class Analysis():
 
         return probeobj._probes()
 
-    def preserve(self, wave=np.ndarray):
+    def preserve(self, wave=np.ndarray(shape=(2,2))):
         """
         This function preserve the stepping of the waveform wave
         :param wave: 2d numpy.ndarray
         :return: 2d numpy.ndarray
         """
         temp_data = None
-        wave_step = np.array([[], []])
+        wave_step =[]
 
-        for tv_pair in zip(wave[0], wave[1]):
+        for d in wave.transpose():
             if temp_data:
-                if tv_pair[1] != temp_data:
-                    wave_step = np.concatenate((wave_step, np.array([[tv_pair[0]], [temp_data]])), axis=1)
-            wave_step = np.concatenate((wave_step, np.array([tv_pair]).T), axis=1)
-            temp_data = tv_pair[1]
+                if d[1] != temp_data:
+                    wave_step.append([d[0],temp_data]) #old value with same timestep to preserve stepping
+            wave_step.append(d)
+            temp_data = d[1]
 
         try:
-            return np.array(wave_step, dtype='float')
+            return np.array(wave_step, dtype='float').transpose()
         except:
-            return np.array(wave_step, dtype='O')
+            return np.array(wave_step, dtype='O').transpose()
+
 
     def view(self, target: Target):
         """

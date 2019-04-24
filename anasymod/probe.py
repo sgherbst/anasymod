@@ -359,18 +359,9 @@ class ProbeVCD(Probe):
             data = run_cache[name]
             print("Data already in cache: " + name)
 
-
-
         if emu_time and name != emu_time_probe:
             print("Using emulation time")
-            #emutime_data = data.copy()
-            #start = time.time()
             emutime_data = self.parse_emu_time(data=data, emu_time=run_cache[emu_time_probe])
-
-            #emutime_data.setflags(write=True)
-            #emutime_data[0] = run_cache[emu_time_probe][1]
-            #end = time.time()
-            #print("Time consumed: ", end - start)
             return emutime_data
         else:
             print("Using cycle counts as time basis")
@@ -438,6 +429,7 @@ class ProbeVCD(Probe):
         signal = ''
         cycle_cnt = ''
         if name is not "":
+            # parse only single signal name
             signal_dict = file_handle.parse_vcd(update_data=update_data)
             """ :type : dict()"""
 
@@ -450,6 +442,7 @@ class ProbeVCD(Probe):
             return np.array([cycle_cnt, signal], dtype='O')
 
         else:
+            # parse all signals into run_cache
             signal_dict = file_handle.parse_vcd(sigs=name, update_data=update_data)
             """ :type : dict()"""
             data = {}
