@@ -5,12 +5,15 @@ from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, dt: float):
+    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, dt: float, server_addr: str):
         super().__init__(trim_blocks=False, lstrip_blocks=False)
         cfg = target.prj_cfg
 
         # read in probe signals from the probe config file
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
+
+        # set server address
+        self.server_addr = server_addr
 
         # set the paths to the BIT and LTX file
         self.bit_file = back2fwd(target.bitfile_path)
@@ -74,7 +77,11 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 # Connect to hardware
 open_hw
 catch {disconnect_hw_server}
+{% if subst.server_addr is none %}
 connect_hw_server
+{% else %}
+connect_hw_server -url {{subst.server_addr}}
+{% endif %}
 set_property PARAM.FREQUENCY {{subst.jtag_freq}} [get_hw_targets]
 open_hw_target
 

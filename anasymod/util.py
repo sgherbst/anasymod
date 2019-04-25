@@ -61,6 +61,12 @@ def file_len(fname):
         return i
 ########################
 
+def vivado_search_key(dir_):
+    year, version = os.path.basename(dir_).split('.')
+    year, version = int(year), int(version)
+
+    return -year, -version
+
 ########################
 # parallel_scripts
 # ref: https://stackoverflow.com/questions/26774781/python-multiple-subprocess-with-a-pool-queue-recover-output-as-soon-as-one-finis

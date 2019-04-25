@@ -2,7 +2,11 @@ import os.path
 import multiprocessing
 import shutil
 
-from anasymod.files import get_full_path, mkdir_p
+from sys import platform
+from glob import glob
+from anasymod.files import get_full_path, get_from_module, mkdir_p
+from anasymod.util import back2fwd, read_config, update_config, vivado_search_key
+from anasymod.filesets import Filesets
 from os import environ as env
 from anasymod.enums import BoardNames
 from anasymod.plugins import *
@@ -56,6 +60,10 @@ class EmuConfig:
             return PYNQ_Z1()
         elif self.cfg.board_name == BoardNames.VC707:
             return VC707()
+        elif board_name == BoardNames.ULTRA96:
+            return ULTRA96()
+        elif board_name == BoardNames.TE0720:
+            return TE0720()
         else:
             raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
 
@@ -71,6 +79,10 @@ class VivadoConfig():
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.1', 'Vivado', '2018.2',
                                            'bin')]
+        if platform == 'linux' or platform == 'linux2':
+            sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
+            self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
+
         self._vivado = vivado
 
         # set various project options

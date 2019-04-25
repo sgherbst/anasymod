@@ -110,6 +110,6 @@ class VivadoBuild():
         # run bitstream generation
         self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"bitstream.tcl")
 
-    def run_FPGA(self, start_time: float, stop_time: float, dt: float):
-        self.v.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, start_time=start_time, stop_time=stop_time, dt=dt))
+    def run_FPGA(self, start_time: float, stop_time: float, dt: float, server_addr: str):
+        self.v.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, start_time=start_time, stop_time=stop_time, dt=dt, server_addr=server_addr))
         self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"run_FPGA.tcl")

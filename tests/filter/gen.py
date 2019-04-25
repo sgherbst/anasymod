@@ -8,7 +8,21 @@ from msdsl.eqn.deriv import Deriv
 
 from anasymod.files import get_full_path
 
-def main(tau=1e-6):
+class Filter(MixedSignalModel):
+    def __init__(self, name='filter', res=1e3, cap=1e-9, dt=0.1e-6):
+        # call the super constructor
+        super().__init__(name, dt=dt)
+
+        # define IOs
+        self.add_analog_input('v_in')
+        self.add_analog_output('v_out')
+
+        # define dynamics
+        self.add_eqn_sys([
+            Deriv(self.v_out) == (self.v_in - self.v_out) / (res*cap)
+        ])
+
+def main():
     print('Running model generator...')
 
     # parse command line arguments
@@ -18,8 +32,7 @@ def main(tau=1e-6):
     args = parser.parse_args()
 
     # create the model
-    model = MixedSignalModel('filter', AnalogInput('v_in'), AnalogOutput('v_out'), dt=args.dt)
-    model.add_eqn_sys(eqns=[Deriv(model.v_out) == (model.v_in - model.v_out) / tau])
+    model = Filter(dt=args.dt)
 
     # determine the output filename
     filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')

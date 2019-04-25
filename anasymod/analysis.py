@@ -4,12 +4,14 @@ import json
 import numpy as np
 
 from argparse import ArgumentParser
+from sys import platform
 
-from anasymod.config import EmuConfig
+from anasymod.config import EmuConfig, SimVisionConfig, XceliumConfig
 from anasymod.sim.vivado import VivadoSimulator
 from anasymod.sim.icarus import IcarusSimulator
 from anasymod.sim.xcelium import XceliumSimulator
 from anasymod.viewer.gtkwave import GtkWaveViewer
+from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.build import VivadoBuild
 from anasymod.files import get_full_path, get_from_module
@@ -153,7 +155,7 @@ class Analysis():
             build = VivadoBuild(target=target)
 
         # run the emulation
-        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt)
+        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt, server_addr=self.args.server_addr)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
@@ -242,12 +244,29 @@ class Analysis():
         # pick viewer
         viewer_cls = {
             'gtkwave': GtkWaveViewer,
-            'simvision': SimVisionViewer
+            'simvision': SimVisionViewer,
+            'scansion': ScansionViewer
         }[self.args.viewer_name]
 
-        # set config file location
-        self.prj_cfg.gtkwave_config.gtkw_config = os.path.join(self.args.input, 'view.gtkw')
-        self.prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
+        # set config file location for GTKWave
+        # TODO: clean this up; it's a bit messy...
+        if isinstance(target, FPGATarget):
+            gtkw_search_order = ['view_fpga.gtkw', 'view.gtkw']
+        elif isinstance(target, SimulationTarget):
+            gtkw_search_order = ['view_sim.gtkw', 'view.gtkw']
+        else:
+            gtkw_search_order = ['view.gtkw']
+
+        for basename in gtkw_search_order:
+            candidate_path = os.path.join(self.args.input, basename)
+            if os.path.isfile(candidate_path):
+                self.cfg.gtkwave_config.gtkw_config = candidate_path
+                break
+        else:
+            self.cfg.gtkwave_config.gtkw_config = None
+
+        # set config file location for SimVision
+        self.cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
         viewer = viewer_cls(target=target)
@@ -261,12 +280,30 @@ class Analysis():
         Read command line arguments. This supports convenient usage from command shell e.g.:
         python analysis.py -i filter --models --sim --view
         """
+
         parser = ArgumentParser()
 
+        # set default values for simulator and viewer 
+        default_simulator_name = 'icarus'
+        default_viewer_name = 'gtkwave'
+
+        # if the Cadence tools are available, use those as defaults instead
+        try:
+            XceliumConfig(None).xrun
+            default_simulator_name = 'xrun'
+        except:
+            pass
+
+        try:
+            SimVisionConfig(None).simvision 
+            default_viewer_name = 'simvision'
+        except:
+            pass
+
         parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
-        parser.add_argument('--simulator_name', type=str, default='icarus' if os.name == 'nt' else 'xrun')
+        parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
-        parser.add_argument('--viewer_name', type=str, default='gtkwave' if os.name == 'nt' else 'simvision')
+        parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
         parser.add_argument('--sim_target', type=str, default='sim')
         parser.add_argument('--fpga_target', type=str, default='fpga')
         parser.add_argument('--sim', action='store_true')
@@ -274,6 +311,7 @@ class Analysis():
         parser.add_argument('--build', action='store_true')
         parser.add_argument('--emulate', action='store_true')
         parser.add_argument('--start_time', type=float, default=0)
+        parser.add_argument('--server_addr', type=str, default=None)
         parser.add_argument('--stop_time', type=float, default=None)
         parser.add_argument('--preprocess_only', action='store_true')
 
@@ -416,5 +454,8 @@ class Analysis():
         if not self._setup_finished:
             raise ValueError("The project setup changed after data aquisition; Data might be out of sync!")
 
+def main():
+    Analysis(op_mode='commandline')
+
 if __name__ == '__main__':
-    analysis = Analysis(op_mode='commandline')
+    main()
