@@ -60,9 +60,9 @@ class EmuConfig:
             return PYNQ_Z1()
         elif self.cfg.board_name == BoardNames.VC707:
             return VC707()
-        elif board_name == BoardNames.ULTRA96:
+        elif self.cfg.board_name == BoardNames.ULTRA96:
             return ULTRA96()
-        elif board_name == BoardNames.TE0720:
+        elif self.cfg.board_name == BoardNames.TE0720:
             return TE0720()
         else:
             raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
