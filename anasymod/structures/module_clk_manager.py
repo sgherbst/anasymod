@@ -69,12 +69,12 @@ module clk_gen(
 
 `ifdef SIMULATION_MODE_MSDSL
 	// emulator clock sequence
-	logic emu_clk_state = 1'b0;
+	logic emu_clk_state = 1'b1;
 	initial begin
 		// since the reset signal is initially "1", this delay+posedge will
 		// cause the MSDSL blocks to be reset
 	    #((0.5*`DT_MSDSL)*1s);
-	    emu_clk_state = 1'b1;
+	    emu_clk_state = 1'b0;
 
 	    // clock runs forever
 	    forever begin

@@ -112,4 +112,4 @@ class ConvertWaveform():
 
                     # iterate over all signals and log their change at this timestamp
                     for signal_full_name, scaled_data in probe_data.items():
-                        writer.change(reg[signal_full_name], 1e9 * timestamp, scaled_data[k])
+                        writer.change(reg[signal_full_name], round(1e9 * timestamp), scaled_data[k])

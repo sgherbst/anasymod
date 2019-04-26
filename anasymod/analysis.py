@@ -212,7 +212,7 @@ class Analysis():
 
         return probeobj._probes()
 
-    def preserve(self, wave=np.ndarray(shape=(2,2))):
+    def preserve(self, wave):
         """
         This function preserve the stepping of the waveform wave
         :param wave: 2d numpy.ndarray
