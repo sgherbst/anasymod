@@ -182,6 +182,7 @@ class Analysis():
         }[self.args.simulator_name]
 
         # run simulation
+
         sim = sim_cls(target=target)
         sim.simulate()
 
@@ -260,13 +261,13 @@ class Analysis():
         for basename in gtkw_search_order:
             candidate_path = os.path.join(self.args.input, basename)
             if os.path.isfile(candidate_path):
-                self.cfg.gtkwave_config.gtkw_config = candidate_path
+                self.prj_cfg.gtkwave_config.gtkw_config = candidate_path
                 break
         else:
-            self.cfg.gtkwave_config.gtkw_config = None
+            self.prj_cfg.gtkwave_config.gtkw_config = None
 
         # set config file location for SimVision
-        self.cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
+        self.prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
         viewer = viewer_cls(target=target)
@@ -283,20 +284,14 @@ class Analysis():
 
         parser = ArgumentParser()
 
-        # set default values for simulator and viewer 
-        default_simulator_name = 'icarus'
-        default_viewer_name = 'gtkwave'
-
         # if the Cadence tools are available, use those as defaults instead
         try:
-            XceliumConfig(None).xrun
-            default_simulator_name = 'xrun'
+            default_simulator_name = 'xrun' if XceliumConfig(None).xrun is not None else 'icarus'
         except:
             pass
 
         try:
-            SimVisionConfig(None).simvision 
-            default_viewer_name = 'simvision'
+            default_viewer_name = 'simvision' if SimVisionConfig(None).simvision is not None else 'gtkwave'
         except:
             pass
 

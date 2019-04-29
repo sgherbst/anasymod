@@ -18,7 +18,7 @@ class BoardNames:
     """
     PYNQ_Z1 = 'PYNQ_Z1'
     VC707 = 'VC707'
-	ULTRA96 = 'ULTRA96'
+    ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
 
 class PortDir:

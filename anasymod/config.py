@@ -5,7 +5,7 @@ import shutil
 from sys import platform
 from glob import glob
 from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.util import back2fwd, read_config, update_config, vivado_search_key
+from anasymod.util import back2fwd, vivado_search_key
 from anasymod.filesets import Filesets
 from os import environ as env
 from anasymod.enums import BoardNames

@@ -9,8 +9,8 @@ from anasymod.targets import SimulationTarget
 from anasymod.config import EmuConfig
 
 class XceliumSimulator(Simulator):
-    def __init__(self, cfg: EmuConfig, target: SimulationTarget):
-        super().__init__(cfg=cfg, target=target)
+    #def __init__(self, cfg: EmuConfig, target: SimulationTarget):
+    #    super().__init__(cfg=cfg, target=target)
 
     def simulate(self, licqueue=True, smartorder=True):
         # build up the simulation command
