@@ -222,7 +222,7 @@ class Analysis():
         wave_step =[]
 
         for d in wave.transpose():
-            if temp_data:
+            if temp_data is not None:
                 if d[1] != temp_data:
                     wave_step.append([d[0],temp_data]) #old value with same timestep to preserve stepping
             wave_step.append(d)
