@@ -229,8 +229,8 @@ def find_tool(name, hints=None, sys_path_hint=True):
             if tool_path is not None:
                 break
 
-        if tool_path is not None:
-            return get_full_path(tool_path)
+    if tool_path is not None:
+        return get_full_path(tool_path)
     else:
         raise KeyError(f'Tool:{name} could not be found')
 

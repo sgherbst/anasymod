@@ -286,14 +286,19 @@ class Analysis():
 
         # if the Cadence tools are available, use those as defaults instead
         try:
-            default_simulator_name = 'xrun' if XceliumConfig(None).xrun is not None else 'icarus'
+            XceliumConfig(None).xrun
+            default_simulator_name = 'xrun'
         except:
+            default_simulator_name = 'icarus'
             pass
 
         try:
-            default_viewer_name = 'simvision' if SimVisionConfig(None).simvision is not None else 'gtkwave'
+            SimVisionConfig(None).simvision
+            default_viewer_name = 'simvision'
         except:
+            default_viewer_name = 'gtkwave'
             pass
+
 
         parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
