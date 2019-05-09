@@ -16,7 +16,7 @@ class XceliumSimulator(Simulator):
         # build up the simulation command
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
-        cmd += ['-top', self.target.cfg['top_module']]
+        cmd += ['-top', self.target.cfg.top_module]
         cmd += ['-input', self.cfg.xcelium_config.tcl_input_path]
 
         # order independent compilation for VHDL
