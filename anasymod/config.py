@@ -128,6 +128,7 @@ class IcarusConfig():
 
         # set path to iverilog and vvp binaries
         self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'iverilog-*', 'bin'),
                       lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'iverilog-10.1.1.0', 'bin')]
         self._iverilog = iverilog
         self._vvp = vvp
@@ -220,9 +221,14 @@ def find_tool(name, hints=None, sys_path_hint=True):
         for hint in hints:
             try:
                 if callable(hint):
-                    tool_path = shutil.which(name, path=hint())
+                    hint_path = hint()
                 else:
-                    tool_path = shutil.which(name, path=hint)
+                    hint_path = hint
+                # using wildcards in path to always use lates version
+                if "*" in hint_path:
+                    for d in glob(hint_path):
+                        hint_path = d
+                tool_path = shutil.which(name, path=hint_path)
             except:
                 continue
 
