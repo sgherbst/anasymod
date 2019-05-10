@@ -11,7 +11,7 @@ class ParseVCD:
         usigs = {}
         data = {}
         hierarchy = []
-        cycle_cnt = ""
+        cycle_cnt = 0
         
         for i in sigs:
             usigs[i] = 1
@@ -104,7 +104,7 @@ class ParseVCD:
         return data
     
     def update_data(self, cycle_cnt, data):
-        if cycle_cnt != "":
+        if cycle_cnt != 0:
             cycle_cnt_old = cycle_cnt
             for d in data.keys():
                 length = len(data[d][self.cycle_value]) - 1
