@@ -279,20 +279,20 @@ class ProbeVCD(Probe):
         # emu_time vector index
         t = 0
         for i in range(int(len(emutime_data[0]))):
-            while emutime_data[0][i] > emu_time[0][t+i]:
+            while emutime_data[0][i] > emu_time[0][t]:
                 t += 1
                 # break while loop, if it reaches the end of the array of emu_time
-                if t + i >= len(emu_time[0]):
+                if t >= len(emu_time[0]):
                     break
             # break for loop because whole emu_time vector was parsed
-            if t + i >= len(emu_time[0]):
+            if t >= len(emu_time[0]):
                 break
             # if there is a data point with no coresponding emu_time cyclecount, take the last common cycle count value
-            if emutime_data[0][i] < emu_time[0][t+i]:
+            if emutime_data[0][i] < emu_time[0][t]:
                 emutime_data[0][i] = emu_time[1][t]
             # if cycle count of data and emu_time vector is the same, take the time value
             else:
-                emutime_data[0][i] = emu_time[1][t+i]
+                emutime_data[0][i] = emu_time[1][t]
 
         emutime_data.setflags(write=False)
         return emutime_data
