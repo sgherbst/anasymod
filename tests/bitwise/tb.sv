@@ -26,7 +26,7 @@ module tb;
             for (j = 0; j <= 1; j = j+1) begin
                 a = i;
                 b = j;
-                #0;
+                #0.001;
                 $display("******************");
                 $display("a:       ", a);
                 $display("b:       ", b);
