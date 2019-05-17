@@ -78,6 +78,8 @@ class VivadoConfig():
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.1', 'Vivado', '2018.2',
+                                           'bin'),
+                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.1', 'Vivado', '2018.2',
                                            'bin')]
         if platform == 'linux' or platform == 'linux2':
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
