@@ -18,7 +18,7 @@ class BoardNames:
     """
     PYNQ_Z1 = 'PYNQ_Z1'
     VC707 = 'VC707'
-	ULTRA96 = 'ULTRA96'
+    ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
 
 class PortDir:
@@ -27,3 +27,10 @@ class PortDir:
     """
     IN = "IN"
     OUT = "OUT"
+
+class CtrlOps:
+    """
+    Container including enums for all supported control operations for controlling the FPGA.
+    """
+    WRITE_PARAMETER = 0
+    READ_PARAMETER = 1
