@@ -27,3 +27,10 @@ class PortDir:
     """
     IN = "IN"
     OUT = "OUT"
+
+class CtrlOps:
+    """
+    Container including enums for all supported control operations for controlling the FPGA.
+    """
+    WRITE_PARAMETER = 0
+    READ_PARAMETER = 1
