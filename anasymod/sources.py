@@ -101,3 +101,7 @@ class XCIFile(Sources):
 class XDCFile(Sources):
     def __init__(self, files: Union[list, str], fileset=r"default", config_path=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
+
+class MEMFile(Sources):
+    def __init__(self, files: str, fileset=r"default", config_path=None):
+        super().__init__(files=[files], fileset=fileset, config_path=config_path)

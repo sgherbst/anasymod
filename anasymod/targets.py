@@ -46,6 +46,8 @@ class Target():
         """:type : List[XCIFile]"""
         self.content['xdc_files'] = []
         """:type : List[XDCFile]"""
+        self.content['mem_files'] = []
+        """:type : List[MEMFile]"""
 
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name)

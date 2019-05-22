@@ -27,6 +27,9 @@ class ModuleVIOManager(JinjaTempl):
         #####################################################
         # Instantiate vio wizard
         #####################################################
+        # set number of clk cycles for initial reset
+        self.rst_clkcycles = self.str_cfg.cfg.rst_clkcycles
+
         self.vio_wiz_ifc = SVAPI()
 
         for k, port in enumerate(self.str_cfg.vio_i_ports):
@@ -56,7 +59,7 @@ module vio_gen (
 	// reset sequence
 	logic emu_rst_state = 1'b1;
 	initial begin
-		#((`DT_MSDSL)*1s);
+		#((`DT_MSDSL)*{{subst.rst_clkcycles}}*1s);
 		emu_rst_state = 1'b0;
 	end
 

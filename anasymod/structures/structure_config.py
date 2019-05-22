@@ -13,6 +13,7 @@ class StructureConfig():
     """
     def __init__(self, prj_cfg: EmuConfig):
         self.cfg = Config(prj_cfg=prj_cfg)
+        self.cfg.update_config()
 
         #########################################################
         # VIO interfaces
@@ -97,6 +98,8 @@ class Config(BaseConfig):
 
         self.vio_o_num = 0
         self.vio_o_widths = []
+
+        self.rst_clkcycles = 1
 
         #########################################################
         # CLK manager settings

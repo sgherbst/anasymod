@@ -1,5 +1,5 @@
 import os
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile
 from anasymod.defines import Define
 
 class Filesets():
@@ -23,6 +23,9 @@ class Filesets():
 
         self._defines = []
         """:type : List[Define]"""
+
+        self._mem_files = []
+        """:type : List[MEMFile]"""
 
         # init fileset_dict
         self.fileset_dict = {}
@@ -102,6 +105,10 @@ class Filesets():
                         line.config_path = cfg_path
                         line.expand_paths()
                         self._xdc_files.append(line)
+                    elif isinstance(line, MEMFile):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._mem_files.append(line)
                     elif isinstance(line, SubConfig):
                         line.config_path = cfg_path
                         line.expand_paths()
@@ -137,6 +144,9 @@ class Filesets():
         # Read in define objects to fileset dict
         self._add_to_fileset_dict(name='defines', container=self._defines)
 
+        # Read in mem_files objects to fileset dict
+        self._add_to_fileset_dict(name='mem_files', container=self._mem_files)
+
     def _add_to_fileset_dict(self, name, container):
         """
         Adds a specified attribute to the fileset_dict, e.g. add the verilog sources or defines.
@@ -169,6 +179,9 @@ class Filesets():
 
     def add_xdc_file(self, xdc_file: XDCFile):
         self._xdc_files.append(xdc_file)
+
+    def add_mem_file(self, mem_file: MEMFile):
+        self._mem_files.append(mem_file)
 
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")
