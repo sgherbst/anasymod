@@ -48,10 +48,16 @@ class VivadoBuild():
         # add master constraints file to project
         self.v.add_files([cpath], fileset='constrs_1')
 
+        #ToDo: Test if these xdc files should rather be just appended to the project as constr files
+
         # append user constraints
         for xdc_file in self.target.content['xdc_files']:
             for file in xdc_file.files:
                 self.v.println(f'read_xdc "{back2fwd(file)}"')
+
+        #ToDo: This needs some refactoring, basically it is on the one hand target dependent-> template generation
+        #ToDo: should be run while setting up the target, on the other hand it is dependent which kind of sim control
+        #ToDo: interface shall be used
 
         # generate clock wizard IP block
         self.v.use_templ(TemplClkWiz(target=self.target))

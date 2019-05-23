@@ -8,7 +8,7 @@ from anasymod.files import get_full_path, get_from_module, mkdir_p
 from anasymod.util import back2fwd, vivado_search_key
 from anasymod.filesets import Filesets
 from os import environ as env
-from anasymod.enums import BoardNames
+from anasymod.enums import BoardNames, FPGASimCtrl
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
@@ -195,6 +195,7 @@ class Config(BaseConfig):
         self.emu_clk_freq = 25e6
         self.preprocess_only = False
         self.jtag_freq = 15e6
+        self.fpga_sim_crtl = FPGASimCtrl.VIVADO_VIO
         self.plugins = []
         self.plugins.append('msdsl')
         #self.plugins.append('netexplorer')
