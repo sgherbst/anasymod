@@ -34,3 +34,10 @@ class CtrlOps:
     """
     WRITE_PARAMETER = 0
     READ_PARAMETER = 1
+
+class FPGASimCtrl:
+    """
+    Container including enums for all supported FPGA control interfaces.
+    """
+    UART_ZYNQ = 'uart_zynq'
+    VIVADO_VIO = 'vivado_vio'
