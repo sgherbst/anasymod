@@ -2,24 +2,19 @@ import serial
 import io
 import serial.tools.list_ports as ports
 from anasymod.enums import CtrlOps
+from anasymod.sim_ctrl.control import Control
+from anasymod.config import EmuConfig
 
-class UARTControl():
-    def __init__(self, comport=None, baud_rate=None, timeout=None, parity=None, stopbits=None, bytesize=None):
-        self.comport = None
+class UARTControl(Control):
+    def __init__(self, prj_cfg):
+        super().__init__(prj_cfg=prj_cfg)
 
         # Initialize internal variables
         vid_list = [1027]
         pid_list = [24592]
         port_list = []
 
-        # Initialize parameters
-        self.baud_rate = 115200 if baud_rate is None else baud_rate
-        self.timeout = None if timeout is None else timeout
-        self.parity = serial.PARITY_NONE if parity is None else parity
-        self.stopbits = 1 if stopbits is None else stopbits
-        self.bytesize = serial.EIGHTBITS if bytesize is None else bytesize
-
-        if comport is None: # run auto search for finding the correct COM port
+        if self.cfg.comport is None: # run auto search for finding the correct COM port
             # find all available COM ports
             comports = [port for port in ports.comports(include_links=True)]
             # check if any COM port is compliant to known vids and pids and if so store the device_id
@@ -32,19 +27,20 @@ class UARTControl():
                     self._init_handler(comport=port)
                 except:
                     pass
-            if self.comport is None:
+            if self.cfg.comport is None:
                 raise Exception(f"ERROR: No COM port could be opened to enable connection to FPGA, found ports were: {port_list}.")
 
         else:
             try:
-                self._init_handler(comport=comport)
+                self._init_handler(comport=self.cfg.comport)
             except:
-                raise Exception(f"ERROR: Provided COM port: {comport} could not ne opened for communication.")
+                raise Exception(f"ERROR: Provided COM port: {self.cfg.comport} could not ne opened for communication.")
 
     def _init_handler(self, comport):
-        self.ctrl_handler = serial.Serial(comport, int(self.baud_rate), timeout=self.timeout, parity=self.parity, stopbits=self.stopbits,
-                                         bytesize=self.bytesize)
-        self.comport = comport
+        self.ctrl_handler = serial.Serial(comport, int(self.cfg.baud_rate), timeout=self.cfg.timeout,
+                                          parity=self.cfg.parity, stopbits=self.cfg.stopbits,
+                                          bytesize=self.cfg.bytesize)
+        self.cfg.comport = comport
 
     def _write(self, operation, addr, data=None):
         # check is space is in any of the give input strings
@@ -73,9 +69,12 @@ class UARTControl():
         self._write(operation=CtrlOps.READ_PARAMETER, addr=addr)
         return self._read()
 
-ctrl = UARTControl()
-ctrl.write_parameter(addr=0, data=3)
-ctrl.write_parameter(addr=1, data=4)
-print(ctrl.read_parameter(addr=0))
-print(ctrl.read_parameter(addr=1))
-print('hier weiter')
+def main():
+    ctrl = UARTControl(prj_cfg=EmuConfig(root='test', cfg_file=''))
+    ctrl.write_parameter(addr=0, data=3)
+    ctrl.write_parameter(addr=1, data=4)
+    print(ctrl.read_parameter(addr=0))
+    print(ctrl.read_parameter(addr=1))
+
+if __name__ == "__main__":
+    main()

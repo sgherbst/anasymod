@@ -20,9 +20,10 @@ from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.files import mkdir_p
+from anasymod.enums import FPGASimCtrl
+from anasymod.sim_ctrl.uart_control import UARTControl
+
 from typing import Union
-
-
 from importlib import import_module
 
 class Analysis():
@@ -59,14 +60,17 @@ class Analysis():
             print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'prj_config.json')}")
 
         # Initialize project config
-        self.prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
+        self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
+
+        # Initialize FPGA simulation control interface
+        self._setup_ctrl_ifc()
 
         # Initialize Plugins
         self._plugins = []
-        for plugin in self.prj_cfg.cfg.plugins:
+        for plugin in self._prj_cfg.cfg.plugins:
             try:
                 i = import_module(f"plugin.{plugin}")
-                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self.prj_cfg.build_root)
+                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self._prj_cfg.build_root)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
             except:
@@ -83,7 +87,7 @@ class Analysis():
             # Set options from to command line arguments
             ###############################################################
 
-            self.prj_cfg.cfg.preprocess_only = self.args.preprocess_only
+            self._prj_cfg.cfg.preprocess_only = self.args.preprocess_only
 
             ###############################################################
             # Execute actions according to command line arguments
@@ -261,13 +265,13 @@ class Analysis():
         for basename in gtkw_search_order:
             candidate_path = os.path.join(self.args.input, basename)
             if os.path.isfile(candidate_path):
-                self.prj_cfg.gtkwave_config.gtkw_config = candidate_path
+                self._prj_cfg.gtkwave_config.gtkw_config = candidate_path
                 break
         else:
-            self.prj_cfg.gtkwave_config.gtkw_config = None
+            self._prj_cfg.gtkwave_config.gtkw_config = None
 
         # set config file location for SimVision
-        self.prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
+        self._prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
 
         # run viewer
         viewer = viewer_cls(target=target)
@@ -360,7 +364,7 @@ class Analysis():
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
-        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self.prj_cfg.cfg.dec_bits))
+        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
         for fileset in ['sim', 'fpga']:
             try:
                 top_module = self.cfg_file['TARGET'][fileset]['top_module']
@@ -371,7 +375,6 @@ class Analysis():
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
-
 
     def _setup_targets(self):
         """
@@ -389,7 +392,7 @@ class Analysis():
         # Create and setup simulation target
         #######################################################
 
-        self.sim = SimulationTarget(prj_cfg=self.prj_cfg, name=r"sim")
+        self.sim = SimulationTarget(prj_cfg=self._prj_cfg, name=r"sim")
         self.sim.assign_fileset(fileset=filesets['default'])
         if 'sim' in filesets:
             self.sim.assign_fileset(fileset=filesets['sim'])
@@ -406,7 +409,7 @@ class Analysis():
         #######################################################
         # Create and setup FPGA target
         #######################################################
-        self.fpga = FPGATarget(prj_cfg=self.prj_cfg, name=r"fpga")
+        self.fpga = FPGATarget(prj_cfg=self._prj_cfg, name=r"fpga")
         self.fpga.assign_fileset(fileset=filesets['default'])
         if 'fpga' in filesets:
             self.fpga.assign_fileset(fileset=filesets['fpga'])
@@ -416,6 +419,20 @@ class Analysis():
         self.fpga.update_structure_config()
         self.fpga.gen_structure()
         self.fpga.set_tstop()
+
+    def _setup_ctrl_ifc(self):
+        """
+        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
+        mode, which does not possess a direct control interface via anasymod.
+        """
+
+        if self._prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
+        elif self._prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+            print("Direct anasymod FPGA simulation control via UART enabled.")
+            self.ctrl = UARTControl(prj_cfg=self._prj_cfg)
+        else:
+            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
         """

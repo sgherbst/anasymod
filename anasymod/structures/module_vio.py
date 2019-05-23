@@ -25,6 +25,14 @@ class ModuleVIOManager(JinjaTempl):
             self.module_ifc.gen_port(port)
 
         #####################################################
+        # Instantiate custom vio ctrl script for pc sim
+        #####################################################
+        self.vio_sim_ifc = SVAPI()
+        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports:
+            port.connection = port.name
+            self.vio_sim_ifc.println(f".{port.name}({port.connection})")
+
+        #####################################################
         # Instantiate vio wizard
         #####################################################
         # set number of clk cycles for initial reset
@@ -56,19 +64,28 @@ module vio_gen (
 );
 
 `ifdef SIMULATION_MODE_MSDSL
-	// reset sequence
-	logic emu_rst_state = 1'b1;
-	initial begin
-		#((`DT_MSDSL)*{{subst.rst_clkcycles}}*1s);
-		emu_rst_state = 1'b0;
-	end
+    // reset sequence
+    logic emu_rst_state = 1'b1;
+    initial begin
+        #((`DT_MSDSL)*{{subst.rst_clkcycles}}*1s);
+        emu_rst_state = 1'b0;
+    end
 
-	// output assignment
-	assign emu_rst = emu_rst_state;
-	`ifndef DEC_THR_VAL_MSDSL
-	    `define DEC_THR_VAL_MSDSL 0
-	`endif // `ifdef DEC_THR_VAL_MSDSL
-	assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
+    // output assignment
+    assign emu_rst = emu_rst_state;
+    `ifndef DEC_THR_VAL_MSDSL
+        `define DEC_THR_VAL_MSDSL 0
+    `endif // `ifdef DEC_THR_VAL_MSDSL
+    assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
+
+    {% if subst.vio_sim_ifc.text is not none %} 
+    //module for custom vio handling
+    vio_ctrl vio_ctrl_i (
+    {% for line in subst.vio_sim_ifc.text.splitlines() %}
+        {{line}}{{ "," if not loop.last }}
+    {% endfor %}
+    )
+    {% endif %}
 `else
 	// VIO instantiation
 	vio_0 vio_0_i (

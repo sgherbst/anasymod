@@ -11,6 +11,7 @@ class ConfigSections:
     PLUGIN = "PLUGIN"
     PROJECT = "PROJECT"
     STRUCTURE = "STRUCTURE"
+    FPGASIM = "FPGASIM"
 
 class BoardNames:
     """

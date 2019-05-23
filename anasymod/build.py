@@ -12,6 +12,7 @@ from anasymod.blocks.vio_wiz import TemplVIO
 from anasymod.blocks.probe_extract import TemplPROBE_EXTRACT
 from anasymod.blocks.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.targets import FPGATarget
+from anasymod.enums import FPGASimCtrl
 
 class VivadoBuild():
     def __init__(self, target: FPGATarget):
@@ -62,8 +63,14 @@ class VivadoBuild():
         # generate clock wizard IP block
         self.v.use_templ(TemplClkWiz(target=self.target))
 
-        # generate vio IP block
-        self.v.use_templ(TemplVIO(target=self.target))
+        #ToDo: tidy up this sequential build script and in doing so, create a wrapper class that takes care of this conditional structure
+
+        if self.target.prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+            # generate vio IP block
+            self.v.use_templ(TemplVIO(target=self.target))
+        elif self.target.prj_cfg.board.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
+            # Add generation and instantiation of UART ctrl shell here, this should be structured differently later and be part of a step to add the control infrastructure to the design
+            pass
 
         # read user-provided IPs
         constrs.println('# Custom user-provided IP cores')

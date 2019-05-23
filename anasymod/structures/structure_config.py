@@ -2,6 +2,9 @@ from anasymod.enums import ConfigSections
 from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.structures.port_base import PortIN, PortOUT, Port
+from anasymod.structures.signal_base import Signal
+
+#ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
 class StructureConfig():
     """
@@ -22,6 +25,7 @@ class StructureConfig():
         # vio inputs
         self.vio_i_names = [f"vio_i_{i}" for i in range(self.cfg.vio_i_num)]
         self.vio_i_ports = [Port(name=self.vio_i_names[i], width=self.cfg.vio_i_widths[i]) for i in range(self.cfg.vio_i_num)]
+        self.vio_i_sigs = [Signal(abs_path=self.cfg.vio_i_abspaths[i]) for i in range(self.cfg.vio_i_num)]
 
         # vio reset
         self.vio_r_num = 1
@@ -38,6 +42,7 @@ class StructureConfig():
         # names for reset and decimation_threshold are fixed
         self.vio_o_names = ([f"vio_o_{i}" for i in range(self.cfg.vio_o_num)])
         self.vio_o_ports = [Port(name=self.vio_o_names[i], width=self.cfg.vio_o_widths[i]) for i in range(self.cfg.vio_o_num)]
+        self.vio_o_sigs = [Signal(abs_path=self.cfg.vio_o_abspaths[i]) for i in range(self.cfg.vio_o_num)]
 
         #########################################################
         # CLK manager interfaces
@@ -81,6 +86,8 @@ class StructureConfig():
         self.clk_g_names = [f"clk_o_{i}_ce" for i in range(self.clk_g_num)]
         self.clk_g_ports = [Port(name=self.clk_g_names[i], width=self.clk_g_widths[i]) for i in range(self.clk_g_num)]
 
+
+
 class Config(BaseConfig):
     """
     Container to store all config attributes.
@@ -95,9 +102,11 @@ class Config(BaseConfig):
         #########################################################
         self.vio_i_num = 0
         self.vio_i_widths = []
+        self.vio_i_abspaths = []
 
         self.vio_o_num = 0
         self.vio_o_widths = []
+        self.vio_o_abspaths = []
 
         self.rst_clkcycles = 1
 

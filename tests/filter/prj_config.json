@@ -8,5 +8,13 @@
     "sim": {
       "tstop": 10e-6
     }
+  },
+  "STRUCTURE": {
+    "vio_i_num": 2,
+    "vio_i_widths": [2, 5],
+    "vio_i_abspaths": ["top.test.mine.ctrl1", "top.test.ctrl2"],
+    "vio_o_num": 1,
+    "vio_o_widths": [1],
+    "vio_o_abspaths": ["top.test.mine.dein.prb1"]
   }
 }

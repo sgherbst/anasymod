@@ -72,6 +72,15 @@ class ModuleTop(JinjaTempl):
             port.connection = port.name
             self.tb_ifc.println(f".{port.name}({port.connection})")
 
+        #####################################################
+        # Instantiate abs paths into design for ctrl sigs
+        #####################################################
+        self.ctl_sigs = SVAPI()
+        for port, signal in zip(self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports, self.str_cfg.vio_i_sigs + self.str_cfg.vio_o_sigs):
+            self.ctl_sigs.gen_signal(port=port)
+            self.ctl_sigs.assign_to_signal(port=port, signal=signal)
+
+
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
@@ -129,6 +138,9 @@ tb tb_i(
     {{line}}{{ "," if not loop.last }}
 {% endfor %}
 );
+
+// absolute paths to ctrl signals in the design
+{{subst.ctl_sigs.text}}
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL
