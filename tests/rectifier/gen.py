@@ -26,13 +26,11 @@ def main(tau=1e-6):
     gnd = c.make_ground()
 
     c.voltage('net_v_in', gnd, m.v_in)
-    c.diode('net_v_in', 'net_v_x')
+    c.diode('net_v_in', 'net_v_x', vf=0)
     c.resistor('net_v_x', 'net_v_out', 1e3)
-    c.capacitor('net_v_out', gnd, 1e-9, voltage_range=1.5)
+    v_out = c.capacitor('net_v_out', gnd, 1e-9, voltage_range=1.5)
 
-    c.add_eqns(
-        m.v_out == AnalogSignal('net_v_out')
-    )
+    m.set_this_cycle(m.v_out, v_out)
 
     # determine the output filename
     filename = os.path.join(get_full_path(args.output), f'{m.module_name}.sv')
