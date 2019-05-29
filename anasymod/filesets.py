@@ -67,7 +67,7 @@ class Filesets():
 
     def _parseconfig(self, cfg: list, cfg_path: str):
         """
-        Read all line from config file, according to string infront of '=' sign, the proceeding arguments will either
+        Read all lines from config file, according to string infront of '=' sign, the proceeding arguments will either
         be added to the according fileset or will be added to the list of additional config paths, which will be
         investigated in the next iteration.
         :param cfg:

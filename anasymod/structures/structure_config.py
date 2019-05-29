@@ -3,6 +3,7 @@ from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.structures.port_base import PortIN, PortOUT, Port
 from anasymod.structures.signal_base import Signal
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput
 
 #ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
@@ -22,27 +23,44 @@ class StructureConfig():
         # VIO interfaces
         #########################################################
 
+        # Add DigitalCtrlInput for reset
+        self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
+        self.reset_ctrl.i_addr = prj_cfg.ctrl._assign_i_addr()
+
+        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
+        self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
+        self.dec_thr_ctrl.i_addr = prj_cfg.ctrl._assign_i_addr()
+
+        # Add additional CtrlIOs
+        self.digital_ctrl_inputs = prj_cfg.ctrl.ctrl_ios.digital_inputs
+        self.analog_ctrl_inputs = prj_cfg.ctrl.ctrl_ios.analog_inputs
+        self.digital_ctrl_outputs = prj_cfg.ctrl.ctrl_ios.digital_outputs
+        self.analog_ctrl_outputs = prj_cfg.ctrl.ctrl_ios.analog_outputs
+
+
+
+
         # vio inputs
-        self.vio_i_names = [f"vio_i_{i}" for i in range(self.cfg.vio_i_num)]
-        self.vio_i_ports = [Port(name=self.vio_i_names[i], width=self.cfg.vio_i_widths[i]) for i in range(self.cfg.vio_i_num)]
-        self.vio_i_sigs = [Signal(abs_path=self.cfg.vio_i_abspaths[i]) for i in range(self.cfg.vio_i_num)]
+        #self.vio_i_names = [f"vio_i_{i}" for i in range(self.cfg.vio_i_num)]
+        #self.vio_i_ports = [Port(name=self.vio_i_names[i], width=self.cfg.vio_i_widths[i]) for i in range(self.cfg.vio_i_num)]
+        #self.vio_i_sigs = [Signal(abs_path=self.cfg.vio_i_abspaths[i]) for i in range(self.cfg.vio_i_num)]
 
         # vio reset
-        self.vio_r_num = 1
-        self.vio_r_widths = [1]
-        self.vio_r_names = ['emu_rst']
-        self.vio_r_ports = [Port(name=self.vio_r_names[i], width=self.vio_r_widths[i]) for i in range(self.vio_r_num)]
+        #self.vio_r_num = 1
+        #self.vio_r_widths = [1]
+        #self.vio_r_names = ['emu_rst']
+        #self.vio_r_ports = [Port(name=self.vio_r_names[i], width=self.vio_r_widths[i]) for i in range(self.vio_r_num)]
 
         # vio sim control
-        self.vio_s_num = 1
-        self.vio_s_widths = [int(prj_cfg.cfg.dec_bits)]
-        self.vio_s_names = ['emu_dec_thr']
-        self.vio_s_ports = [Port(name=self.vio_s_names[i], width=self.vio_s_widths[i]) for i in range(self.vio_s_num)]
+        #self.vio_s_num = 1
+        #self.vio_s_widths = [int(prj_cfg.cfg.dec_bits)]
+        #self.vio_s_names = ['emu_dec_thr']
+        #self.vio_s_ports = [Port(name=self.vio_s_names[i], width=self.vio_s_widths[i]) for i in range(self.vio_s_num)]
 
         # names for reset and decimation_threshold are fixed
-        self.vio_o_names = ([f"vio_o_{i}" for i in range(self.cfg.vio_o_num)])
-        self.vio_o_ports = [Port(name=self.vio_o_names[i], width=self.cfg.vio_o_widths[i]) for i in range(self.cfg.vio_o_num)]
-        self.vio_o_sigs = [Signal(abs_path=self.cfg.vio_o_abspaths[i]) for i in range(self.cfg.vio_o_num)]
+        #self.vio_o_names = ([f"vio_o_{i}" for i in range(self.cfg.vio_o_num)])
+        #self.vio_o_ports = [Port(name=self.vio_o_names[i], width=self.cfg.vio_o_widths[i]) for i in range(self.cfg.vio_o_num)]
+        #self.vio_o_sigs = [Signal(abs_path=self.cfg.vio_o_abspaths[i]) for i in range(self.cfg.vio_o_num)]
 
         #########################################################
         # CLK manager interfaces
@@ -100,13 +118,13 @@ class Config(BaseConfig):
         #########################################################
         # VIO settings
         #########################################################
-        self.vio_i_num = 0
-        self.vio_i_widths = []
-        self.vio_i_abspaths = []
+        #self.vio_i_num = 0
+        #self.vio_i_widths = []
+        #self.vio_i_abspaths = []
 
-        self.vio_o_num = 0
-        self.vio_o_widths = []
-        self.vio_o_abspaths = []
+        #self.vio_o_num = 0
+        #self.vio_o_widths = []
+        #self.vio_o_abspaths = []
 
         self.rst_clkcycles = 1
 

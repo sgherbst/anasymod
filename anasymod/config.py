@@ -12,9 +12,12 @@ from anasymod.enums import BoardNames, FPGASimCtrl
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
+from anasymod.sim_ctrl.uart_control import UARTControl, Control
 
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
+
+        self.root = root
 
         # define and create build root
         self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
@@ -29,8 +32,11 @@ class EmuConfig:
         # Update config options by reading from config file
         self.cfg.update_config()
 
+        # Instantiate Simulation Control Interface
+        self.ctrl = self._setup_ctrl_ifc()
+
         # FPGA board configuration
-        self.board = self.fetch_board()
+        self.board = self._fetch_board()
 
         # Vivado configuration
         self.vivado_config = VivadoConfig(parent=self)
@@ -51,7 +57,7 @@ class EmuConfig:
     def ila_depth(self):
         return 4096
 
-    def fetch_board(self):
+    def _fetch_board(self):
         """
         Fetch FPGA board info.
         """
@@ -66,6 +72,22 @@ class EmuConfig:
             return TE0720()
         else:
             raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
+
+    def _setup_ctrl_ifc(self):
+        """
+        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
+        mode, which does not possess a direct control interface via anasymod.
+
+        :rtype: Control
+        """
+
+        if self.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
+        elif self.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+            print("Direct anasymod FPGA simulation control via UART enabled.")
+            self.ctrl = UARTControl(prj_cfg=self)
+        else:
+            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
 class VivadoConfig():
     def __init__(self, parent: EmuConfig, vivado=None):

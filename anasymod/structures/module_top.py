@@ -3,6 +3,7 @@ from anasymod.enums import PortDir
 from anasymod.gen_api import SVAPI
 from anasymod.templ import JinjaTempl
 from anasymod.config import EmuConfig
+from anasymod.structures.structure_config import StructureConfig
 
 class ModuleTop(JinjaTempl):
     """
@@ -10,14 +11,15 @@ class ModuleTop(JinjaTempl):
     """
     def __init__(self, target):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        self.str_cfg = target.str_cfg
+        scfg = target.str_cfg
+        """ :type: StructureConfig """
 
         #####################################################
         # Create module interface
         #####################################################
         self.module_ifc = SVAPI()
 
-        for port in self.str_cfg.clk_i_ports:
+        for port in scfg.clk_i_ports:
             port.direction = PortDir.IN
             self.module_ifc.gen_port(port)
 
@@ -28,57 +30,57 @@ class ModuleTop(JinjaTempl):
         # Add clk in signals for simulation case
         self.clk_in_sim_sigs = SVAPI()
 
-        for port in self.str_cfg.clk_i_ports:
+        for port in scfg.clk_i_ports:
             self.clk_in_sim_sigs.gen_signal(port=port)
 
         # Add dbg clk signals
         self.dbg_clk_sigs = SVAPI()
 
-        for port in self.str_cfg.clk_d_ports:
+        for port in scfg.clk_d_ports:
             self.dbg_clk_sigs.gen_signal(port=port)
 
         self.clk_ifc = SVAPI()
 
-        for port in self.str_cfg.clk_i_ports + self.str_cfg.clk_o_ports + self.str_cfg.clk_m_ports + self.str_cfg.clk_d_ports + self.str_cfg.clk_g_ports:
+        for port in scfg.clk_i_ports + scfg.clk_o_ports + scfg.clk_m_ports + scfg.clk_d_ports + scfg.clk_g_ports:
             port.connection = port.name
             self.clk_ifc.println(f".{port.name}({port.connection})")
 
         #####################################################
-        # Instantiate vio
+        # Ctrl Module
         #####################################################
-        self.vio_sigs = SVAPI()
 
-        for port in self.str_cfg.vio_s_ports:
-            self.vio_sigs.gen_signal(port=port)
+        # Instantiate internal ctrl signals
+        self.inst_itl_ctlsigs = SVAPI()
 
-        self.vio_ifc = SVAPI()
+        for ctrl_io in scfg.dec_thr_ctrl:
+            self.inst_itl_ctlsigs._gen_signal(io_obj=ctrl_io)
 
-        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports:
-            port.connection = port.name
-            self.vio_ifc.println(f".{port.name}({port.connection})")
+        # Instantiate ctrl module
+        self.ctrl_module_ifc = SVAPI()
 
-        # add master clk to vio instantiation
-        vio_clk_port = self.str_cfg.clk_m_ports[0]
+        for ctrl_io in scfg.reset_ctrl + scfg.dec_thr_ctrl + scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs:
+            self.ctrl_module_ifc.println(f".{ctrl_io.name}({ctrl_io.name})")
+
+        # add master clk to ctrl module
+        vio_clk_port = scfg.clk_m_ports[0]
         vio_clk_port.connect = vio_clk_port.name
-        self.vio_ifc.println(f".{vio_clk_port.name}({vio_clk_port.connection})")
+        self.ctrl_module_ifc.println(f".{vio_clk_port.name}({vio_clk_port.connection})")
+
+        # Instantiate abs paths into design for ctrl signals
+        self.inst_assign_custom_ctlsigs = SVAPI()
+        for ctrl_io in scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs + scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs:
+            self.inst_assign_custom_ctlsigs._gen_signal(io_obj=ctrl_io)
+            self.inst_assign_custom_ctlsigs.assign_to_signal(io_obj=ctrl_io)
 
         #####################################################
         # Instantiate testbench
         #####################################################
         self.tb_ifc = SVAPI()
 
-        tb_ports = self.str_cfg.clk_o_ports
+        tb_ports = scfg.clk_o_ports
         for port in tb_ports:
             port.connection = port.name
             self.tb_ifc.println(f".{port.name}({port.connection})")
-
-        #####################################################
-        # Instantiate abs paths into design for ctrl sigs
-        #####################################################
-        self.ctl_sigs = SVAPI()
-        for port, signal in zip(self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports, self.str_cfg.vio_i_sigs + self.str_cfg.vio_o_sigs):
-            self.ctl_sigs.gen_signal(port=port)
-            self.ctl_sigs.assign_to_signal(port=port, signal=signal)
 
 
     TEMPLATE_TEXT = '''
@@ -111,13 +113,15 @@ module top(
 
 // emulation clock and reset declarations
 logic emu_clk, emu_rst;
+// absolute paths to ctrl signals in the design
+{{subst.inst_assign_custom_ctlsigs.text}}
 
 // VIO
-{% for line in subst.vio_sigs.text.splitlines() -%}
+{% for line in subst.inst_itl_ctlsigs.text.splitlines() -%}
     {{line}}
 {% endfor %}
 vio_gen vio_gen_i(
-{% for line in subst.vio_ifc.text.splitlines() %}
+{% for line in subst.ctrl_module_ifc.text.splitlines() %}
     {{line}}{{ "," if not loop.last }}
 {% endfor %}
 );
@@ -138,9 +142,6 @@ tb tb_i(
     {{line}}{{ "," if not loop.last }}
 {% endfor %}
 );
-
-// absolute paths to ctrl signals in the design
-{{subst.ctl_sigs.text}}
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL

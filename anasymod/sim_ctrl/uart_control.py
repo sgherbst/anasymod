@@ -3,7 +3,7 @@ import io
 import serial.tools.list_ports as ports
 from anasymod.enums import CtrlOps
 from anasymod.sim_ctrl.control import Control
-from anasymod.config import EmuConfig
+#from anasymod.config import EmuConfig
 
 class UARTControl(Control):
     def __init__(self, prj_cfg):

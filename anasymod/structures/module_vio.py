@@ -5,21 +5,26 @@ from anasymod.gen_api import SVAPI
 from anasymod.structures.structure_config import StructureConfig
 
 class ModuleVIOManager(JinjaTempl):
-    def __init__(self, str_cfg: StructureConfig):
+    def __init__(self, target):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        self.str_cfg = str_cfg
+        scfg = target.str_cfg
+        """ :type: StructureConfig """
 
         #####################################################
         # Create module interface
         #####################################################
         self.module_ifc = SVAPI()
 
-        vio_i_ports = self.str_cfg.vio_i_ports + [self.str_cfg.clk_m_ports[0]]
+        for io_ctrl in scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs + scfg.clk_m_ports[0]:
+
+
+
+        vio_i_ports = scfg.vio_i_ports + [scfg.clk_m_ports[0]]
         for port in vio_i_ports:
             port.direction = PortDir.IN
             self.module_ifc.gen_port(port)
 
-        vio_o_ports = self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports
+        vio_o_ports = scfg.vio_o_ports + scfg.vio_s_ports + scfg.vio_r_ports
         for port in vio_o_ports:
             port.direction = PortDir.OUT
             self.module_ifc.gen_port(port)
@@ -28,7 +33,7 @@ class ModuleVIOManager(JinjaTempl):
         # Instantiate custom vio ctrl script for pc sim
         #####################################################
         self.vio_sim_ifc = SVAPI()
-        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports:
+        for port in scfg.vio_i_ports + scfg.vio_o_ports:
             port.connection = port.name
             self.vio_sim_ifc.println(f".{port.name}({port.connection})")
 
@@ -36,20 +41,20 @@ class ModuleVIOManager(JinjaTempl):
         # Instantiate vio wizard
         #####################################################
         # set number of clk cycles for initial reset
-        self.rst_clkcycles = self.str_cfg.cfg.rst_clkcycles
+        self.rst_clkcycles = scfg.cfg.rst_clkcycles
 
         self.vio_wiz_ifc = SVAPI()
 
-        for k, port in enumerate(self.str_cfg.vio_i_ports):
+        for k, port in enumerate(scfg.vio_i_ports):
             port.connection = port.name
             self.vio_wiz_ifc.println(f".probe_in{k+1}({port.connection})")
 
-        for k, port in enumerate(self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports):
+        for k, port in enumerate(scfg.vio_o_ports + scfg.vio_s_ports + scfg.vio_r_ports):
             port.connection = port.name
             self.vio_wiz_ifc.println(f".probe_out{k}({port.connection})")
 
         # add master clk to vio instantiation
-        vio_clk_port = self.str_cfg.clk_m_ports[0]
+        vio_clk_port = scfg.clk_m_ports[0]
         vio_clk_port.connect = vio_clk_port.name
         self.vio_wiz_ifc.println(f".clk({vio_clk_port.connection})")
 

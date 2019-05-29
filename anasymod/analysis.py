@@ -20,8 +20,6 @@ from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.files import mkdir_p
-from anasymod.enums import FPGASimCtrl
-from anasymod.sim_ctrl.uart_control import UARTControl
 
 from typing import Union
 from importlib import import_module
@@ -62,8 +60,8 @@ class Analysis():
         # Initialize project config
         self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
 
-        # Initialize FPGA simulation control interface
-        self._setup_ctrl_ifc()
+        # Assign simulation control interface object
+        self.ctrl = self._prj_cfg.ctrl
 
         # Initialize Plugins
         self._plugins = []
@@ -419,20 +417,6 @@ class Analysis():
         self.fpga.update_structure_config()
         self.fpga.gen_structure()
         self.fpga.set_tstop()
-
-    def _setup_ctrl_ifc(self):
-        """
-        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
-        mode, which does not possess a direct control interface via anasymod.
-        """
-
-        if self._prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
-            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
-        elif self._prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
-            print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControl(prj_cfg=self._prj_cfg)
-        else:
-            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
         """
