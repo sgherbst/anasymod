@@ -280,6 +280,45 @@ class Analysis():
         """
         Read command line arguments. This supports convenient usage from command shell e.g.:
         python analysis.py -i filter --models --sim --view
+
+        -i, --input: Path to project root directory of the project that shall be opened and worked with.
+            default=get_from_module('anasymod', 'tests', 'filter'))
+
+        --simulator_name: Simulator that shall be used for logic simulation.
+            default=icarus for windows, xrun for linux
+
+        --synthesizer_name: Synthesis engine that shall be used for FPGA synthesis.
+            default=vivado
+
+        --viewer_name: Waveform viewer that shall be used for viewing result waveforms.
+            default=gtkwave for windows, simvision for linux
+
+        --sim_target: Target that shall be used for running logic simulations.
+            default='sim'
+
+        --fpga_target: Target that shall be used for FPGA runs.
+            default='fpga'
+
+        --sim: Execute logic simulation for selected simulation target.
+
+        --view: Open results in selected waveform viewer.
+
+        --build: Synthesize, run P&R and generate bitstream for selected target.
+
+        --emulate: Execute FPGA run for selected target.
+
+        --start_time: Start time for FPGA simulation.
+            default=0
+
+        --server_addr: Hardware server address for FPGA simulation. This is necessary for connecting to a vivado
+            hardware server from linux, that was setup under windows.
+            default=None
+
+        --stop_time: Stop time for FPGA simulation
+            default=None
+
+        --preprocess_only: For icarus only, this will nur run the simulation, but only compile the netlist.
+
         """
 
         parser = ArgumentParser()
