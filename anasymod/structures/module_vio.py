@@ -19,7 +19,7 @@ class ModuleVIOManager(JinjaTempl):
             port.direction = PortDir.IN
             self.module_ifc.gen_port(port)
 
-        vio_o_ports = self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports
+        vio_o_ports = self.str_cfg.vio_r_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_o_ports
         for port in vio_o_ports:
             port.direction = PortDir.OUT
             self.module_ifc.gen_port(port)
@@ -34,9 +34,9 @@ class ModuleVIOManager(JinjaTempl):
 
         for k, port in enumerate(self.str_cfg.vio_i_ports):
             port.connection = port.name
-            self.vio_wiz_ifc.println(f".probe_in{k+1}({port.connection})")
+            self.vio_wiz_ifc.println(f".probe_in{k}({port.connection})")
 
-        for k, port in enumerate(self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports):
+        for k, port in enumerate(self.str_cfg.vio_r_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_o_ports):
             port.connection = port.name
             self.vio_wiz_ifc.println(f".probe_out{k}({port.connection})")
 

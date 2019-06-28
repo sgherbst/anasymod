@@ -53,7 +53,7 @@ class ModuleTop(JinjaTempl):
 
         self.vio_ifc = SVAPI()
 
-        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_o_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_r_ports:
+        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_r_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_o_ports:
             port.connection = port.name
             self.vio_ifc.println(f".{port.name}({port.connection})")
 
