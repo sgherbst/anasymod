@@ -1,11 +1,8 @@
 import os.path
 from argparse import ArgumentParser
 
-from msdsl.model import MixedSignalModel
-from msdsl.generator.verilog import VerilogGenerator
-from msdsl.expr.signals import AnalogSignal
-
-from anasymod.files import get_full_path
+from msdsl import MixedSignalModel, VerilogGenerator, AnalogSignal
+from anasymod import get_full_path
 
 class Filter(MixedSignalModel):
     def __init__(self, name='filter', dt=0.1e-6):

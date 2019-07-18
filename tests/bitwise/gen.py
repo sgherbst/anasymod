@@ -1,9 +1,7 @@
 import os.path
 from argparse import ArgumentParser
 
-from msdsl.model import MixedSignalModel
-from msdsl.generator.verilog import VerilogGenerator
-from msdsl.expr.signals import DigitalOutput, DigitalInput
+from msdsl import MixedSignalModel, VerilogGenerator, DigitalOutput, DigitalInput
 
 from anasymod.files import get_full_path
 
