@@ -113,7 +113,11 @@ class XceliumConfig():
     @property
     def xrun(self):
         if self._xrun is None:
-            self._xrun = find_tool(name='xrun', hints=self.hints)
+            try:
+                self._xrun = find_tool(name='ifxxcelium', hints=self.hints)
+                self._xrun += " execute"
+            except:
+                self._xrun = find_tool(name='xrun', hints=self.hints)
         return self._xrun
 
     @property
