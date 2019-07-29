@@ -161,7 +161,32 @@ class Analysis():
         from anasymod.wave import ConvertWaveform
         ConvertWaveform(target=target)
 
-    def simulate(self, target: SimulationTarget):
+    def prepare(self, target: SimulationTarget, unit=None, id=None, delete=False):
+        """
+        Run simulation on a pc target.
+        """
+
+        # check if setup is already finished, if not do so
+        if not self._setup_finished:
+            self.finish_setup()
+
+        # pick simulator
+        sim_cls = {
+            'icarus': IcarusSimulator,
+            'vivado': VivadoSimulator,
+            'xrun': XceliumSimulator
+        }[self.args.simulator_name]
+
+        # prepare simulation
+
+        sim = sim_cls(target=target)
+
+        if self.args.simulator_name == "xrun":
+            sim.unit = unit
+            sim.id = id
+            sim.prepare(delete=delete)
+
+    def simulate(self, target: SimulationTarget, unit=None, id=None):
         """
         Run simulation on a pc target.
         """
@@ -184,6 +209,11 @@ class Analysis():
         # run simulation
 
         sim = sim_cls(target=target)
+
+        if self.args.simulator_name == "xrun":
+            sim.unit = unit
+            sim.id = id
+
         sim.simulate()
 
     def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
