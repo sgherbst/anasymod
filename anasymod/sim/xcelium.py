@@ -19,7 +19,7 @@ class XceliumSimulator(Simulator):
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
         if "ifxxcelium" in self.cfg.xcelium_config.xrun:
-            cmd += ['execute']
+            cmd += ['inicio']
             if self.unit:
                 cmd += ["-unit", self.unit]
             if self.id:
@@ -107,17 +107,23 @@ class XceliumSimulator(Simulator):
             print(cmd)
             call(cmd, cwd=self.cfg.build_root)
 
-            self.patch_makefile()
+            makefile = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/Makefile"
+            if "inicio" not in open(makefile, 'r').read():
+                self.patch_makefile(makefile)
+            else:
+                print("inicio make target already in Makefile, will not patch it")
 
         else:
             print("No ifxxcelium script detected, nothing to prepare..")
 
-    def patch_makefile(self):
-        # patch content of generated Makefile and append inicio target
-        makefile = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/Makefile"
+    def patch_makefile(self, file):
+        """ patch content of generated Makefile and append inicio target
+        :type file: str
+        """
 
-        inicio_target = open("xcelium.make_target", 'r')
+        inicio_target = open( os.path.dirname(__file__) + "/xcelium.make_target", 'r')
 
-        print(f"Patching content of Makefile: {makefile}")
-        with open(makefile, 'a+') as f:
-            f.write(inicio_target)
+        print(f"Patching content of Makefile: {file}")
+        with open(file, 'a+') as f:
+            f.write(inicio_target.read())
+            f.close()
