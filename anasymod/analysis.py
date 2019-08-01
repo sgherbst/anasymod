@@ -97,9 +97,13 @@ class Analysis():
             if self.args.emulate:
                 self.emulate(target=getattr(self, self.args.fpga_target))
 
+            #prepare for simulation if needed
+            if self.args.prepare:
+                self.prepare(target=getattr(self, self.args.fpga_target), unit=self.args.unit, id=self.args.id)
+
             # run simulation if desired
             if self.args.sim or self.args.preprocess_only:
-                self.simulate(target=getattr(self, self.args.sim_target))
+                self.simulate(target=getattr(self, self.args.sim_target), unit=self.args.unit, id=self.args.id)
 
             # view results if desired
             if self.args.view and (self.args.sim or self.args.preprocess_only):
@@ -161,9 +165,10 @@ class Analysis():
         from anasymod.wave import ConvertWaveform
         ConvertWaveform(target=target)
 
-    def prepare(self, target: SimulationTarget, unit=None, id=None, delete=False):
+    def prepare(self, target: SimulationTarget, unit=None, id=None):
         """
-        Run simulation on a pc target.
+        Prepare for simulation, e.g. ifxxcelium needs a prepare step to generate the needed Makefiles
+        delete=True will remove content from generated xrun_files.f in order to use it from cmd line or in regressions
         """
 
         # check if setup is already finished, if not do so
@@ -184,7 +189,7 @@ class Analysis():
         if self.args.simulator_name == "xrun":
             sim.unit = unit
             sim.id = id
-            sim.prepare(delete=delete)
+            sim.prepare()
 
     def simulate(self, target: SimulationTarget, unit=None, id=None):
         """
@@ -263,7 +268,6 @@ class Analysis():
         except:
             return np.array(wave_step, dtype='O').transpose()
 
-
     def view(self, target: Target):
         """
         View results from selected target run.
@@ -329,6 +333,8 @@ class Analysis():
         --fpga_target: Target that shall be used for FPGA runs.
             default='fpga'
 
+        --prepare: Executes preparation step for simulation. Is needed for ifxxcelium Camino wrapper.
+
         --sim: Execute logic simulation for selected simulation target.
 
         --view: Open results in selected waveform viewer.
@@ -374,6 +380,9 @@ class Analysis():
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
         parser.add_argument('--sim_target', type=str, default='sim')
         parser.add_argument('--fpga_target', type=str, default='fpga')
+        parser.add_argument('--prepare', action='store_true')
+        parser.add_argument('--unit', type=str, default=None)
+        parser.add_argument('--id', type=str, default=None)
         parser.add_argument('--sim', action='store_true')
         parser.add_argument('--view', action='store_true')
         parser.add_argument('--build', action='store_true')
@@ -440,7 +449,6 @@ class Analysis():
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
-
 
     def _setup_targets(self):
         """

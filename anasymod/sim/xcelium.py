@@ -94,7 +94,7 @@ class XceliumSimulator(Simulator):
         print(cmd)
         call(cmd, cwd=self.cfg.build_root)
 
-    def prepare(self, delete=False):
+    def prepare(self):
         """ Preparation of ifxxcelium Camino wrapper script"""
         if "ifxxcelium" in self.cfg.xcelium_config.xrun:
             cmd = []
@@ -107,12 +107,17 @@ class XceliumSimulator(Simulator):
             print(cmd)
             call(cmd, cwd=self.cfg.build_root)
 
-            if delete:
-                #delete content of generated xrun_files.f
-                xrun_file = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/env/xrun_files.f"
+            self.patch_makefile()
 
-                print(f"Deleting content of xrun_files.f{xrun_file}")
-                with open(xrun_file, 'w'):
-                    pass
         else:
             print("No ifxxcelium script detected, nothing to prepare..")
+
+    def patch_makefile(self):
+        # patch content of generated Makefile and append inicio target
+        makefile = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/Makefile"
+
+        inicio_target = open("xcelium.make_target", 'r')
+
+        print(f"Patching content of Makefile: {makefile}")
+        with open(makefile, 'a+') as f:
+            f.write(inicio_target)
