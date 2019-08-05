@@ -9,13 +9,23 @@ from anasymod.targets import SimulationTarget
 from anasymod.config import EmuConfig
 
 class XceliumSimulator(Simulator):
-    #def __init__(self, cfg: EmuConfig, target: SimulationTarget):
-    #    super().__init__(cfg=cfg, target=target)
+    def __init__(self, target: SimulationTarget):
+        super().__init__( target=target)
+        self.unit = None
+        self.id = None
 
     def simulate(self, licqueue=True, smartorder=True):
         # build up the simulation command
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
+        if "ifxxcelium" in self.cfg.xcelium_config.xrun:
+            cmd += ['execute']
+            if self.unit:
+                cmd += ["-unit", self.unit]
+            if self.id:
+                cmd += ["-id", self.id]
+            cmd += ['--']
+
         cmd += ['-top', self.target.cfg.top_module]
         cmd += ['-input', self.cfg.xcelium_config.tcl_input_path]
 
@@ -83,3 +93,26 @@ class XceliumSimulator(Simulator):
         # run xrun
         print(cmd)
         call(cmd, cwd=self.cfg.build_root)
+
+    def prepare(self, delete=False):
+        """ Preparation of ifxxcelium Camino wrapper script"""
+        if "ifxxcelium" in self.cfg.xcelium_config.xrun:
+            cmd = []
+            cmd += ['ifxxcelium', 'prepare', '-uc', 'rtl']
+            if self.unit:
+                cmd += ["-unit", self.unit ]
+            if self.id:
+                cmd += ["-id", self.id ]
+
+            print(cmd)
+            call(cmd, cwd=self.cfg.build_root)
+
+            if delete:
+                #delete content of generated xrun_files.f
+                xrun_file = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/env/xrun_files.f"
+
+                print(f"Deleting content of xrun_files.f{xrun_file}")
+                with open(xrun_file, 'w'):
+                    pass
+        else:
+            print("No ifxxcelium script detected, nothing to prepare..")
