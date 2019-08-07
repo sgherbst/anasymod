@@ -108,7 +108,7 @@ class XceliumSimulator(Simulator):
             call(cmd, cwd=self.cfg.build_root)
 
             makefile = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/Makefile"
-            if "inicio" not in open(makefile, 'r').read():
+            if "PHONY: inicio" not in open(makefile, 'r').read():
                 self.patch_makefile(makefile)
             else:
                 print("inicio make target already in Makefile, will not patch it")
