@@ -25,7 +25,6 @@ endif
 	  -cdslib $(ENV_DIR)/cds.lib \
 	  -hdlvar $(ENV_DIR)/hdl.var \
 	  -xmlibdirname $(XCELIUM_D) \
-	  -l $(TOP_LOGFILE) \
 	  $(CMD_LINE_ARGS); echo $$? > .ifxxcelium.xrun_status.txt
 	@exit `cat .ifxxcelium.xrun_status.txt`
 	@echo "[INFO] make: execute done"
