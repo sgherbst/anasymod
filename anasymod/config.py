@@ -12,6 +12,7 @@ from anasymod.enums import BoardNames, FPGASimCtrl
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
+from inicio import config_dict
 
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
@@ -28,6 +29,9 @@ class EmuConfig:
 
         # Update config options by reading from config file
         self.cfg.update_config()
+
+        # Initialize Inicio config_dict
+        self.cfg_dict = config_dict()
 
         # FPGA board configuration
         self.board = self.fetch_board()
@@ -74,16 +78,19 @@ class VivadoConfig():
 
         # set project name
         self.project_name = 'project'
-
+        # intermediate variables for generic Xilinx path
+        if 'win' in platform.lower():
+            xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
+            xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'Xilinx-18.2.0.2', 'Vivado', '2018.2', 'bin')]
+                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
+
         if platform == 'linux' or platform == 'linux2':
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
 
         self._vivado = vivado
-
         # set various project options
         self.num_cores = multiprocessing.cpu_count()
         self.vio_name = 'vio_0'
@@ -131,7 +138,7 @@ class IcarusConfig():
 
         # set path to iverilog and vvp binaries
         self.hints = [lambda: os.path.join(env['ICARUS_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', '64', 'iverilog-10.1.1.0', 'bin')]
+                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], parent.cfg_dict['TOOLS_iverilog'], 'bin')]
         self._iverilog = iverilog
         self._vvp = vvp
 
@@ -161,7 +168,7 @@ class GtkWaveConfig():
 
         # find gtkwave binary
         self.hints = [lambda: os.path.join(env['GTKWAVE_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(env['INICIO_INSTALL'], 'tools', 'common', 'gtkwave-3.3.65.0', 'bin')]
+                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], parent.cfg_dict['TOOLS_gtkwave'], 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
 
