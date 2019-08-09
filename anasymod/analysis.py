@@ -20,6 +20,7 @@ from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.files import mkdir_p
+from anasymod.utils import statpro
 from typing import Union
 
 
@@ -138,6 +139,7 @@ class Analysis():
 
         build = VivadoBuild(target=target)
         build.build()
+        statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
     def emulate(self, target: FPGATarget):
         """
@@ -160,6 +162,7 @@ class Analysis():
 
         # run the emulation
         build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt, server_addr=self.args.server_addr)
+        statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
@@ -220,6 +223,7 @@ class Analysis():
             sim.id = id
 
         sim.simulate()
+        statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
     def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
         """
