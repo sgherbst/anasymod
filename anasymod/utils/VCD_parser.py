@@ -34,7 +34,11 @@ class ParseVCD:
 
                 if line[0] in ('r', 'R', 'b', 'B'):
                     (value, code) = line[1:].split()
-                    value = float(value)
+                    try:
+                        value = float(value)
+                    except:
+                        # This is a quick fix that sets X,Z, ... to 0
+                        value = float(0)
                     if (code in data):
                         if (stdout):
                             print(cycle_cnt, value)

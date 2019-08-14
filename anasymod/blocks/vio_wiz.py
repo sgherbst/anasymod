@@ -11,20 +11,20 @@ class TemplVIO(TemplGenericIp):
         self.target = target
 
         ####################################################
-        # Generate ip core config for clk wizard
+        # Generate ip core config for vio wizard
         ####################################################
 
         props = {}
 
         # handle input ports
         for k, port in enumerate(self.target.str_cfg.vio_i_ports):
-            props[f'CONFIG.C_PROBE_IN{k+1}_WIDTH'] = str(port.width)
+            props[f'CONFIG.C_PROBE_IN{k+0}_WIDTH'] = str(port.width)
 
         # handle input ports
         for k, port in enumerate(self.target.str_cfg.vio_r_ports + self.target.str_cfg.vio_s_ports + self.target.str_cfg.vio_o_ports):
-                props[f'CONFIG.C_PROBE_OUT{k+1}_WIDTH'] = str(port.width)
+                props[f'CONFIG.C_PROBE_OUT{k+0}_WIDTH'] = str(port.width)
                 if port.init_value is not None:
-                    props[f'CONFIG.C_PROBE_OUT{k+1}_INIT_VAL'] = str(port.init_value)
+                    props[f'CONFIG.C_PROBE_OUT{k+0}_INIT_VAL'] = str(port.init_value)
 
         props['CONFIG.C_NUM_PROBE_IN'] = str(len(self.target.str_cfg.vio_i_ports))
         props['CONFIG.C_NUM_PROBE_OUT'] = str(len(self.target.str_cfg.vio_r_ports + self.target.str_cfg.vio_s_ports + self.target.str_cfg.vio_o_ports))

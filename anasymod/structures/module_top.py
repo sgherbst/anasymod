@@ -55,6 +55,10 @@ class ModuleTop(JinjaTempl):
         for ctrl_io in scfg.dec_thr_ctrl:
             self.inst_itl_ctlsigs._gen_signal(io_obj=ctrl_io)
 
+        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_r_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_o_ports:
+            port.connection = port.name
+            self.vio_ifc.println(f".{port.name}({port.connection})")
+
         # Instantiate ctrl module
         self.ctrl_module_ifc = SVAPI()
 

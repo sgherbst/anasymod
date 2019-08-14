@@ -20,7 +20,7 @@ from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
 from anasymod.files import mkdir_p
-
+from anasymod.utils import statpro
 from typing import Union
 from importlib import import_module
 
@@ -99,9 +99,13 @@ class Analysis():
             if self.args.emulate:
                 self.emulate(target=getattr(self, self.args.fpga_target))
 
+            #prepare for simulation if needed
+            if self.args.prepare:
+                self.prepare(target=getattr(self, self.args.fpga_target), unit=self.args.unit, id=self.args.id)
+
             # run simulation if desired
             if self.args.sim or self.args.preprocess_only:
-                self.simulate(target=getattr(self, self.args.sim_target))
+                self.simulate(target=getattr(self, self.args.sim_target), unit=self.args.unit, id=self.args.id)
 
             # view results if desired
             if self.args.view and (self.args.sim or self.args.preprocess_only):
@@ -136,6 +140,7 @@ class Analysis():
 
         build = VivadoBuild(target=target)
         build.build()
+        statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
     def emulate(self, target: FPGATarget):
         """
@@ -158,12 +163,39 @@ class Analysis():
 
         # run the emulation
         build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt, server_addr=self.args.server_addr)
+        statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
         ConvertWaveform(target=target)
 
-    def simulate(self, target: SimulationTarget):
+    def prepare(self, target: SimulationTarget, unit=None, id=None):
+        """
+        Prepare for simulation, e.g. ifxxcelium needs a prepare step to generate the needed Makefiles
+        delete=True will remove content from generated xrun_files.f in order to use it from cmd line or in regressions
+        """
+
+        # check if setup is already finished, if not do so
+        if not self._setup_finished:
+            self.finish_setup()
+
+        # pick simulator
+        sim_cls = {
+            'icarus': IcarusSimulator,
+            'vivado': VivadoSimulator,
+            'xrun': XceliumSimulator
+        }[self.args.simulator_name]
+
+        # prepare simulation
+
+        sim = sim_cls(target=target)
+
+        if self.args.simulator_name == "xrun":
+            sim.unit = unit
+            sim.id = id
+            sim.prepare()
+
+    def simulate(self, target: SimulationTarget, unit=None, id=None):
         """
         Run simulation on a pc target.
         """
@@ -186,7 +218,13 @@ class Analysis():
         # run simulation
 
         sim = sim_cls(target=target)
+
+        if self.args.simulator_name == "xrun":
+            sim.unit = unit
+            sim.id = id
+
         sim.simulate()
+        statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
     def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
         """
@@ -235,7 +273,6 @@ class Analysis():
         except:
             return np.array(wave_step, dtype='O').transpose()
 
-
     def view(self, target: Target):
         """
         View results from selected target run.
@@ -282,6 +319,47 @@ class Analysis():
         """
         Read command line arguments. This supports convenient usage from command shell e.g.:
         python analysis.py -i filter --models --sim --view
+
+        -i, --input: Path to project root directory of the project that shall be opened and worked with.
+            default=get_from_module('anasymod', 'tests', 'filter'))
+
+        --simulator_name: Simulator that shall be used for logic simulation.
+            default=icarus for windows, xrun for linux
+
+        --synthesizer_name: Synthesis engine that shall be used for FPGA synthesis.
+            default=vivado
+
+        --viewer_name: Waveform viewer that shall be used for viewing result waveforms.
+            default=gtkwave for windows, simvision for linux
+
+        --sim_target: Target that shall be used for running logic simulations.
+            default='sim'
+
+        --fpga_target: Target that shall be used for FPGA runs.
+            default='fpga'
+
+        --prepare: Executes preparation step for simulation. Is needed for ifxxcelium Camino wrapper.
+
+        --sim: Execute logic simulation for selected simulation target.
+
+        --view: Open results in selected waveform viewer.
+
+        --build: Synthesize, run P&R and generate bitstream for selected target.
+
+        --emulate: Execute FPGA run for selected target.
+
+        --start_time: Start time for FPGA simulation.
+            default=0
+
+        --server_addr: Hardware server address for FPGA simulation. This is necessary for connecting to a vivado
+            hardware server from linux, that was setup under windows.
+            default=None
+
+        --stop_time: Stop time for FPGA simulation
+            default=None
+
+        --preprocess_only: For icarus only, this will nur run the simulation, but only compile the netlist.
+
         """
 
         parser = ArgumentParser()
@@ -307,6 +385,9 @@ class Analysis():
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
         parser.add_argument('--sim_target', type=str, default='sim')
         parser.add_argument('--fpga_target', type=str, default='fpga')
+        parser.add_argument('--prepare', action='store_true')
+        parser.add_argument('--unit', type=str, default=None)
+        parser.add_argument('--id', type=str, default=None)
         parser.add_argument('--sim', action='store_true')
         parser.add_argument('--view', action='store_true')
         parser.add_argument('--build', action='store_true')

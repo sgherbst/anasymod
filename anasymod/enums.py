@@ -16,6 +16,12 @@ class ConfigSections:
 class BoardNames:
     """
     Container including enums for all supported boards.
+
+    Currently supported boards are:
+    PYNQ_Z1
+    VC707
+    ULTRA96
+    TE0720
     """
     PYNQ_Z1 = 'PYNQ_Z1'
     VC707 = 'VC707'

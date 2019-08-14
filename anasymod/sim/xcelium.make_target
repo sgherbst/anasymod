@@ -1,0 +1,30 @@
+
+#***********************************************************
+# E X E C U T E target for anasymod in Inicio environment
+#   - compile
+#   - elaborate
+#   - run
+#
+# The return status of "xrun" is stored in a file called .ifxxcelium.xrun_status.txt.
+# The file name must not be modified and the file must not be removed
+# or modified manually.
+#-----------------------------------------------------------
+.PHONY: inicio
+inicio: 
+	@echo "[INFO] make: execute in inicio environment"
+	@echo "[INFO] make: running xrun..."
+	@echo "[INFO] make:    ... with following command line options: $(CMD_LINE_ARGS)"
+	@echo "[INFO] make:    ... and following dynamic use modes: $(USE_MODES)"
+	@\rm -f .ifxxcelium.xrun_status.txt
+ifndef DEBUSSYROOT
+ifeq (fsdb, $(filter fsdb, $(USE_MODES)))
+	$(error Verdi is not properly configured; please check your project configuration)
+endif
+endif
+	$(REINVOKE_PROTECTION) xrun \
+	  -cdslib $(ENV_DIR)/cds.lib \
+	  -hdlvar $(ENV_DIR)/hdl.var \
+	  -xmlibdirname $(XCELIUM_D) \
+	  $(CMD_LINE_ARGS); echo $$? > .ifxxcelium.xrun_status.txt
+	@exit `cat .ifxxcelium.xrun_status.txt`
+	@echo "[INFO] make: execute done"

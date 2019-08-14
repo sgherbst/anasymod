@@ -9,13 +9,23 @@ from anasymod.targets import SimulationTarget
 from anasymod.config import EmuConfig
 
 class XceliumSimulator(Simulator):
-    #def __init__(self, cfg: EmuConfig, target: SimulationTarget):
-    #    super().__init__(cfg=cfg, target=target)
+    def __init__(self, target: SimulationTarget):
+        super().__init__( target=target)
+        self.unit = None
+        self.id = None
 
     def simulate(self, licqueue=True, smartorder=True):
         # build up the simulation command
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
+        if "ifxxcelium" in self.cfg.xcelium_config.xrun:
+            cmd += ['inicio']
+            if self.unit:
+                cmd += ["-unit", self.unit]
+            if self.id:
+                cmd += ["-id", self.id]
+            cmd += ['--']
+
         cmd += ['-top', self.target.cfg.top_module]
         cmd += ['-input', self.cfg.xcelium_config.tcl_input_path]
 
@@ -83,3 +93,37 @@ class XceliumSimulator(Simulator):
         # run xrun
         print(cmd)
         call(cmd, cwd=self.cfg.build_root)
+
+    def prepare(self):
+        """ Preparation of ifxxcelium Camino wrapper script"""
+        if "ifxxcelium" in self.cfg.xcelium_config.xrun:
+            cmd = []
+            cmd += ['ifxxcelium', 'prepare', '-uc', 'rtl']
+            if self.unit:
+                cmd += ["-unit", self.unit ]
+            if self.id:
+                cmd += ["-id", self.id ]
+
+            print(cmd)
+            call(cmd, cwd=self.cfg.build_root)
+
+            makefile = os.environ["WORKAREA"] + "/units/" + self.unit + "/simulation/" + self.id + "/Makefile"
+            if "PHONY: inicio" not in open(makefile, 'r').read():
+                self.patch_makefile(makefile)
+            else:
+                print("inicio make target already in Makefile, will not patch it")
+
+        else:
+            print("No ifxxcelium script detected, nothing to prepare..")
+
+    def patch_makefile(self, file):
+        """ patch content of generated Makefile and append inicio target
+        :type file: str
+        """
+
+        inicio_target = open( os.path.dirname(__file__) + "/xcelium.make_target", 'r')
+
+        print(f"Patching content of Makefile: {file}")
+        with open(file, 'a+') as f:
+            f.write(inicio_target.read())
+            f.close()
