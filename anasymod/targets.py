@@ -4,13 +4,14 @@ from anasymod.defines import Define
 from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
 from anasymod.base_config import BaseConfig
-from anasymod.enums import ConfigSections
+from anasymod.enums import ConfigSections, FPGASimCtrl
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_vio import ModuleVIOManager
 from anasymod.structures.module_clk_manager import ModuleClkManager
 from typing import Union
 from anasymod.sources import VerilogSource
+from anasymod.sim_ctrl.uart_control import UARTControl
 
 class Target():
     """
@@ -25,6 +26,9 @@ class Target():
 
         # Initialize structure configuration
         self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
+
+        # Instantiate Simulation Control Interface
+        self.ctrl = self.setup_ctrl_ifc()
 
         self._name = name
 
@@ -75,31 +79,43 @@ class Target():
     def gen_structure(self):
         """
         Generate toplevel, IPCore wrappers, debug infrastructure for FPGA and clk manager
+        ToDo: There needs to be a separation between sim and FPGA target with regards to control management as this
+        ToDo: is significantly easier for sim and does not need a CPU subsystem for example
         """
 
-        # Generate toplevel
+        # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
             top_file.write(ModuleTop(target=self).render())
 
-        # Add toplevel to target sources
         self.content['verilog_sources'] += [VerilogSource(files=toplevel_path)]
 
-        # Generate vio wrapper
-        viowrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_vio_wrap.sv')
-        with (open(viowrapper_path, 'w')) as top_file:
-            top_file.write(ModuleVIOManager(str_cfg=self.str_cfg).render())
+        # Build control structure and add all sources to project
+        self.prj_cfg.ctrl.build_ctrl_structure(target=self)
 
-        # Add vio wrapper to target sources
-        self.content['verilog_sources'] += [VerilogSource(files=viowrapper_path)]
-
-        # Generate clk management wrapper
+        # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
         with (open(clkmanagerwrapper_path, 'w')) as top_file:
             top_file.write(ModuleClkManager(target=self).render())
 
-        # Add clk management wrapper to target sources
         self.content['verilog_sources'] += [VerilogSource(files=clkmanagerwrapper_path)]
+
+    def setup_ctrl_ifc(self):
+        """
+        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
+        mode, which does not possess a direct control interface via anasymod.
+
+        :rtype: Control
+        """
+
+        if self.prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
+            return None
+        elif self.prj_cfg.board.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
+            print("Direct anasymod FPGA simulation control via UART enabled.")
+            return UARTControl(prj_cfg=self)
+        else:
+            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
     @property
     def project_root(self):

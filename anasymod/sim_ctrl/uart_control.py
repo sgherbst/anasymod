@@ -1,8 +1,12 @@
 import serial
-import io
+import io, os
 import serial.tools.list_ports as ports
-from anasymod.enums import CtrlOps
+from anasymod.enums import CtrlOps, FPGASimCtrl
 from anasymod.sim_ctrl.control import Control
+from anasymod.structures.structure_config import StructureConfig
+from anasymod.structures.module_uartsimctrl import ModuleUARTSimCtrl
+from anasymod.targets import Target
+from anasymod.sources import VerilogSource
 #from anasymod.config import EmuConfig
 
 class UARTControl(Control):
@@ -68,6 +72,29 @@ class UARTControl(Control):
     def read_parameter(self, addr):
         self._write(operation=CtrlOps.READ_PARAMETER, addr=addr)
         return self._read()
+
+    def build_ctrl_structure(self, target: Target):
+        """
+        Generate RTL design for control infrastructure. This will generate the register map, add the block diagram
+        including the zynq PS and add the firmware running on the zynq PS.
+        """
+
+        # Generate simulation control wrapper and add to target sources
+        with (open(self._simctrlwrap_path, 'w')) as ctrl_file:
+           ctrl_file.write(ModuleUARTSimCtrl(target=target).render())
+
+        target.content['verilog_sources'] += [VerilogSource(files=self._simctrlwrap_path)]
+
+        # Generate register map according to IO settings stored in structure config and add to target sources
+        #HIER WEITER: #ToDo: template für regmap hinzufügen
+
+        # Add CPU subsystem and firmware to target sources for UART IO
+        if self.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
+            # Add ZYNQ cpu subsystem as a blockdiagram
+            pass
+        else:
+            raise Exception(f"No vaild simulation control setting was defined for the project:{self.simctrl}")
+
 
 def main():
     ctrl = UARTControl(prj_cfg=EmuConfig(root='test', cfg_file=''))

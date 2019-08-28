@@ -46,35 +46,32 @@ class ModuleTop(JinjaTempl):
             self.clk_ifc.println(f".{port.name}({port.connection})")
 
         #####################################################
-        # Ctrl Module
+        # Instantiate Ctrl Module
         #####################################################
 
-        # Instantiate internal ctrl signals
-        self.inst_itl_ctlsigs = SVAPI()
+        custom_ctrl_ios = scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_inputs + \
+                          scfg.digital_ctrl_outputs
 
-        for ctrl_io in scfg.dec_thr_ctrl:
+        ctrl_ios = custom_ctrl_ios + scfg.dec_thr_ctrl + scfg.reset_ctrl
+
+        ## Instantiate all ctrl signals
+        self.inst_itl_ctlsigs = SVAPI()
+        for ctrl_io in ctrl_ios:
             self.inst_itl_ctlsigs._gen_signal(io_obj=ctrl_io)
 
-        for port in self.str_cfg.vio_i_ports + self.str_cfg.vio_r_ports + self.str_cfg.vio_s_ports + self.str_cfg.vio_o_ports:
-            port.connection = port.name
-            self.vio_ifc.println(f".{port.name}({port.connection})")
-
-        # Instantiate ctrl module
+        ## Instantiate ctrl module
         self.ctrl_module_ifc = SVAPI()
 
-        for ctrl_io in scfg.reset_ctrl + scfg.dec_thr_ctrl + scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs:
+        for ctrl_io in ctrl_ios:
             self.ctrl_module_ifc.println(f".{ctrl_io.name}({ctrl_io.name})")
 
         # add master clk to ctrl module
-        vio_clk_port = scfg.clk_m_ports[0]
-        vio_clk_port.connect = vio_clk_port.name
-        self.ctrl_module_ifc.println(f".{vio_clk_port.name}({vio_clk_port.connection})")
+        self.ctrl_module_ifc.println(f".{scfg.clk_m_ports[0].name}({scfg.clk_m_ports[0].name})")
 
-        # Instantiate abs paths into design for ctrl signals
-        self.inst_assign_custom_ctlsigs = SVAPI()
-        for ctrl_io in scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs + scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs:
-            self.inst_assign_custom_ctlsigs._gen_signal(io_obj=ctrl_io)
-            self.inst_assign_custom_ctlsigs.assign_to_signal(io_obj=ctrl_io)
+        ## Assign custom ctrl signals via abs paths into design
+        self.assign_custom_ctlsigs = SVAPI()
+        for ctrl_io in custom_ctrl_ios:
+            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io)
 
         #####################################################
         # Instantiate testbench
@@ -115,16 +112,22 @@ module top(
     {{line}}
 {% endfor %}
 
-// emulation clock and reset declarations
+// emulation clock declarations
 logic emu_clk, emu_rst;
-// absolute paths to ctrl signals in the design
-{{subst.inst_assign_custom_ctlsigs.text}}
+
+// Declaration of control signals
+{{subst.inst_itl_ctlsigs.text}}
+
+// Assignment of custom control signals via absolute paths to design signals
+{{subst.assign_custom_ctlsigs.text}}
 
 // VIO
-{% for line in subst.inst_itl_ctlsigs.text.splitlines() -%}
-    {{line}}
-{% endfor %}
-vio_gen vio_gen_i(
+//{% for line in subst.inst_itl_ctlsigs.text.splitlines() -%}
+//    {{line}}
+//{% endfor %}
+
+// Instantiation of control wrapper
+sim_ctrl_gen sim_ctrl_gen_i(
 {% for line in subst.ctrl_module_ifc.text.splitlines() %}
     {{line}}{{ "," if not loop.last }}
 {% endfor %}

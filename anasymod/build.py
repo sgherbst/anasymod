@@ -13,6 +13,7 @@ from anasymod.blocks.probe_extract import TemplPROBE_EXTRACT
 from anasymod.blocks.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
+from anasymod.sim_ctrl.uart_control import UARTControl
 
 class VivadoBuild():
     def __init__(self, target: FPGATarget):
@@ -68,9 +69,6 @@ class VivadoBuild():
         if self.target.prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
             # generate vio IP block
             self.v.use_templ(TemplVIO(target=self.target))
-        elif self.target.prj_cfg.board.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
-            # Add generation and instantiation of UART ctrl shell here, this should be structured differently later and be part of a step to add the control infrastructure to the design
-            pass
 
         # read user-provided IPs
         constrs.println('# Custom user-provided IP cores')
