@@ -1,4 +1,5 @@
 import os
+import os.path
 import subprocess
 import sys
 import json
@@ -6,6 +7,9 @@ import json
 from multiprocessing.pool import ThreadPool
 from math import ceil, log2
 from collections import namedtuple
+from argparse import ArgumentParser
+
+from msdsl import VerilogGenerator
 
 def back2fwd(path: str):
     return path.replace('\\', '/')
@@ -103,6 +107,31 @@ def _json_object_hook(d):
 def json2obj(data):
     return json.loads(data, object_hook=_json_object_hook)
 ########################
+
+# Argument parser for the examples
+class ExampleControl:
+    def __init__(self):
+        # create the parser
+        parser = ArgumentParser()
+
+        # add custom arguments
+        parser.add_argument('-o', '--output', type=str)
+        parser.add_argument('--dt', type=float)
+
+        # parser arguments
+        args = parser.parse_args()
+
+        # save arguments
+        self.output = os.path.realpath(os.path.expanduser(args.output))
+        self.dt = args.dt
+
+    def write_model(self, model):
+        # determine the filename
+        filename = os.path.join(self.output, f'{model.module_name}.sv')
+        print('Model will be written to: ' + filename)
+
+        # write the model to a file
+        model.compile_to_file(VerilogGenerator(), filename)
 
 def main():
     print(next_pow_2(15))

@@ -1,37 +1,21 @@
-import os.path
-from argparse import ArgumentParser
-
-from msdsl.model import MixedSignalModel
-from msdsl.generator.verilog import VerilogGenerator
-from msdsl.expr.signals import DigitalOutput, DigitalInput
-
-from anasymod.files import get_full_path
+from msdsl import MixedSignalModel, DigitalOutput, DigitalInput
+from anasymod import ExampleControl
 
 def main():
-    print('Running model generator...')
-
-    # parse command line arguments
-    parser = ArgumentParser()
-    parser.add_argument('-o', '--output', type=str)
-    parser.add_argument('--dt', type=float)
-    args = parser.parse_args()
+    ctrl = ExampleControl()
 
     # create the model
     model = MixedSignalModel('bitwise', DigitalInput('a'), DigitalInput('b'), DigitalOutput('a_and_b'),
                              DigitalOutput('a_or_b'), DigitalOutput('a_xor_b'), DigitalOutput('a_inv'),
-                             DigitalOutput('b_inv'), dt=args.dt)
+                             DigitalOutput('b_inv'), dt=ctrl.dt)
     model.set_this_cycle(model.a_and_b, model.a & model.b)
     model.set_this_cycle(model.a_or_b, model.a | model.b)
     model.set_this_cycle(model.a_xor_b, model.a ^ model.b)
     model.set_this_cycle(model.a_inv, ~model.a)
     model.set_this_cycle(model.b_inv, ~model.b)
 
-    # determine the output filename
-    filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')
-    print('Model will be written to: ' + filename)
-
-    # generate the model
-    model.compile_to_file(VerilogGenerator(), filename)
+    # write model
+    ctrl.write_model(model)
 
 if __name__ == '__main__':
     main()
