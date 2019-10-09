@@ -85,7 +85,7 @@ class VivadoBuild():
         # extact probes from design
         self.v.use_templ(TemplPROBE_EXTRACT(target=self.target))
 
-        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"synthesis.tcl")
+        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"synthesis.tcl", lsf_opts=self.target.prj_cfg.vivado_config.lsf_opts)
 
         # append const file with ILA according to extracted probes
         constrs.read_from_file(cpath)
@@ -101,6 +101,7 @@ class VivadoBuild():
         # launch the build and wait for it to finish
         self.v.println(f'launch_runs impl_1 -to_step write_bitstream -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
         self.v.println('wait_on_run impl_1')
+        self.v.println('exec sleep 5')
 
         # self.v.println('refresh_design')
         # self.v.println('puts [get_nets - hier - filter {MARK_DEBUG}]')
@@ -114,8 +115,8 @@ class VivadoBuild():
         self.v.println(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         # run bitstream generation
-        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"bitstream.tcl")
+        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"bitstream.tcl", lsf_opts=self.target.prj_cfg.vivado_config.lsf_opts)
 
     def run_FPGA(self, start_time: float, stop_time: float, dt: float, server_addr: str):
         self.v.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, start_time=start_time, stop_time=stop_time, dt=dt, server_addr=server_addr))
-        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"run_FPGA.tcl")
+        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"run_FPGA.tcl", lsf_opts=self.target.prj_cfg.vivado_config.lsf_opts)
