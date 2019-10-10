@@ -1,9 +1,11 @@
+import os
+
 from anasymod.enums import ConfigSections
 from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.structures.port_base import PortIN, PortOUT, Port
 from anasymod.structures.signal_base import Signal
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, AnalogCtrlInput, AnalogCtrlOutput
 
 #ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
@@ -16,6 +18,12 @@ class StructureConfig():
     from the plugin side, e.g. additional clks, resets, ios to the host application or resources on the FPGA board.
     """
     def __init__(self, prj_cfg: EmuConfig):
+        # Internal variables
+        self.i_addr_counter = 0
+        self.o_addr_counter = 0
+
+        self._ctrl_iofile_path = os.path.join(prj_cfg.root, 'ctrl_io.config')
+
         self.cfg = Config(prj_cfg=prj_cfg)
         self.cfg.update_config()
 
@@ -25,42 +33,22 @@ class StructureConfig():
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
-        self.reset_ctrl.i_addr = prj_cfg.ctrl._assign_i_addr()
+        self.reset_ctrl.i_addr = self._assign_i_addr()
 
         # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
         self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
-        self.dec_thr_ctrl.i_addr = prj_cfg.ctrl._assign_i_addr()
+        self.dec_thr_ctrl.i_addr = self._assign_i_addr()
 
-        # Add additional CtrlIOs
-        self.digital_ctrl_inputs = prj_cfg.ctrl.ctrl_ios.digital_inputs
-        self.analog_ctrl_inputs = prj_cfg.ctrl.ctrl_ios.analog_inputs
-        self.digital_ctrl_outputs = prj_cfg.ctrl.ctrl_ios.digital_outputs
-        self.analog_ctrl_outputs = prj_cfg.ctrl.ctrl_ios.analog_outputs
+        # CtrlIOs
+        self.digital_ctrl_inputs = []
+        self.digital_ctrl_outputs = []
+        self.analog_ctrl_inputs = []
+        self.analog_ctrl_outputs = []
 
-
-
-
-        # vio inputs
-        #self.vio_i_names = [f"vio_i_{i}" for i in range(self.cfg.vio_i_num)]
-        #self.vio_i_ports = [Port(name=self.vio_i_names[i], width=self.cfg.vio_i_widths[i]) for i in range(self.cfg.vio_i_num)]
-        #self.vio_i_sigs = [Signal(abs_path=self.cfg.vio_i_abspaths[i]) for i in range(self.cfg.vio_i_num)]
-
-        # vio reset
-        #self.vio_r_num = 1
-        #self.vio_r_widths = [1]
-        #self.vio_r_names = ['emu_rst']
-        #self.vio_r_ports = [Port(name=self.vio_r_names[i], width=self.vio_r_widths[i]) for i in range(self.vio_r_num)]
-
-        # vio sim control
-        #self.vio_s_num = 1
-        #self.vio_s_widths = [int(prj_cfg.cfg.dec_bits)]
-        #self.vio_s_names = ['emu_dec_thr']
-        #self.vio_s_ports = [Port(name=self.vio_s_names[i], width=self.vio_s_widths[i]) for i in range(self.vio_s_num)]
-
-        # names for reset and decimation_threshold are fixed
-        #self.vio_o_names = ([f"vio_o_{i}" for i in range(self.cfg.vio_o_num)])
-        #self.vio_o_ports = [Port(name=self.vio_o_names[i], width=self.cfg.vio_o_widths[i]) for i in range(self.cfg.vio_o_num)]
-        #self.vio_o_sigs = [Signal(abs_path=self.cfg.vio_o_abspaths[i]) for i in range(self.cfg.vio_o_num)]
+        self.digital_ctrl_inputs = [DigitalCtrlInput(name='hufflpu', width=31, abspath='',init_value=41)]
+        self.digital_ctrl_outputs = [DigitalCtrlOutput(name='banii', width=1, abspath='')]
+        self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='', range=500)]
+        self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath='')]
 
         #########################################################
         # CLK manager interfaces
@@ -104,7 +92,77 @@ class StructureConfig():
         self.clk_g_names = [f"clk_o_{i}_ce" for i in range(self.clk_g_num)]
         self.clk_g_ports = [Port(name=self.clk_g_names[i], width=self.clk_g_widths[i]) for i in range(self.clk_g_num)]
 
+    def _assign_i_addr(self):
+        """
+        Function to assign an input address to an Input object.
+        """
+        curr_addr = self.i_addr_counter
+        self.i_addr_counter +=1
+        return curr_addr
 
+    def _assign_o_addr(self):
+        """
+        Function to assign an input address to an Input object.
+        """
+        curr_addr = self.o_addr_counter
+        self.o_addr_counter +=1
+        return curr_addr
+
+    def _read_iofile(self):
+        """
+        Read all lines from iofile and call parse function to populate ctrl_ios container.
+        """
+        if os.path.isfile(self._ctrl_iofile_path):
+            with open(self._ctrl_iofile_path, "r") as f:
+                ctrlios = f.readlines()
+            self._parse_iofile(ctrlios=ctrlios)
+        else:
+            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
+
+    def _parse_iofile(self, ctrlios: list):
+        """
+        Read all lines from ctrl io file and store IO objects in CtrlIO container while adding access addresses to
+        each IO object.
+        :param ctrlios: Lines extracted to ctrl_io file
+        """
+
+        for k, line in enumerate(ctrlios):
+            line = line.strip()
+
+            if line.startswith('#'):
+                # skip comments
+                continue
+
+            if line:
+                try:
+                    line = eval(line)
+                    if isinstance(line, DigitalCtrlInput):
+                        line.i_addr = self._assign_i_addr()
+                        self.digital_ctrl_inputs.append(line)
+                    elif isinstance(line, DigitalCtrlOutput):
+                        line.o_addr = self._assign_o_addr()
+                        self.digital_ctrl_outputs.append(line)
+                    elif isinstance(line, AnalogCtrlInput):
+                        line.i_addr = self._assign_i_addr()
+                        self.analog_ctrl_inputs.append(line)
+                    elif isinstance(line, AnalogCtrlOutput):
+                        line.o_addr = self._assign_o_addr()
+                        self.analog_ctrl_outputs.append(line)
+                    else:
+                        raise Exception(f"Line {k+1} of ctrl_io file: {self._ctrl_iofile_path} does not fit do a specified source or config type")
+                except:
+                    raise Exception(f"Line {k+1} of config file: {self._ctrl_iofile_path} could not be processed properely")
+
+
+class CtrlIOs():
+    """
+    Container to store all Control IOs for associated Control Interface.
+    """
+    def __init__(self):
+        self.digital_inputs = []
+        self.digital_outputs = []
+        self.analog_inputs = []
+        self.analog_outputs = []
 
 class Config(BaseConfig):
     """

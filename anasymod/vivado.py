@@ -2,7 +2,7 @@ import os
 
 from anasymod.util import call, back2fwd
 from anasymod.codegen import CodeGenerator
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, MEMFile
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, MEMFile, BDFile
 
 class VivadoControl(CodeGenerator):
 
@@ -34,6 +34,9 @@ class VivadoControl(CodeGenerator):
         # add mem file
         self.add_mem_file(mem_files=content['mem_files'])
 
+        # add bd file
+        self.add_bd_file(bd_files=content['bd_files'])
+
     def add_verilog_sources(self, ver_src: [VerilogSource]):
         f_list = []
         for src in ver_src:
@@ -58,6 +61,13 @@ class VivadoControl(CodeGenerator):
     def add_mem_file(self, mem_files: [MEMFile]):
         for mem_file in mem_files:
             self.add_files(mem_file.files)
+
+    def add_bd_file(self, bd_files: [BDFile]):
+        for bd_file in bd_files:
+            cmd = ['read_bd']
+            cmd.append('{ ' + ' '.join('"' + back2fwd(file) + '"' for file in bd_file.files) + ' }')
+            self.println(' '.join(cmd))
+
 
     def add_project_defines(self, content, fileset):
         """

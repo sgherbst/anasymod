@@ -7,7 +7,6 @@ from anasymod.base_config import BaseConfig
 from anasymod.enums import ConfigSections, FPGASimCtrl
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
-from anasymod.structures.module_vio import ModuleVIOManager
 from anasymod.structures.module_clk_manager import ModuleClkManager
 from typing import Union
 from anasymod.sources import VerilogSource
@@ -52,6 +51,8 @@ class Target():
         """:type : List[XDCFile]"""
         self.content['mem_files'] = []
         """:type : List[MEMFile]"""
+        self.content['bd_files'] = []
+        """:type : List[BDFile]"""
 
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name)
@@ -91,7 +92,7 @@ class Target():
         self.content['verilog_sources'] += [VerilogSource(files=toplevel_path)]
 
         # Build control structure and add all sources to project
-        self.prj_cfg.ctrl.build_ctrl_structure(target=self)
+        self.ctrl._build_ctrl_structure(target=self)
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')

@@ -5,15 +5,21 @@ from anasymod.enums import CtrlOps, FPGASimCtrl
 from anasymod.sim_ctrl.control import Control
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_uartsimctrl import ModuleUARTSimCtrl
+from anasymod.structures.module_regmapsimctrl import ModuleRegMapSimCtrl
 from anasymod.targets import Target
-from anasymod.sources import VerilogSource
-#from anasymod.config import EmuConfig
+from anasymod.sources import VerilogSource, BDFile
+from anasymod.files import mkdir_p, rm_rf, get_from_module, which
 
 class UARTControl(Control):
     def __init__(self, prj_cfg):
         super().__init__(prj_cfg=prj_cfg)
 
         # Initialize internal variables
+        self._simctrlregmap_path = os.path.join(prj_cfg.build_root, 'gen_ctrlregmap.sv')
+
+        # Program Zynq PS for UART access
+        self._program_zynq_ps()
+        HIER WEITER: #ToDo: add path to elf file and add structure for storing ctrl ifc dependent files, also including the BD; later test if .tcl script for creating BD would be beneficial/at least there should be a script for creating the .bd file for a new Vivado version, also add binary path to xsct interface
         vid_list = [1027]
         pid_list = [24592]
         port_list = []
@@ -73,7 +79,7 @@ class UARTControl(Control):
         self._write(operation=CtrlOps.READ_PARAMETER, addr=addr)
         return self._read()
 
-    def build_ctrl_structure(self, target: Target):
+    def _build_ctrl_structure(self, target: Target):
         """
         Generate RTL design for control infrastructure. This will generate the register map, add the block diagram
         including the zynq PS and add the firmware running on the zynq PS.
@@ -81,20 +87,30 @@ class UARTControl(Control):
 
         # Generate simulation control wrapper and add to target sources
         with (open(self._simctrlwrap_path, 'w')) as ctrl_file:
-           ctrl_file.write(ModuleUARTSimCtrl(target=target).render())
+           ctrl_file.write(ModuleUARTSimCtrl(scfg=target.str_cfg).render())
 
         target.content['verilog_sources'] += [VerilogSource(files=self._simctrlwrap_path)]
 
         # Generate register map according to IO settings stored in structure config and add to target sources
-        #HIER WEITER: #ToDo: template für regmap hinzufügen
+        with (open(self._simctrlregmap_path, 'w')) as ctrl_file:
+           ctrl_file.write(ModuleRegMapSimCtrl(scfg=target.str_cfg).render())
 
-        # Add CPU subsystem and firmware to target sources for UART IO
+        target.content['verilog_sources'] += [VerilogSource(files=self._simctrlregmap_path)]
+
+        # Add CPU subsystem to target sources for UART IO
         if self.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
             # Add ZYNQ cpu subsystem as a blockdiagram
-            pass
+            zynq_bd = BDFile(files=get_from_module('anasymod', 'verilog', 'zynq_uart.bd'))
+            target.content['bd_files'].append(zynq_bd)
         else:
-            raise Exception(f"No vaild simulation control setting was defined for the project:{self.simctrl}")
+            raise Exception(f"No vaild simulation control setting was defined for the project:{self.sim_ctrl}")
 
+    def _program_zynq_ps(self):
+        """
+        Program UART control application to Zynq PS to enable UART control interface.
+        """
+        pass
+        HIER WEITER
 
 def main():
     ctrl = UARTControl(prj_cfg=EmuConfig(root='test', cfg_file=''))

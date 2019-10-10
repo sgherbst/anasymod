@@ -1,17 +1,14 @@
 from anasymod.templ import JinjaTempl
 from anasymod.gen_api import SVAPI, ModuleInst
-from anasymod.targets import Target
 from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.structures.structure_config import StructureConfig
 
 class ModuleUARTSimCtrl(JinjaTempl):
-    def __init__(self, target: Target):
+    def __init__(self, scfg: StructureConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        scfg = target.str_cfg
 
         custom_ctrl_ios = scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_inputs + \
                           scfg.digital_ctrl_outputs
-
-        ctrl_ios = custom_ctrl_ios + scfg.dec_thr_ctrl + scfg.reset_ctrl
 
         crtl_inputs = scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         ctrl_outputs = scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs
@@ -23,7 +20,7 @@ class ModuleUARTSimCtrl(JinjaTempl):
 
         module = ModuleInst(api=self.module_ifc, name="sim_ctrl_gen")
         module.add_inputs(ctrl_outputs)
-        module.add_outputs(crtl_inputs + scfg.dec_thr_ctrl + scfg.reset_ctrl)
+        module.add_outputs(crtl_inputs + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
         #ToDo: after revamp of clk in structure config, adding the master clk can be cleaned up as well
         module.add_input(DigitalCtrlInput(name=scfg.clk_m_ports[0].name, width=1, abspath=None))
 
@@ -36,8 +33,12 @@ class ModuleUARTSimCtrl(JinjaTempl):
 
         # Custom control IOs for pc sim control module
         self.pc_sim_crtl_ifc = SVAPI()
-        for ctrl_io in custom_ctrl_ios:
-            self.pc_sim_crtl_ifc.println(f".{ctrl_io.name}({ctrl_io.name})")
+
+        sim_ctrl_module = ModuleInst(api=self.pc_sim_crtl_ifc, name="sim_ctrl")
+        sim_ctrl_module.add_inputs(ctrl_outputs, connections=ctrl_outputs)
+        sim_ctrl_module.add_outputs(crtl_inputs, connections=crtl_inputs)
+
+        sim_ctrl_module.generate_instantiation()
 
         # set number of clk cycles for initial reset
         self.rst_clkcycles = scfg.cfg.rst_clkcycles
@@ -120,18 +121,14 @@ class ModuleUARTSimCtrl(JinjaTempl):
     {% if subst.pc_sim_crtl_ifc.text is not none %} 
     //module for custom vio handling
     //NOTE: sim_ctrl module must be written and added to the project manually!!!
-    sim_ctrl sim_ctrl_i (
-    {% for line in subst.pc_sim_crtl_ifc.text.splitlines() %}
-        {{line}}{{ "," if not loop.last }}
-    {% endfor %}
-    )
+{{subst.pc_sim_crtl_ifc.text}}
     {% endif %}
 `else
     // Instantiation of register map
     {{subst.reg_map_inst.text}}
 
     // Instantiation of processing system
-    {{subst.bd_inst.text}}
+{{subst.bd_inst.text}}
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule
@@ -139,7 +136,9 @@ endmodule
 '''
 
 def main():
-    print(ModuleVIOManager(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
+    from anasymod.config import EmuConfig
+    #print(ModuleRegMapSimCtrl(scfg=StructureConfig(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
+    print(ModuleUARTSimCtrl(scfg=StructureConfig(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
 if __name__ == "__main__":
     main()

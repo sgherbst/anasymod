@@ -90,7 +90,6 @@ class DigitalCtrlOutput(DigitalSignal):
         super().__init__(abspath=abspath, name=name, width=width, delimiter=delimiter)
         self.o_addr = None
 
-
 class AnalogCtrlOutput(AnalogSignal):
     """
     Container for an analog control output to the simulation.
