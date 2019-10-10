@@ -1,22 +1,33 @@
 import os.path
 from argparse import ArgumentParser
 
-from msdsl import MixedSignalModel, VerilogGenerator, Deriv
+from msdsl import MixedSignalModel, VerilogGenerator, AnalogSignal
 from anasymod import get_full_path
 
 class Filter(MixedSignalModel):
-    def __init__(self, name='filter', res=1e3, cap=1e-9, dt=0.1e-6):
+    def __init__(self, name='filter', dt=0.1e-6):
         # call the super constructor
         super().__init__(name, dt=dt)
 
-        # define IOs
         self.add_analog_input('v_in')
         self.add_analog_output('v_out')
+        self.add_digital_input('sw1')
+        self.add_digital_input('sw2')
 
-        # define dynamics
-        self.add_eqn_sys([
-            Deriv(self.v_out) == (self.v_in - self.v_out) / (res*cap)
-        ])
+        c = self.make_circuit()
+        gnd = c.make_ground()
+
+        c.voltage('net_v_in', gnd, self.v_in)
+        c.switch('net_v_in', 'net_v_x', self.sw1)
+        c.switch('net_v_x', gnd, self.sw2)
+
+        c.capacitor('net_v_x', gnd, 1e-12, 100)
+
+        c.inductor('net_v_in', 'net_v_x', 1e-6, current_range=100.0)
+
+        c.add_eqns(
+            AnalogSignal('net_v_x') == self.v_out
+        )
 
 def main():
     print('Running model generator...')

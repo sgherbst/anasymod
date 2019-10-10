@@ -2,14 +2,8 @@ import os.path
 
 from argparse import ArgumentParser
 
-from msdsl.model import MixedSignalModel
-from msdsl.generator.verilog import VerilogGenerator
-from msdsl.expr.signals import AnalogInput, DigitalInput, AnalogOutput, AnalogSignal
-from msdsl.eqn.deriv import Deriv
-from msdsl.eqn.cases import eqn_case
-
-from anasymod.util import json2obj
-from anasymod.files import get_full_path
+from msdsl import MixedSignalModel, VerilogGenerator, AnalogInput, DigitalInput, AnalogOutput, AnalogSignal, Deriv, eqn_case
+from anasymod import json2obj, get_full_path
 
 def main():
     print('Running model generator...')

@@ -103,3 +103,7 @@ For this test, you'll need a [Pynq-Z1](https://store.digilentinc.com/pynq-z1-pyt
 ```shell
 > anasymod -i buck --emulate --start_time 1.23e-6 --stop_time 4.56e-6
 ```
+
+## Contributing
+
+To improve the quality of the software, users are encouraged to share modifications, enhancements or bug fixes with Infineon Technologies AG under Gabriel.Rutsch@infineon.com.

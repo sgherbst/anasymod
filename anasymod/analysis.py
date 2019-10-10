@@ -142,10 +142,13 @@ class Analysis():
         build.build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
-    def emulate(self, target: FPGATarget):
+    def emulate(self, target: FPGATarget, server_addr=None):
         """
         Run bitstream on FPGA
         """
+
+        if server_addr is None:
+            server_addr = self.args.server_addr
 
         # Check if project setup was finished
         self._check_setup()
@@ -162,7 +165,7 @@ class Analysis():
             build = VivadoBuild(target=target)
 
         # run the emulation
-        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt, server_addr=self.args.server_addr)
+        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt, server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
