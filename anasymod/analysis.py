@@ -61,7 +61,7 @@ class Analysis():
         self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
 
         # Assign simulation control interface object
-        self.ctrl = self._prj_cfg.ctrl
+        #self.ctrl = ToDo HIER WEITER
 
         # Initialize Plugins
         self._plugins = []

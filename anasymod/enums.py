@@ -32,8 +32,9 @@ class PortDir:
     """
     Container including enums for all supported port directions.
     """
-    IN = "IN"
-    OUT = "OUT"
+    IN = "input"
+    OUT = "output"
+    INOUT = "inout"
 
 class CtrlOps:
     """
