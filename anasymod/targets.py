@@ -11,6 +11,7 @@ from anasymod.structures.module_clk_manager import ModuleClkManager
 from typing import Union
 from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_control import UARTControl
+from anasymod.sim_ctrl.vio_control import VIOControl
 
 class Target():
     """
@@ -27,7 +28,8 @@ class Target():
         self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
 
         # Instantiate Simulation Control Interface
-        self.ctrl = self.setup_ctrl_ifc()
+        self.ctrl = None
+        """ :type : Control"""
 
         self._name = name
 
@@ -36,23 +38,7 @@ class Target():
         """ :type : dict(Probe)"""
 
         # Initialize content dict  to store design sources and defines
-        self.content = {}
-        self.content['verilog_sources'] = []
-        """:type : List[VerilogSource]"""
-        self.content['verilog_headers'] = []
-        """:type : List[VerilogHeader]"""
-        self.content['vhdl_sources'] = []
-        """:type : List[VHDLSource]"""
-        self.content['defines'] = []
-        """:type : List[Define]"""
-        self.content['xci_files'] = []
-        """:type : List[XCIFile]"""
-        self.content['xdc_files'] = []
-        """:type : List[XDCFile]"""
-        self.content['mem_files'] = []
-        """:type : List[MEMFile]"""
-        self.content['bd_files'] = []
-        """:type : List[BDFile]"""
+        self.content = Content()
 
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name)
@@ -61,7 +47,7 @@ class Target():
         """
         Add define statement to specify tstop
         """
-        self.content['defines'].append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
+        self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
 
     def assign_fileset(self, fileset: dict):
         """
@@ -72,16 +58,14 @@ class Target():
         """
 
         for k in fileset.keys():
-            self.content[k] += fileset[k]
+            setattr(self.content, k, getattr(self.content, k) + fileset[k])
 
     def update_structure_config(self):
         self.str_cfg.cfg.update_config(subsection=self._name)
 
     def gen_structure(self):
         """
-        Generate toplevel, IPCore wrappers, debug infrastructure for FPGA and clk manager
-        ToDo: There needs to be a separation between sim and FPGA target with regards to control management as this
-        ToDo: is significantly easier for sim and does not need a CPU subsystem for example
+        Generate toplevel, IPCore wrappers, debug infrastructure and clk manager.
         """
 
         # Generate toplevel and add to target sources
@@ -89,17 +73,17 @@ class Target():
         with (open(toplevel_path, 'w')) as top_file:
             top_file.write(ModuleTop(target=self).render())
 
-        self.content['verilog_sources'] += [VerilogSource(files=toplevel_path)]
+        self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
 
         # Build control structure and add all sources to project
-        self.ctrl._build_ctrl_structure(target=self)
+        self.ctrl._build_base_ctrl_structure(str_cfg=self.str_cfg, content=self.content)
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
         with (open(clkmanagerwrapper_path, 'w')) as top_file:
-            top_file.write(ModuleClkManager(target=self).render())
+            top_file.write(ModuleClkManager(scfg=self.str_cfg).render())
 
-        self.content['verilog_sources'] += [VerilogSource(files=clkmanagerwrapper_path)]
+        self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path)]
 
     def setup_ctrl_ifc(self):
         """
@@ -108,13 +92,14 @@ class Target():
 
         :rtype: Control
         """
+        #ToDo: This should only be executed for FPGA simulation!
 
-        if self.prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+        if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
             print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
-            return None
-        elif self.prj_cfg.board.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
+            self.ctrl = VIOControl(prj_cfg=self.prj_cfg)
+        elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
-            return UARTControl(prj_cfg=self)
+            self.ctrl = UARTControl(prj_cfg=self.prj_cfg)
         else:
             raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
@@ -127,7 +112,7 @@ class SimulationTarget(Target):
         super().__init__(prj_cfg=prj_cfg, name=name)
 
     def setup_vcd(self):
-        self.content['defines'].append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
+        self.content.defines.append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
 
 class FPGATarget(Target):
     """
@@ -142,6 +127,13 @@ class FPGATarget(Target):
         # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
         # emulation time for most purposes.
         self._ip_cores = []
+
+    def gen_structure(self):
+        """
+        Generate toplevel, IPCore wrappers, debug/ctrl infrastructure for FPGA and clk manager.
+        """
+        super().gen_structure()
+        self.ctrl._build_FPGA_ctrl_structure(str_cfg=self.str_cfg, content=self.content)
 
     @property
     def probe_cfg_path(self):
@@ -176,5 +168,28 @@ class Config(BaseConfig):
         # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
         self.csv_name = f"{self.top_module}_{name}.csv"
         self.csv_path = os.path.join(prj_cfg.build_root, r"csv", self.csv_name)
+        self.fpga_sim_ctrl = FPGASimCtrl.VIVADO_VIO
 
+class Content():
+    """
+    Container storing all Project specific source files, such as RTL, eSW code, blockdiagrams, IP core configs,
+    constraint files, ... .
+    """
 
+    def __init__(self):
+        self.verilog_sources = []
+        """:type : List[VerilogSource]"""
+        self.verilog_headers = []
+        """:type : List[VerilogHeader]"""
+        self.vhdl_sources = []
+        """:type : List[VHDLSource]"""
+        self.defines = []
+        """:type : List[Define]"""
+        self.xci_files = []
+        """:type : List[XCIFile]"""
+        self.xdc_files = []
+        """:type : List[XDCFile]"""
+        self.mem_files = []
+        """:type : List[MEMFile]"""
+        self.bd_files = []
+        """:type : List[BDFile]"""

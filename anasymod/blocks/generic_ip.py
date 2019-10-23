@@ -5,7 +5,7 @@ from anasymod.util import back2fwd
 from anasymod.targets import FPGATarget
 
 class TemplGenericIp(JinjaTempl):
-    def __init__(self, ip_name, ip_module_name=None, props=None, target : FPGATarget=None):
+    def __init__(self, ip_name, ip_module_name=None, props=None, ip_dir=None):
         super().__init__()
         # set defaults
         if props is None:
@@ -16,7 +16,7 @@ class TemplGenericIp(JinjaTempl):
 
         self.ip_name = ip_name
         self.ip_module_name = ip_module_name
-        self.ip_xci_path = back2fwd(os.path.join(target.ip_dir, ip_module_name, f'{ip_module_name}.xci'))
+        self.ip_xci_path = back2fwd(os.path.join(ip_dir, ip_module_name, f'{ip_module_name}.xci'))
 
         self.props = props
 

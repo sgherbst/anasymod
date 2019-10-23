@@ -59,11 +59,9 @@ class ModuleRegMapSimCtrl(JinjaTempl):
         # instantiation of register map module
         self.probes_combomux_cases = SVAPI()
 
+        self.probes_combomux_cases.indent(quantity=3)
         for probe in ctrl_outputs:
-            self.probes_combomux_cases.indentation()
-            self.probes_combomux_cases.indentation()
-            self.probes_combomux_cases.indentation()
-            self.probes_combomux_cases.println(f"'d{probe.o_addr}: o_data = {probe.name};")
+            self.probes_combomux_cases.writeln(f"'d{probe.o_addr}: o_data = {probe.name};")
 
         #####################################################
         # Combo mux for Probes section
@@ -73,16 +71,16 @@ class ModuleRegMapSimCtrl(JinjaTempl):
         self.params_regmap = SVAPI()
 
         for param in crtl_inputs:
-            self.params_regmap.println(f"always @(posedge clk) begin")
-            self.params_regmap.println(f"    if (rst == 'b1) begin")
-            self.params_regmap.println(f"        {param.name} <= {param.name}_def; // use VIO defaults")
-            self.params_regmap.println(f"    end else if (i_addr == 'd{param.i_addr}) begin ")
-            self.params_regmap.println(f"        {param.name} <= i_data;")
-            self.params_regmap.println(f"    end else begin")
-            self.params_regmap.println(f"        {param.name} <= {param.name};")
-            self.params_regmap.println(f"    end")
-            self.params_regmap.println(f"end")
-            self.params_regmap.println(f"")
+            self.params_regmap.writeln(f"always @(posedge clk) begin")
+            self.params_regmap.writeln(f"    if (rst == 'b1) begin")
+            self.params_regmap.writeln(f"        {param.name} <= {param.name}_def; // use VIO defaults")
+            self.params_regmap.writeln(f"    end else if (i_addr == 'd{param.i_addr}) begin ")
+            self.params_regmap.writeln(f"        {param.name} <= i_data;")
+            self.params_regmap.writeln(f"    end else begin")
+            self.params_regmap.writeln(f"        {param.name} <= {param.name};")
+            self.params_regmap.writeln(f"    end")
+            self.params_regmap.writeln(f"end")
+            self.params_regmap.writeln(f"")
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps

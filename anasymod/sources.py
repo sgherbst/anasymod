@@ -60,7 +60,7 @@ class Sources(ConfigFileObj):
         pass
 
     def set_property(self, name, value, objects):
-        self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
+        self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
 class VerilogSource(Sources):
     def __init__(self, files: Union[list, str], fileset=r"default", config_path=None, verilog_version=None):

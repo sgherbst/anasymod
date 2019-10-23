@@ -1,9 +1,9 @@
-#from anasymod.targets import FPGATarget, Target
 from anasymod.enums import PortDir
-from anasymod.gen_api import SVAPI
+from anasymod.gen_api import SVAPI, ModuleInst
 from anasymod.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.structures.structure_config import StructureConfig
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 class ModuleTop(JinjaTempl):
     """
@@ -19,9 +19,9 @@ class ModuleTop(JinjaTempl):
         #####################################################
         self.module_ifc = SVAPI()
 
-        for port in scfg.clk_i_ports:
-            port.direction = PortDir.IN
-            self.module_ifc.gen_port(port)
+        module = ModuleInst(api=self.module_ifc, name='top')
+        module.add_inputs(scfg.clk_i)
+        module.generate_header()
 
         #####################################################
         # Instantiate clk management
@@ -30,20 +30,22 @@ class ModuleTop(JinjaTempl):
         # Add clk in signals for simulation case
         self.clk_in_sim_sigs = SVAPI()
 
-        for port in scfg.clk_i_ports:
-            self.clk_in_sim_sigs.gen_signal(port=port)
+        for clk_i in scfg.clk_i:
+            self.clk_in_sim_sigs._gen_signal(io_obj=clk_i)
 
         # Add dbg clk signals
         self.dbg_clk_sigs = SVAPI()
 
-        for port in scfg.clk_d_ports:
-            self.dbg_clk_sigs.gen_signal(port=port)
+        for clk_d in scfg.clk_d:
+            self.dbg_clk_sigs._gen_signal(io_obj=clk_d)
 
-        self.clk_ifc = SVAPI()
+        # Instantiation of clk_gen wrapper
+        self.clk_gen_ifc = SVAPI()
+        clk_gen = ModuleInst(api=self.clk_gen_ifc, name='clk_gen')
 
-        for port in scfg.clk_i_ports + scfg.clk_o_ports + scfg.clk_m_ports + scfg.clk_d_ports + scfg.clk_g_ports:
-            port.connection = port.name
-            self.clk_ifc.println(f".{port.name}({port.connection})")
+        for clk in scfg.clk_i + scfg.clk_o + scfg.clk_m + scfg.clk_d + scfg.clk_g:
+            clk_gen.add_input(clk, connection=clk)
+        clk_gen.generate_instantiation()
 
         #####################################################
         # Instantiate Ctrl Module
@@ -52,7 +54,7 @@ class ModuleTop(JinjaTempl):
         custom_ctrl_ios = scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_inputs + \
                           scfg.digital_ctrl_outputs
 
-        ctrl_ios = custom_ctrl_ios + scfg.dec_thr_ctrl + scfg.reset_ctrl
+        ctrl_ios = custom_ctrl_ios + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl]
 
         ## Instantiate all ctrl signals
         self.inst_itl_ctlsigs = SVAPI()
@@ -60,29 +62,29 @@ class ModuleTop(JinjaTempl):
             self.inst_itl_ctlsigs._gen_signal(io_obj=ctrl_io)
 
         ## Instantiate ctrl module
-        self.ctrl_module_ifc = SVAPI()
-
-        for ctrl_io in ctrl_ios:
-            self.ctrl_module_ifc.println(f".{ctrl_io.name}({ctrl_io.name})")
-
+        self.sim_ctrl_inst_ifc = SVAPI()
+        sim_ctrl_inst = ModuleInst(api=self.sim_ctrl_inst_ifc, name='sim_ctrl_gen')
+        sim_ctrl_inst.add_inputs(scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs,
+                                 connections=scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs)
+        sim_ctrl_inst.add_outputs(scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs + [scfg.dec_thr_ctrl] +
+                                  [scfg.reset_ctrl], connections=scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
+                                                                 [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
         # add master clk to ctrl module
-        self.ctrl_module_ifc.println(f".{scfg.clk_m_ports[0].name}({scfg.clk_m_ports[0].name})")
+        sim_ctrl_inst.add_input(scfg.clk_m[0], connection=scfg.clk_m[0])
+        sim_ctrl_inst.generate_instantiation()
 
         ## Assign custom ctrl signals via abs paths into design
         self.assign_custom_ctlsigs = SVAPI()
         for ctrl_io in custom_ctrl_ios:
-            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io)
+            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io, exp=ctrl_io.abs_path)
 
         #####################################################
         # Instantiate testbench
         #####################################################
-        self.tb_ifc = SVAPI()
-
-        tb_ports = scfg.clk_o_ports
-        for port in tb_ports:
-            port.connection = port.name
-            self.tb_ifc.println(f".{port.name}({port.connection})")
-
+        self.tb_inst_ifc = SVAPI()
+        tb_inst = ModuleInst(api=self.tb_inst_ifc, name='tb')
+        tb_inst.add_inputs(scfg.clk_o, connections=scfg.clk_o)
+        tb_inst.generate_instantiation()
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
@@ -91,13 +93,12 @@ class ModuleTop(JinjaTempl):
 
 `default_nettype none
 
+`ifndef SIMULATION_MODE_MSDSL
+{{subst.module_ifc.text}}
+`else
 module top(
-    `ifndef SIMULATION_MODE_MSDSL
-    {% for line in subst.module_ifc.text.splitlines() %}
-        {{line}}{{ "," if not loop.last }}
-    {% endfor %}
-    `endif // `ifndef SIMULATION_MODE_MSDSL
 );
+`endif // `ifndef SIMULATION_MODE_MSDSL
 
 // create ext_clk signal when running in simulation mode
 `ifdef SIMULATION_MODE_MSDSL
@@ -108,12 +109,10 @@ module top(
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 // debug clk declaration
-{% for line in subst.dbg_clk_sigs.text.splitlines() %}
-    {{line}}
-{% endfor %}
+{{subst.dbg_clk_sigs.text}}
 
 // emulation clock declarations
-logic emu_clk, emu_rst;
+logic emu_clk;
 
 // Declaration of control signals
 {{subst.inst_itl_ctlsigs.text}}
@@ -121,34 +120,17 @@ logic emu_clk, emu_rst;
 // Assignment of custom control signals via absolute paths to design signals
 {{subst.assign_custom_ctlsigs.text}}
 
-// VIO
-//{% for line in subst.inst_itl_ctlsigs.text.splitlines() -%}
-//    {{line}}
-//{% endfor %}
-
 // Instantiation of control wrapper
-sim_ctrl_gen sim_ctrl_gen_i(
-{% for line in subst.ctrl_module_ifc.text.splitlines() %}
-    {{line}}{{ "," if not loop.last }}
-{% endfor %}
-);
+{{subst.sim_ctrl_inst_ifc.text}}
 
 // Clock generator
-clk_gen clk_gen_i(
-{% for line in subst.clk_ifc.text.splitlines() %}
-    {{line}}{{ "," if not loop.last }}
-{% endfor %}
-);
+{{subst.clk_gen_ifc.text}}
 
 // make probes needed for emulation control
 `MAKE_EMU_CTRL_PROBES;
 
 // instantiate testbench
-tb tb_i(
-{% for line in subst.tb_ifc.text.splitlines() %}
-    {{line}}{{ "," if not loop.last }}
-{% endfor %}
-);
+{{subst.tb_inst_ifc.text}}
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL

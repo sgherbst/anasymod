@@ -52,10 +52,7 @@ class ModuleUARTSimCtrl(JinjaTempl):
 
         reg_map = ModuleInst(api=self.reg_map_inst, name="reg_map")
 
-        # ToDo: after revamp of clk in structure config, adding the master clk can be cleaned up as well
-        mclk = DigitalCtrlInput(name=scfg.clk_m_ports[0].name, width=1, abspath=None)
-        clk = DigitalSignal(name='clk', width=1, abspath=None)
-        reg_map.add_input(io_obj=clk, connection=mclk)
+        reg_map.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=scfg.clk_m[0])
 
         rst = DigitalSignal(name='rst', width=1, abspath=None)
         reg_map.add_input(io_obj=rst, connection=scfg.reset_ctrl)

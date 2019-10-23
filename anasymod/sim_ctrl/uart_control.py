@@ -3,12 +3,11 @@ import io, os
 import serial.tools.list_ports as ports
 from anasymod.enums import CtrlOps, FPGASimCtrl
 from anasymod.sim_ctrl.control import Control
-from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_uartsimctrl import ModuleUARTSimCtrl
 from anasymod.structures.module_regmapsimctrl import ModuleRegMapSimCtrl
-from anasymod.targets import Target
 from anasymod.sources import VerilogSource, BDFile
 from anasymod.files import mkdir_p, rm_rf, get_from_module, which
+from anasymod.structures.structure_config import StructureConfig
 
 class UARTControl(Control):
     def __init__(self, prj_cfg):
@@ -19,26 +18,31 @@ class UARTControl(Control):
 
         # Program Zynq PS for UART access
         self._program_zynq_ps()
-        HIER WEITER: #ToDo: add path to elf file and add structure for storing ctrl ifc dependent files, also including the BD; later test if .tcl script for creating BD would be beneficial/at least there should be a script for creating the .bd file for a new Vivado version, also add binary path to xsct interface
-        vid_list = [1027]
-        pid_list = [24592]
-        port_list = []
+        #HIER WEITER: #ToDo: add path to elf file and add structure for storing ctrl ifc dependent files, also including the BD; later test if .tcl script for creating BD would be beneficial/at least there should be a script for creating the .bd file for a new Vivado version, also add binary path to xsct interface
+        self.vid_list = [1027]
+        self.pid_list = [24592]
+        self.port_list = []
 
+    #User functions
+    def init_control(self):
+        """
+        Initialize the control interface, this is usually done after the bitstream was programmed successfully on the FPGA.
+        """
         if self.cfg.comport is None: # run auto search for finding the correct COM port
             # find all available COM ports
             comports = [port for port in ports.comports(include_links=True)]
             # check if any COM port is compliant to known vids and pids and if so store the device_id
             for port in comports:
-                if ((port.vid in vid_list) and (port.pid in pid_list)):
-                    port_list.append(port.device)
+                if ((port.vid in self.vid_list) and (port.pid in self.pid_list)):
+                    self.port_list.append(port.device)
 
-            for port in port_list:
+            for port in self.port_list:
                 try:
                     self._init_handler(comport=port)
                 except:
                     pass
             if self.cfg.comport is None:
-                raise Exception(f"ERROR: No COM port could be opened to enable connection to FPGA, found ports were: {port_list}.")
+                raise Exception(f"ERROR: No COM port could be opened to enable connection to FPGA, found ports were: {self.port_list}.")
 
         else:
             try:
@@ -46,6 +50,16 @@ class UARTControl(Control):
             except:
                 raise Exception(f"ERROR: Provided COM port: {self.cfg.comport} could not ne opened for communication.")
 
+    def write_parameter(self, addr, data):
+        self._write(operation=CtrlOps.WRITE_PARAMETER, addr=addr, data=data)
+        if self._read():
+            raise Exception(f"ERROR: Couldn't properly write: {addr}={data} command to FPGA.")
+
+    def read_parameter(self, addr):
+        self._write(operation=CtrlOps.READ_PARAMETER, addr=addr)
+        return self._read()
+
+    #Utility functions
     def _init_handler(self, comport):
         self.ctrl_handler = serial.Serial(comport, int(self.cfg.baud_rate), timeout=self.cfg.timeout,
                                           parity=self.cfg.parity, stopbits=self.cfg.stopbits,
@@ -68,18 +82,7 @@ class UARTControl(Control):
                 return int(result.decode("utf-8").rstrip())
         raise Exception(f"ERROR: Couldn't read from FPGA after:{count} attempts.")
 
-
-    def write_parameter(self, addr, data):
-        self._write(operation=CtrlOps.WRITE_PARAMETER, addr=addr, data=data)
-        if self._read():
-            raise Exception(f"ERROR: Couldn't properly write: {addr}={data} command to FPGA.")
-
-
-    def read_parameter(self, addr):
-        self._write(operation=CtrlOps.READ_PARAMETER, addr=addr)
-        return self._read()
-
-    def _build_ctrl_structure(self, target: Target):
+    def _build_base_ctrl_structure(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for control infrastructure. This will generate the register map, add the block diagram
         including the zynq PS and add the firmware running on the zynq PS.
@@ -87,30 +90,36 @@ class UARTControl(Control):
 
         # Generate simulation control wrapper and add to target sources
         with (open(self._simctrlwrap_path, 'w')) as ctrl_file:
-           ctrl_file.write(ModuleUARTSimCtrl(scfg=target.str_cfg).render())
+           ctrl_file.write(ModuleUARTSimCtrl(scfg=str_cfg).render())
 
-        target.content['verilog_sources'] += [VerilogSource(files=self._simctrlwrap_path)]
+        content['verilog_sources'] += [VerilogSource(files=self._simctrlwrap_path)]
+
+    def _build_FPGA_ctrl_structure(self, str_cfg: StructureConfig, content):
+        """
+        Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
+        For UART_ZYNQ control a register map, ZYNQ CPU SS block diagram and the firmware running on the zynq PS
+        need to be handled.
+
+        """
 
         # Generate register map according to IO settings stored in structure config and add to target sources
         with (open(self._simctrlregmap_path, 'w')) as ctrl_file:
-           ctrl_file.write(ModuleRegMapSimCtrl(scfg=target.str_cfg).render())
+           ctrl_file.write(ModuleRegMapSimCtrl(scfg=str_cfg).render())
 
-        target.content['verilog_sources'] += [VerilogSource(files=self._simctrlregmap_path)]
+        content['verilog_sources'] += [VerilogSource(files=self._simctrlregmap_path)]
 
-        # Add CPU subsystem to target sources for UART IO
-        if self.sim_ctrl is FPGASimCtrl.UART_ZYNQ:
-            # Add ZYNQ cpu subsystem as a blockdiagram
-            zynq_bd = BDFile(files=get_from_module('anasymod', 'verilog', 'zynq_uart.bd'))
-            target.content['bd_files'].append(zynq_bd)
-        else:
-            raise Exception(f"No vaild simulation control setting was defined for the project:{self.sim_ctrl}")
+        # Add ZYNQ CPU subsystem to target sources for UART IO as a blockdiagram
+        zynq_bd = BDFile(files=get_from_module('anasymod', 'verilog', 'zynq_uart.bd'))
+        content['bd_files'].append(zynq_bd)
+
+        #ToDo: Add firmware part here -> generate FW if needed and add it to target sources
 
     def _program_zynq_ps(self):
         """
         Program UART control application to Zynq PS to enable UART control interface.
         """
         pass
-        HIER WEITER
+        #HIER WEITER
 
 def main():
     ctrl = UARTControl(prj_cfg=EmuConfig(root='test', cfg_file=''))

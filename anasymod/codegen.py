@@ -1,23 +1,24 @@
 class CodeGenerator:
-    def __init__(self, line_ending='\n'):
+    def __init__(self, tab_string: str=None, line_ending='\n'):
         # save settings
-        self.line_ending = line_ending
+        self.tab_string = tab_string if tab_string is not None else '    '
+        self.line_ending = line_ending if line_ending is not None else '\n'
 
-        # initialize
-        self.text = None
-        self.reset()
+        # initialize variables
+        self.tab_level = 0
+        self.text = ''
 
-    def print(self, s):
-        self.text += s
+    def write(self, line):
+        self.text += line
 
-    def println(self, s=''):
-        self.print(s + self.line_ending)
+    def writeln(self, line=''):
+        self.write(self.tab_level * self.tab_string + line + self.line_ending)
 
     def reset(self):
         self.text = ''
 
     def use_templ(self, template):
-        self.print(template.render())
+        self.write(template.render())
 
     def write_to_file(self, filename):
         with open(filename, 'w') as f:
@@ -30,3 +31,11 @@ class CodeGenerator:
 
     def dump(self):
         return self.text
+
+    def indent(self, quantity=1):
+        self.tab_level += (1 * quantity)
+
+    def dedent(self, quantity=1):
+        self.tab_level -= (1 * quantity)
+        assert self.tab_level >= 0
+

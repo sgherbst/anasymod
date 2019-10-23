@@ -440,9 +440,13 @@ class Analysis():
                 custom_top = False
 
             if not custom_top:
+                #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'top.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'clk_gen.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_top.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlregmap.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_clkmanager_wrap.sv'), config_path=config_path, fileset=fileset))
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -484,7 +488,8 @@ class Analysis():
         # Update simulation target specific configuration
         self.sim.cfg.update_config(subsection=r"sim")
         self.sim.update_structure_config()
-        self.sim.gen_structure()
+        #ToDo: currently structure generation is only necessary for FPGA simulation, in future at least signals selected in probing file should automatically be included in vcd file
+        #self.sim.gen_structure()
         self.sim.set_tstop()
         self.sim.setup_vcd()
 
@@ -499,6 +504,9 @@ class Analysis():
         # Update simulation target specific configuration
         self.fpga.cfg.update_config(subsection=r"fpga")
         self.fpga.update_structure_config()
+        # Instantiate Simulation Control Interface
+        # ToDo: This should only be executed for FPGA simulation!
+        self.fpga.setup_ctrl_ifc()
         self.fpga.gen_structure()
         self.fpga.set_tstop()
 

@@ -57,7 +57,7 @@ class TemplClkWiz(TemplGenericIp):
 
         props[f'CONFIG.NUM_OUT_CLKS'] = '2'
 
-        super().__init__(ip_name='clk_wiz', target=self.target, props=props)
+        super().__init__(ip_name='clk_wiz', ip_dir=self.target.ip_dir, props=props)
 
 class Config(BaseConfig):
     """

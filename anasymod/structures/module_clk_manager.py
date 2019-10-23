@@ -1,71 +1,68 @@
 from anasymod.templ import JinjaTempl
 from anasymod.config import EmuConfig
-from anasymod.gen_api import SVAPI
+from anasymod.gen_api import SVAPI, ModuleInst
 from anasymod.enums import PortDir
+from anasymod.structures.structure_config import StructureConfig
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 class ModuleClkManager(JinjaTempl):
     """
     This is the generator for clk_gen.sv wrapper.
     """
-    def __init__(self, target):
-        #, num_out_clks=3, ext_clk_name='ext_clk', emu_clk_name='emu_clk', dbg_clk_name='dbg_hub_clk', clk_out_name='clk_out'
+    def __init__(self, scfg: StructureConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        self.target = target
-        self.str_cfg = target.str_cfg
 
         #####################################################
         # Create module interface
         #####################################################
         self.module_ifc = SVAPI()
 
-        for port in self.str_cfg.clk_i_ports:
-            port.direction = PortDir.IN
-            self.module_ifc.gen_port(port)
-
-        for port in self.str_cfg.clk_o_ports:
-            port.direction = PortDir.OUT
-            self.module_ifc.gen_port(port)
-
-        for port in self.str_cfg.clk_d_ports:
-            port.direction = PortDir.OUT
-            self.module_ifc.gen_port(port)
-
-        for port in self.str_cfg.clk_m_ports:
-            port.direction = PortDir.OUT
-            self.module_ifc.gen_port(port)
-
-        for port in self.str_cfg.clk_g_ports:
-            port.direction = PortDir.IN
-            self.module_ifc.gen_port(port)
+        module = ModuleInst(api=self.module_ifc, name="clk_gen")
+        module.add_inputs(scfg.clk_i)
+        module.add_outputs(scfg.clk_o)
+        module.add_outputs(scfg.clk_d)
+        module.add_outputs(scfg.clk_m)
+        module.add_inputs(scfg.clk_g)
+        module.generate_header()
 
         #####################################################
         # Instantiate clk wizard
         #####################################################
-        self.clk_wiz_ifc = SVAPI()
+        self.clk_wiz_inst = SVAPI()
 
-        for k, port in enumerate(self.str_cfg.clk_i_ports):
-            port.connection = port.name
-            self.clk_wiz_ifc.println(f".{port.name}({port.connection})")
+        clk_wiz = ModuleInst(api=self.clk_wiz_inst, name='clk_wiz_0')
+        clk_wiz.add_inputs(scfg.clk_i)
 
-        for k, port in enumerate(self.str_cfg.clk_o_ports + self.str_cfg.clk_m_ports + self.str_cfg.clk_d_ports + self.str_cfg.clk_g_ports):
-            port.connection = port.name
-            self.clk_wiz_ifc.println(f".clk_out{k+1}({port.connection})")
+        for k, port in enumerate(scfg.clk_g):
+            clk_wiz.add_input(DigitalSignal(abspath=None, width=1, name='TODO- find out how ce inputs to IP core are named!!!' + f''), connection=port)
+
+        for k, port in enumerate(scfg.clk_o + scfg.clk_m + scfg.clk_d):
+            clk_wiz.add_output(DigitalSignal(abspath=None, width=1, name=f'clk_out{k + 1}'), connection=port)
+
+        clk_wiz.add_input(DigitalSignal(abspath=None, width=1, name='reset'), connection=r"1'b0")
+        clk_wiz.add_output(DigitalSignal(abspath=None, width=1, name='locked'), DigitalSignal(abspath=None, width=1, name='locked'))
+
+        clk_wiz.generate_instantiation()
 
         #####################################################
         # Add additional attributes for instantiation of sim clk gates
         #####################################################
 
-        self.clk_outs_zipped = zip(self.str_cfg.clk_o_ports, self.str_cfg.clk_g_ports)
+        self.clk_gate_inst = SVAPI()
+        clk_o_g_zipped = zip(scfg.clk_o, scfg.clk_g)
+        for clk_o, clk_g in clk_o_g_zipped:
+            module = ModuleInst(api=self.clk_gate_inst, name='ana_clkgate', inst_name=f'ana_clkgate_{clk_o.name}')
+            module.add_input(DigitalSignal(abspath=None, width=1, name='en'), connection=clk_g)
+            module.add_input(DigitalSignal(abspath=None, width=1, name='clk'), connection=scfg.clk_m[0])
+            module.add_output(DigitalSignal(abspath=None, width=1, name='gated'), connection=clk_o)
+
+            module.generate_instantiation()
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
 `default_nettype none
-module clk_gen(
-{% for line in subst.module_ifc.text.splitlines() %}
-    {{line}}{{ "," if not loop.last }}
-{% endfor %}
-);
+{{subst.module_ifc.text}}
 
 `ifdef SIMULATION_MODE_MSDSL
 	// emulator clock sequence
@@ -86,19 +83,12 @@ module clk_gen(
 	// output assignment
 	assign emu_clk = emu_clk_state;
 	
-	{% for clk, clk_en in subst.clk_outs_zipped %}
-	    ana_clkgate ana_clkgate_{{clk.name}}(.en({{clk_en.name}}), .gated({{clk.name}}), .clk({{subst.str_cfg.clk_m_ports[0].name}}));
-    {% endfor %}
+	{{subst.clk_gate_inst.text}}
 `else
 	logic dbg_hub_clk, locked;
 
-	clk_wiz_0 clk_wiz_0_i(
-    {% for line in subst.clk_wiz_ifc.text.splitlines() %}
-        {{line}},
-    {% endfor %}
-        .reset(1'b0),
-		.locked(locked)
-	);
+    {{subst.clk_wiz_inst.text}}
+
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule
@@ -106,7 +96,7 @@ endmodule
 '''
 
 def main():
-    print(ModuleClkManager(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
+    print(ModuleClkManager(scfg=StructureConfig(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
 if __name__ == "__main__":
     main()

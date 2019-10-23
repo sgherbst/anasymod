@@ -5,7 +5,7 @@ from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.structures.port_base import PortIN, PortOUT, Port
 from anasymod.structures.signal_base import Signal
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 #ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
@@ -45,10 +45,15 @@ class StructureConfig():
         self.analog_ctrl_inputs = []
         self.analog_ctrl_outputs = []
 
-        self.digital_ctrl_inputs = [DigitalCtrlInput(name='hufflpu', width=31, abspath='',init_value=41)]
-        self.digital_ctrl_outputs = [DigitalCtrlOutput(name='banii', width=1, abspath='')]
-        self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='', range=500)]
-        self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath='')]
+        #Only for testing
+        #self.digital_ctrl_inputs = [DigitalCtrlInput(name='hufflpu', width=31, abspath='test',init_value=41)]
+        #self.digital_ctrl_inputs[0].i_addr = self._assign_i_addr()
+        #self.digital_ctrl_outputs = [DigitalCtrlOutput(name='banii', width=1, abspath='testi')]
+        #self.digital_ctrl_outputs[0].o_addr = self._assign_o_addr()
+        #self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='testii', range=500)]
+        #self.analog_ctrl_inputs[0].i_addr = self._assign_i_addr()
+        self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
+        self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
 
         #########################################################
         # CLK manager interfaces
@@ -56,41 +61,42 @@ class StructureConfig():
 
         # add clk_in
         self.clk_i_num = len(prj_cfg.board.clk_pin)
-        self.clk_i_widths = self.clk_i_num * [1]
 
         # clk_in names cannot be changed
         if self.clk_i_num == 2:
-            self.clk_i_names = ['clk_in1_p', 'clk_in1_n']
+            self.clk_i = [DigitalSignal(abspath=None, width=1, name='clk_in1_p'), DigitalSignal(abspath=None, width=1, name='clk_in1_n')]
         elif self.clk_i_num == 1:
-            self.clk_i_names = ['clk_in1']
+            self.clk_i = [DigitalSignal(abspath=None, width=1, name='clk_in1')]
         else:
             raise ValueError(
                 f"Wrong number of pins for boards param 'clk_pin', expecting 1 or 2, provided:{self.clk_i_num}")
 
-        self.clk_i_ports = [Port(name=self.clk_i_names[i], width=self.clk_i_widths[i]) for i in range(self.clk_i_num)]
-
-        # add master clk_out
+        # add master clk_outs, currently there is exactly one master clock, in case there is the need for multiple ones,
+        # the num parameter needs to be exposed and naming needs to be configurable -> names might still be hardcoded at
+        # some places!!!
         self.clk_m_num = 1
-        self.clk_m_widths = self.clk_m_num * [1]
-        self.clk_m_names = ['emu_clk']
-        self.clk_m_ports = [Port(name=self.clk_m_names[i], width=self.clk_m_widths[i]) for i in range(self.clk_m_num)]
+        self.clk_m = [DigitalSignal(abspath=None, width=1, name='emu_clk')]
 
         # add debug clk_out
         self.clk_d_num = 1
-        self.clk_d_widths = self.clk_d_num * [1]
-        self.clk_d_names = ['dbg_hub_clk']
-        self.clk_d_ports = [Port(name=self.clk_d_names[i], width=self.clk_d_widths[i]) for i in range(self.clk_d_num)]
+        self.clk_d = []
 
-        # add custom clk_outs
-        self.clk_o_widths = self.cfg.clk_o_num * [1]
-        self.clk_o_names = [f"clk_o_{i}" for i in range(self.cfg.clk_o_num)]
-        self.clk_o_ports = [Port(name=self.clk_o_names[i], width=self.clk_o_widths[i]) for i in range(self.cfg.clk_o_num)]
+        # currently there is exactly one debug clock, in case there is the need for multiple ones, name handling must be
+        # implemented, there are some places in codebase where the debug clk name is still hard coded!!!
+        for k in range(self.clk_d_num):
+            self.clk_d += [DigitalSignal(abspath=None, width=1, name='dbg_hub_clk')]
 
-        # add enable ports for each gated clk
-        self.clk_g_num = self.cfg.clk_o_num
-        self.clk_g_widths = self.clk_g_num * [1]
-        self.clk_g_names = [f"clk_o_{i}_ce" for i in range(self.clk_g_num)]
-        self.clk_g_ports = [Port(name=self.clk_g_names[i], width=self.clk_g_widths[i]) for i in range(self.clk_g_num)]
+        # add custom clk_outs -> number of gated clks is defined in config
+        self.clk_o = []
+
+        for k in range(self.cfg.clk_o_num):
+            self.clk_o += [DigitalSignal(abspath=None, width=1, name=f'clk_o_{k}')]
+
+        # add clk enable signals for each custom  clk_out -> currently all of them are derrived from this one master clk
+        self.clk_g = []
+
+        for k in range(self.cfg.clk_o_num):
+            self.clk_g += [DigitalSignal(abspath=None, width=1, name=f'clk_o_{k}_ce')]
 
     def _assign_i_addr(self):
         """
@@ -171,18 +177,6 @@ class Config(BaseConfig):
 
     def __init__(self, prj_cfg: EmuConfig):
         super().__init__(cfg_file=prj_cfg.cfg_file, section=ConfigSections.STRUCTURE)
-        self.prj_cfg = prj_cfg
-
-        #########################################################
-        # VIO settings
-        #########################################################
-        #self.vio_i_num = 0
-        #self.vio_i_widths = []
-        #self.vio_i_abspaths = []
-
-        #self.vio_o_num = 0
-        #self.vio_o_widths = []
-        #self.vio_o_abspaths = []
 
         self.rst_clkcycles = 1
 

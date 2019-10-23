@@ -13,7 +13,7 @@ from anasymod.blocks.probe_extract import TemplPROBE_EXTRACT
 from anasymod.blocks.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
-from anasymod.sim_ctrl.uart_control import UARTControl
+
 
 class VivadoBuild():
     def __init__(self, target: FPGATarget):
@@ -53,9 +53,9 @@ class VivadoBuild():
         #ToDo: Test if these xdc files should rather be just appended to the project as constr files
 
         # append user constraints
-        for xdc_file in self.target.content['xdc_files']:
+        for xdc_file in self.target.content.xdc_files:
             for file in xdc_file.files:
-                self.v.println(f'read_xdc "{back2fwd(file)}"')
+                self.v.writeln(f'read_xdc "{back2fwd(file)}"')
 
         #ToDo: This needs some refactoring, basically it is on the one hand target dependent-> template generation
         #ToDo: should be run while setting up the target, on the other hand it is dependent which kind of sim control
@@ -68,24 +68,24 @@ class VivadoBuild():
 
         if self.target.prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
             # generate vio IP block
-            self.v.use_templ(TemplVIO(target=self.target))
+            self.v.use_templ(TemplVIO(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir))
 
         # read user-provided IPs
-        constrs.println('# Custom user-provided IP cores')
-        for xci_file in self.target.content['xci_files']:
+        constrs.writeln('# Custom user-provided IP cores')
+        for xci_file in self.target.content.xci_files:
             for file in xci_file.files:
-                self.v.println(f'read_ip "{back2fwd(file)}"')
+                self.v.writeln(f'read_ip "{back2fwd(file)}"')
 
         # upgrade IPs as necessary
-        self.v.println('upgrade_ip [get_ips]')
+        self.v.writeln('upgrade_ip [get_ips]')
 
         # generate all IPs
-        self.v.println('generate_target all [get_ips]')
+        self.v.writeln('generate_target all [get_ips]')
 
         # run synthesis
-        self.v.println('reset_run synth_1')
-        self.v.println(f'launch_runs synth_1 -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
-        self.v.println('wait_on_run synth_1')
+        self.v.writeln('reset_run synth_1')
+        self.v.writeln(f'launch_runs synth_1 -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
+        self.v.writeln('wait_on_run synth_1')
 
         # extact probes from design
         self.v.use_templ(TemplPROBE_EXTRACT(target=self.target))
@@ -101,11 +101,11 @@ class VivadoBuild():
 
         # Open project
         project_path = os.path.join(self.target.project_root, self.target.prj_cfg.vivado_config.project_name + '.xpr')
-        self.v.println(f'open_project "{back2fwd(project_path)}"')
+        self.v.writeln(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish
-        self.v.println(f'launch_runs impl_1 -to_step write_bitstream -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
-        self.v.println('wait_on_run impl_1')
+        self.v.writeln(f'launch_runs impl_1 -to_step write_bitstream -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
+        self.v.writeln('wait_on_run impl_1')
 
         # self.v.println('refresh_design')
         # self.v.println('puts [get_nets - hier - filter {MARK_DEBUG}]')
@@ -115,8 +115,8 @@ class VivadoBuild():
         ltx_file_path = os.path.join(self.target.project_root, f'{self.target.prj_cfg.vivado_config.project_name}.runs',
                                      'impl_1',
                                      f"{self.target.cfg.top_module}.ltx")
-        self.v.println('open_run impl_1')
-        self.v.println(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
+        self.v.writeln('open_run impl_1')
+        self.v.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         # run bitstream generation
         self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"bitstream.tcl")

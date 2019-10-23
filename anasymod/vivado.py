@@ -14,7 +14,7 @@ class VivadoControl(CodeGenerator):
         cmd.append('"'+back2fwd(project_directory)+'"')
         if full_part_name is not None:
             cmd.extend(['-part', full_part_name])
-        self.println(' '.join(cmd))
+        self.writeln(' '.join(cmd))
 
     def add_project_sources(self, content):
         """
@@ -23,19 +23,19 @@ class VivadoControl(CodeGenerator):
         """
 
         # add verilog sources
-        self.add_verilog_sources(ver_src=content['verilog_sources'])
+        self.add_verilog_sources(ver_src=content.verilog_sources)
 
         # add verilog headers
-        self.add_verilog_headers(ver_hdr=content['verilog_headers'])
+        self.add_verilog_headers(ver_hdr=content.verilog_headers)
 
         # add vhdl sources
-        self.add_vhdl_sources(vhdl_src=content['vhdl_sources'])
+        self.add_vhdl_sources(vhdl_src=content.vhdl_sources)
 
         # add mem file
-        self.add_mem_file(mem_files=content['mem_files'])
+        self.add_mem_file(mem_files=content.mem_files)
 
         # add bd file
-        self.add_bd_file(bd_files=content['bd_files'])
+        self.add_bd_file(bd_files=content.bd_files)
 
     def add_verilog_sources(self, ver_src: [VerilogSource]):
         f_list = []
@@ -66,7 +66,7 @@ class VivadoControl(CodeGenerator):
         for bd_file in bd_files:
             cmd = ['read_bd']
             cmd.append('{ ' + ' '.join('"' + back2fwd(file) + '"' for file in bd_file.files) + ' }')
-            self.println(' '.join(cmd))
+            self.writeln(' '.join(cmd))
 
 
     def add_project_defines(self, content, fileset):
@@ -75,7 +75,7 @@ class VivadoControl(CodeGenerator):
         :param content: List of dicts that store all target specific source and define objects.
         """
         define_list = []
-        for define in content['defines']:
+        for define in content.defines:
             for k, v in define.define.items():
                 if v is not None:
                     define_list.append(f"{k}={v}")
@@ -91,10 +91,10 @@ class VivadoControl(CodeGenerator):
         if norecurse:
             cmd.append('-norecurse')
         cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
-        self.println(' '.join(cmd))
+        self.writeln(' '.join(cmd))
 
     def set_property(self, name, value, objects):
-        self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
+        self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
     def run(self, vivado, build_dir, filename=r"run.tcl", nolog=True, nojournal=True):
         # write the TCL script

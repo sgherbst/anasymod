@@ -7,7 +7,9 @@ from anasymod.codegen import CodeGenerator
 
 # ToDo: think of a more convenient way to gen and assign to signal then using a Port object
 
-io_obj_types = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]
+io_obj_types = DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal
+io_obj_types_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]
+io_obj_types_str_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal, str]
 
 
 class GenAPI(CodeGenerator):
@@ -17,9 +19,6 @@ class GenAPI(CodeGenerator):
 
     def __init__(self, line_ending='\n'):
         super().__init__(line_ending=line_ending)
-
-    def indentation(self):
-        self.print("    ")
 
     def gen_port(self, port: Union[Port, PortIN, PortOUT]):
         """
@@ -35,7 +34,7 @@ class GenAPI(CodeGenerator):
         """
         raise NotImplementedError()
 
-    def assign_to(self, io_obj: io_obj_types, exp):
+    def assign_to(self, io_obj: io_obj_types_union, exp):
         """
         Assign 'exp' to signal 'io_obj.name'.
         NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
@@ -62,7 +61,7 @@ class GenAPI(CodeGenerator):
         """
         raise NotImplementedError()
 
-    def gen_connection(self, io_objs: [io_obj_types]):
+    def gen_connection(self, io_objs: [io_obj_types_union]):
         """
         Connect an io_obj from upwards the hierarchy "upper_io_obj" to an io_obj further down the hierarchy "lower_io_obj".
 
@@ -80,7 +79,7 @@ class GenAPI(CodeGenerator):
         """
         raise NotImplementedError()
 
-    def pass_analog_port_format(self, io_obj: io_obj_types, io_obj_format: io_obj_types):
+    def pass_analog_port_format(self, io_obj: io_obj_types_union, io_obj_format: io_obj_types_union):
         """
         Pass formatting information into instantiated module for the connected analog signal.
 
@@ -104,9 +103,9 @@ class SVAPI(GenAPI):
         """
 
         if port.width > 1:
-            self.println(f"{'input' if port.direction == PortDir.IN else 'output'} wire logic [{str(port.width - 1)}:0] {port.name}")
+            self.writeln(f"{'input' if port.direction == PortDir.IN else 'output'} wire logic [{str(port.width)}  - 1:0] {port.name}")
         else:
-            self.println(f"{'input' if port.direction == PortDir.IN else 'output'} wire logic {port.name}")
+            self.writeln(f"{'input' if port.direction == PortDir.IN else 'output'} wire logic {port.name}")
 
     def gen_signal(self, port: Union[Port, PortIN, PortOUT]):
         """
@@ -115,25 +114,25 @@ class SVAPI(GenAPI):
         """
 
         if port.width > 1:
-            self.println(f"logic [{str(port.width - 1)}:0] {port.name};")
+            self.writeln(f"logic [{str(port.width)}  - 1:0] {port.name};")
         else:
-            self.println(f"logic {port.name};")
+            self.writeln(f"logic {port.name};")
 
-    def _gen_signal(self, io_obj: io_obj_types):
+    def _gen_signal(self, io_obj: io_obj_types_union):
         """
         Generate a signal using the io object as input.
         :param io_obj: io object
         """
 
         if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-            self.println(f"`MAKE_REAL({io_obj.name}, {io_obj.range});")
+            self.writeln(f"`MAKE_REAL({io_obj.name}, {io_obj.range});")
         elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
             if io_obj.width > 1:
-                self.println(f"logic [{str(io_obj.width - 1)}:0] {io_obj.name};")
+                self.writeln(f"logic [{str(io_obj.width)}  - 1:0] {io_obj.name};")
             else:
-                self.println(f"logic {io_obj.name};")
+                self.writeln(f"logic {io_obj.name};")
 
-    def assign_to(self, io_obj: io_obj_types, exp):
+    def assign_to(self, io_obj: io_obj_types_union, exp):
         """
         Assign 'exp' to signal 'io_obj.name'.
         NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
@@ -145,39 +144,44 @@ class SVAPI(GenAPI):
 
         if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
             if isinstance(exp, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-                self.println(f"`ASSIGN_REAL({exp}, {io_obj.name});")
+                self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
+                #self.println(f"`REAL_INTO_INT({exp}, `LONG_WIDTH_REAL, {io_obj.name});")
+            if isinstance(exp, str):
+                self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
+                #self.println(f"assign {io_obj.name} = {exp};")
             else:
                 try:
                     exp = str(float(exp))
-                    self.println(f"`ASSIGN_CONST_REAL({exp}, {io_obj.name});")
+                    self.writeln(f"`ASSIGN_CONST_REAL({exp}, {io_obj.name});")
                 except:
                     raise Exception(f"The provided expression is not supported for Analog Signals, only assignment of another"
-                                    f"AnalogSignal object or a cosntant value is supported; given: {exp}")
+                                    f"AnalogSignal object or a constant value is supported; given: '{exp}'")
         elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
-            self.println(f"assign {io_obj.name} = {exp};")
+            self.writeln(f"assign {io_obj.name} = {exp};")
 
-    def _gen_port(self, io_obj: io_obj_types, direction: PortDir):
+    def _gen_port(self, io_obj: io_obj_types_union, direction: PortDir):
         """
         Generate an input port using the io_obj object as input.
         :param port: Port object
+        :rtype str: generated SV for port.
         """
 
         if direction in [PortDir.IN]:
             if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-                self.print(f"`INPUT_REAL({io_obj.name})")
+                return f"`INPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 if io_obj.width > 1:
-                    self.print(f"input wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}")
+                    return f"input wire logic [{str(io_obj.width)}  - 1:0] {io_obj.name}"
                 else:
-                    self.print(f"input wire logic {io_obj.name}")
+                    return f"input wire logic {io_obj.name}"
         elif direction in [PortDir.OUT]:
             if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-                self.print(f"`OUTPUT_REAL({io_obj.name})")
+                return f"`OUTPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 if io_obj.width > 1:
-                    self.print(f"output wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}")
+                    return f"output wire logic [{str(io_obj.width)}  - 1:0] {io_obj.name}"
                 else:
-                    self.print(f"output wire logic {io_obj.name}")
+                    return f"output wire logic {io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
@@ -186,17 +190,23 @@ class SVAPI(GenAPI):
         Generate a parameter using the param_obj as input.
 
         :param param_obj: Object that includes a parameter
+        :rtype str: returns generated parameter statement
         """
 
-        self.print(f"parameter {param_obj.type} {param_obj.name}={param_obj.value}")
+        return f"parameter {param_obj.type} {param_obj.name}={param_obj.value}"
 
-    def gen_connection(self, io_objs: [io_obj_types]):
-
+    def gen_connection(self, io_objs: [io_obj_types_str_union]):
         """
         Connect an io_obj from upwards the hierarchy "upper_io_obj" to an io_obj further down the hierarchy "lower_io_obj".
+        :rtype str: returns generated string for the connection
         """
         if len(io_objs) == 2:
-            self.print(f".{io_objs[0].name}({io_objs[1].name})")
+            if isinstance(io_objs[1], (io_obj_types)): # Connect two signal type objects
+                return f".{io_objs[0].name}({io_objs[1].name})"
+            elif isinstance(io_objs[1], str): # Connect a signal type object with a fixed value
+                return f".{io_objs[0].name}({io_objs[1]})"
+            else:
+                raise Exception(f'Wrong type passed for connection:{type(io_objs[1])}')
         else:
             raise Exception(
                 f"Wrong number of io_objects provided in list, exactly two are requrend, provided were: {len(io_objs)}")
@@ -206,20 +216,22 @@ class SVAPI(GenAPI):
         Generate a declaration for an analog signal. Necessary towork with SVREAL.
 
         :param io_obj:
+        :rtype str: returns generated analog port
         """
 
         if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-            self.print(f"`DECL_REAL({io_obj.name})")
+            return f"`DECL_REAL({io_obj.name})"
 
-    def pass_analog_port_format(self, io_obj: io_obj_types, io_obj_format: io_obj_types):
+    def pass_analog_port_format(self, io_obj: io_obj_types_union, io_obj_format: io_obj_types_union):
         """
         Pass formatting information into instantiated module for the connected analog signal.
 
         :param io_objs: List of two IO objects that are connected to each other.
+        :rtype str: returns generated code for passing analog port format
         """
 
         if isinstance(io_obj, AnalogSignal):
-            self.print(f"`PASS_REAL({io_obj.name}, {io_obj_format.name})")
+            return f"`PASS_REAL({io_obj.name}, {io_obj_format.name})"
         else:
             raise Exception(f"ERROR: Wrong io type; supported only: "
                             f"{type(AnalogCtrlOutput), type(AnalogCtrlInput), type(AnalogSignal)}"
@@ -230,10 +242,11 @@ class ModuleInst():
     Container for Module Structure.
     """
 
-    def __init__(self, api: GenAPI, name):
+    def __init__(self, api: GenAPI, name, inst_name=None):
         self.api = api
 
         self.name = name
+        self.inst_name = inst_name if inst_name else f'{name}_i'
         self.analog_inputs = []
         self.analog_outputs = []
         self.digital_inputs = []
@@ -242,7 +255,7 @@ class ModuleInst():
 
         self.connections = []
 
-    def add_inputs(self, io_objs: [io_obj_types], connections=None):
+    def add_inputs(self, io_objs: [io_obj_types_union], connections=None):
         if connections:
             if len(io_objs) != len(connections):
                 raise Exception(f"ERROR: Each provided port object needs to have a connection counterpart! "
@@ -253,12 +266,12 @@ class ModuleInst():
             for io_obj in io_objs:
                 self.add_input(io_obj=io_obj)
 
-    def add_input(self, io_obj: io_obj_types, connection=None):
+    def add_input(self, io_obj: io_obj_types_union, connection=None):
         if connection:
-            if isinstance(connection, (AnalogSignal, DigitalSignal)):
+            if isinstance(connection, (AnalogSignal, DigitalSignal, str)):
                 self.connect(io_obj=io_obj, io_obj_con=connection)
             else:
-                raise Exception(f"Unsupported connection type was provided, supported types are. {io_obj_types}, "
+                raise Exception(f"Unsupported connection type was provided, supported types are. {io_obj_types_str_union}, "
                                 f"provided: {type(connection)}")
 
         if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
@@ -266,7 +279,7 @@ class ModuleInst():
         else:
             self.digital_inputs.append(io_obj)
 
-    def add_outputs(self, io_objs: [io_obj_types], connections=None):
+    def add_outputs(self, io_objs: [io_obj_types_union], connections=None):
         if connections:
             if len(io_objs) != len(connections):
                 raise Exception(f"ERROR: Each provided port object needs to have a connection counterpart! "
@@ -277,27 +290,27 @@ class ModuleInst():
             for io_obj in io_objs:
                 self.add_output(io_obj=io_obj)
 
-    def add_output(self, io_obj: io_obj_types, connection=None):
+    def add_output(self, io_obj: io_obj_types_union, connection=None):
         if connection:
-            if isinstance(connection, (AnalogSignal, DigitalSignal)):
+            if isinstance(connection, (AnalogSignal, DigitalSignal, str)):
                 self.connect(io_obj=io_obj, io_obj_con=connection)
             else:
                 raise Exception(f"Unsupported connection type was provided, supported types "
-                                f"are. {io_obj_types}, provided: {type(connection)}")
+                                f"are. {io_obj_types_union}, provided: {type(connection)}")
 
         if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
             self.analog_outputs.append(io_obj)
         else:
             self.digital_outputs.append(io_obj)
 
-    def add_parameters(self, io_objs: [io_obj_types]):
+    def add_parameters(self, io_objs: [io_obj_types_union]):
         for io_obj in io_objs:
             self.add_parameter(io_obj=io_obj)
 
-    def add_parameter(self, io_obj: io_obj_types):
+    def add_parameter(self, io_obj: io_obj_types_union):
         self.parameters.append(io_obj)
 
-    def connect(self, io_obj: io_obj_types, io_obj_con: io_obj_types):
+    def connect(self, io_obj: io_obj_types_union, io_obj_con: io_obj_types_union):
         """
         Connect io_obj to io_obj_con. This is important for later module instantiations.
 
@@ -306,8 +319,13 @@ class ModuleInst():
         """
 
         # ToDo: Improve type checkers to prevent multiple drivers.
+        # Allow connections only of both signals are of type AnalogSignal, or both are of type DigitalSignal,
+        # or signal is of type DigitalSignal and connecting signal is of type AnalogCtrlOutput/AnalogCtrlOutput; this is needed for
+        # streaming Analog signals, or strings to account for constant values
         if (isinstance(io_obj, AnalogSignal) and isinstance(io_obj_con, AnalogSignal)) or (
-                isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, DigitalSignal)):
+                isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, DigitalSignal)) or (
+                isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, (AnalogCtrlInput, AnalogCtrlOutput)) or (
+                isinstance(io_obj_con, str))):
             self.connections.append([io_obj, io_obj_con])
         else:
             raise Exception(f"IO types of objects to be connected do not match:"
@@ -317,113 +335,77 @@ class ModuleInst():
         """
         Generate full module header.
         """
-        self.api.println(f"module {self.name} #(")
-        #self.api.indentation()
 
-        ## Add parameter section
+        ### Check if module includes analog ports or parameters
         analog_ports = self.analog_inputs + self.analog_outputs
-        if analog_ports:
-            for analog_port in analog_ports[:-1]:
-                self.api.indentation()
-                self.api.decl_analog_port(analog_port)
-                self.api.println(",")
-            self.api.indentation()
-            self.api.decl_analog_port(analog_ports[-1])
-
+        if (analog_ports or self.parameters):
+            self.api.writeln(f"module {self.name} #(")
+            self.api.indent()
+            ## Add parameter section
+            if analog_ports:
+                for analog_port in analog_ports[:-1]:
+                    self.api.writeln(self.api.decl_analog_port(analog_port) + ",")
+                self.api.writeln(self.api.decl_analog_port(analog_ports[-1]) + ("," if self.parameters else ""))
             if self.parameters:
-                self.api.println(",")
-            else:
-                self.api.println("")
-
-        if self.parameters:
-            for parameter in self.parameters[:-1]:
-                self.api.indentation()
-                self.api.gen_parameter(param_obj=parameter)
-                self.api.println(",")
-            self.api.indentation()
-            self.api.gen_parameter(param_obj=self.parameters[-1])
-            self.api.println("")
-
-        self.api.println(f") (")
+                for parameter in self.parameters[:-1]:
+                    self.api.writeln(self.api.gen_parameter(param_obj=parameter) + ",")
+                self.api.writeln(self.api.gen_parameter(param_obj=self.parameters[-1]))
+            self.api.dedent()
+            self.api.writeln(f") (")
+        else:
+            self.api.writeln(f"module {self.name} (")
 
         #### Add port section
         inputs = self.analog_inputs + self.digital_inputs
         outputs = self.analog_outputs + self.digital_outputs
+
+        self.api.indent()
         if inputs:
             for input in inputs[:-1]:
-                self.api.indentation()
-                self.api._gen_port(io_obj=input, direction=PortDir.IN)
-                self.api.println(",")
-            self.api.indentation()
-            self.api._gen_port(io_obj=inputs[-1], direction=PortDir.IN)
-
-            if outputs:
-                self.api.println(",")
-            else:
-                self.api.println("")
-
+                self.api.writeln(line=self.api._gen_port(io_obj=input, direction=PortDir.IN) + ",")
+            self.api.writeln(self.api._gen_port(io_obj=inputs[-1], direction=PortDir.IN) + ("," if outputs else ""))
         if outputs:
             for output in outputs[:-1]:
-                self.api.indentation()
-                self.api._gen_port(io_obj=output, direction=PortDir.OUT)
-                self.api.println(",")
-            self.api.indentation()
-            self.api._gen_port(io_obj=outputs[-1], direction=PortDir.OUT)
-            self.api.println("")
+                self.api.writeln(self.api._gen_port(io_obj=output, direction=PortDir.OUT) + ",")
+            self.api.writeln(self.api._gen_port(io_obj=outputs[-1], direction=PortDir.OUT))
 
-        self.api.println(f");")
+        self.api.dedent()
+        self.api.writeln(f");")
 
     def generate_instantiation(self):
         """
         Generate instantiation for module.
         """
-        self.api.indentation()
-        self.api.println(f"{self.name} #(")
+        self.api.indent()
+        self.api.writeln(f"{self.name} #(")
 
         ## Add parameter section
         analog_connections = []
         for connection in self.connections:
             if isinstance(connection[0], AnalogSignal):
                 analog_connections.append(connection)
+
+        self.api.indent()
+
         if analog_connections:
             for analog_connection in analog_connections[:-1]:
-                self.api.indentation()
-                self.api.indentation()
-                self.api.pass_analog_port_format(io_obj=analog_connection[0], io_obj_format=analog_connection[1])
-                self.api.println(f",")
-            self.api.indentation()
-            self.api.indentation()
-            self.api.pass_analog_port_format(io_obj=analog_connections[-1][0], io_obj_format=analog_connections[-1][1])
-            if self.parameters:
-                self.api.println(",")
-            else:
-                self.api.println("")
+                self.api.writeln(self.api.pass_analog_port_format(io_obj=analog_connection[0], io_obj_format=analog_connection[1]) + ",")
+            self.api.writeln(self.api.pass_analog_port_format(io_obj=analog_connections[-1][0], io_obj_format=analog_connections[-1][1]) + ("," if self.parameters else ""))
 
         if self.parameters:
             for parameter in self.parameters[:-1]:
-                self.api.indentation()
-                self.api.indentation()
-                self.api.gen_parameter(param_obj=parameter)
-                self.api.println(",")
-            self.api.indentation()
-            self.api.indentation()
-            self.api.gen_parameter(param_obj=self.parameters[-1])
-            self.api.println("")
+                self.api.writeln(self.api.gen_parameter(param_obj=parameter) + ",")
+            self.api.writeln(self.api.gen_parameter(param_obj=self.parameters[-1]))
 
-        self.api.indentation()
-        self.api.println(f") {self.name}_i (")
+        self.api.dedent()
+        self.api.writeln(f") {self.inst_name} (")
 
         ## Add port section
+        self.api.indent()
         if self.connections:
             for connection in self.connections[:-1]:
-                self.api.indentation()
-                self.api.indentation()
-                self.api.gen_connection(connection)
-                self.api.println(f",")
-            self.api.indentation()
-            self.api.indentation()
-            self.api.gen_connection(self.connections[-1])
-            self.api.println("")
+                self.api.writeln(self.api.gen_connection(connection) + ",")
+            self.api.writeln(self.api.gen_connection(self.connections[-1]))
 
-        self.api.indentation()
-        self.api.println(f");")
+        self.api.dedent()
+        self.api.writeln(f");")

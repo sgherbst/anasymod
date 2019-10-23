@@ -22,7 +22,7 @@ class VivadoSimulator(Simulator):
 
         # launch the simulation
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')
-        v.println('launch_simulation')
+        v.writeln('launch_simulation')
 
         # run the simulation
         v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename='vivado_sim.tcl')

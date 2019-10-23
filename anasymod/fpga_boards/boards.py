@@ -10,7 +10,7 @@ class PYNQ_Z1():
     full_part_name = 'xc7z020clg400-1'
     short_part_name = 'xc7z020'
     dbg_hub_clk_freq = 100e6
-    sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
 
 class TE0720():
     """
@@ -21,7 +21,7 @@ class TE0720():
     clk_freq = 33.333333e6
     full_part_name = 'xc7z020clg484-1'
     short_part_name = 'xc7z020'
-    sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
 
 class VC707():
     """
@@ -33,7 +33,7 @@ class VC707():
     full_part_name = 'XC7VX485T-2FFG1761C'
     short_part_name = 'XC7VX485T'
     dbg_hub_clk_freq = 100e6
-    sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
+    fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
 class ULTRA96():
     """
@@ -44,4 +44,4 @@ class ULTRA96():
     clk_freq = 26e6
     full_part_name = 'xczu3eg-sbva484-???'
     short_part_name = 'xczu3eg'
-    sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]

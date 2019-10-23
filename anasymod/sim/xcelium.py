@@ -45,7 +45,7 @@ class XceliumSimulator(Simulator):
             cmd += ['-64bit']
 
         # add defines
-        for define in self.target.content['defines']:
+        for define in self.target.content.defines:
             for k, v in define.define.items():
                 if v is not None:
                     cmd.append(f"+define+{k}={v}")
@@ -54,7 +54,7 @@ class XceliumSimulator(Simulator):
 
         # add include directories, remove filename from paths and create a list of inc dirs removing duplicates
         inc_dirs = set()
-        for sources in self.target.content['verilog_headers']:
+        for sources in self.target.content.verilog_headers:
             for src in sources.files:
                 inc_dirs.add(os.path.dirname(src))
 
@@ -62,7 +62,7 @@ class XceliumSimulator(Simulator):
             cmd.extend(['-incdir', inc_dir])
 
         # add Verilog source files
-        for sources in self.target.content['verilog_sources']:
+        for sources in self.target.content.verilog_sources:
             for src in sources.files:
                 cmd.append(src)
 
@@ -71,7 +71,7 @@ class XceliumSimulator(Simulator):
         # append rather than replace files, then it should be OK (and simpler) to have a separate makelib for
         # each file in each library.
         libraries = OrderedDict()
-        for sources in self.target.content['vhdl_sources']:
+        for sources in self.target.content.vhdl_sources:
             library = sources.library
 
             if library not in libraries:

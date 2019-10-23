@@ -1,23 +1,27 @@
 from anasymod.base_config import BaseConfig
 from anasymod.enums import ConfigSections
 from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, AnalogCtrlInput, AnalogCtrlOutput
-from anasymod.targets import Target
+from anasymod.structures.structure_config import StructureConfig
 
 import serial, os
 
 class Control():
     def __init__(self, prj_cfg):
-        # Store project's simulation ctrl setting
-        self.sim_ctrl = prj_cfg.board.sim_ctrl
-
-        # Initialize target_config
+        # Initialize control config
         self.cfg = Config(cfg_file=prj_cfg.cfg_file)
 
         self._simctrlwrap_path = os.path.join(prj_cfg.build_root, 'gen_ctrlwrap.sv')
 
-    def _build_ctrl_structure(self, target: Target):
+    def _build_base_ctrl_structure(self, str_cfg: StructureConfig, content):
         """
-        Generate RTL design for control infrastructure, depending on the interface selected for communication.
+        Generate RTL design for base control infrastructure, depending on the interface selected for communication.
+        """
+        raise NotImplementedError("This function cannot be called from the base control class itself and is overloaded "
+                                  "in the inheriting classes.")
+
+    def _build_FPGA_ctrl_structure(self, str_cfg: StructureConfig, content):
+        """
+        Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
         """
         raise NotImplementedError("This function cannot be called from the base control class itself and is overloaded "
                                   "in the inheriting classes.")
