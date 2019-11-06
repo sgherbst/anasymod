@@ -49,7 +49,7 @@ class ModuleRegMapSimCtrl(JinjaTempl):
         for parameter in crtl_inputs:
             default_signal = parameter
             default_signal.name = str(default_signal.name) + '_def'
-            self.init_ctrlios._gen_signal(io_obj=default_signal)
+            self.init_ctrlios.gen_signal(io_obj=default_signal)
             self.init_ctrlios.assign_to(io_obj=default_signal, exp=default_signal.init_value)
 
         #####################################################

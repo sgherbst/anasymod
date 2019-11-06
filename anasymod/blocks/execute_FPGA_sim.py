@@ -35,7 +35,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # set the window count to half the ILA depth.  this is required because the window depth will be "2"
         # unfortunately a window depth of "1" is not allowed in "BASIC" capture mode, which needed to allow
         # decimation of the sampling rate.
-        self.window_count = str(cfg.ila_depth//2)
+        self.window_count = str(cfg.ila_depth/2)
 
         # calculate decimation ratio
         if stop_time is None:

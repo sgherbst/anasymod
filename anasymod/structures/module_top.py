@@ -31,13 +31,13 @@ class ModuleTop(JinjaTempl):
         self.clk_in_sim_sigs = SVAPI()
 
         for clk_i in scfg.clk_i:
-            self.clk_in_sim_sigs._gen_signal(io_obj=clk_i)
+            self.clk_in_sim_sigs.gen_signal(io_obj=clk_i)
 
         # Add dbg clk signals
         self.dbg_clk_sigs = SVAPI()
 
         for clk_d in scfg.clk_d:
-            self.dbg_clk_sigs._gen_signal(io_obj=clk_d)
+            self.dbg_clk_sigs.gen_signal(io_obj=clk_d)
 
         # Instantiation of clk_gen wrapper
         self.clk_gen_ifc = SVAPI()
@@ -59,7 +59,7 @@ class ModuleTop(JinjaTempl):
         ## Instantiate all ctrl signals
         self.inst_itl_ctlsigs = SVAPI()
         for ctrl_io in ctrl_ios:
-            self.inst_itl_ctlsigs._gen_signal(io_obj=ctrl_io)
+            self.inst_itl_ctlsigs.gen_signal(io_obj=ctrl_io)
 
         ## Instantiate ctrl module
         self.sim_ctrl_inst_ifc = SVAPI()

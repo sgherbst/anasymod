@@ -5,12 +5,9 @@ from anasymod.enums import PortDir
 from typing import Union
 from anasymod.codegen import CodeGenerator
 
-# ToDo: think of a more convenient way to gen and assign to signal then using a Port object
-
 io_obj_types = DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal
 io_obj_types_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]
 io_obj_types_str_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal, str]
-
 
 class GenAPI(CodeGenerator):
     """
@@ -20,40 +17,21 @@ class GenAPI(CodeGenerator):
     def __init__(self, line_ending='\n'):
         super().__init__(line_ending=line_ending)
 
-    def gen_port(self, port: Union[Port, PortIN, PortOUT]):
+    def gen_signal(self, io_obj: io_obj_types_union):
         """
-        Generate a port using the port object as input.
-        :param port: Port object
-        """
-        raise NotImplementedError()
-
-    def gen_signal(self, port: Union[Port, PortIN, PortOUT]):
-        """
-        Generate a signal using the port object as input.
-        :param port: Port object
+        Generate a signal using the io object as input.
+        :param io_obj: io object
         """
         raise NotImplementedError()
 
-    def assign_to(self, io_obj: io_obj_types_union, exp):
-        """
-        Assign 'exp' to signal 'io_obj.name'.
-        NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
-        or a constant value.
-
-        :param io_obj: Signal to be assigned holds name of io_obj.name.
-        :param exp: Expression to be assigned.
-        """
-        raise NotImplementedError()
-
-    def _gen_port(self, io_obj: Union[DigitalCtrlInput, DigitalCtrlOutput, AnalogCtrlInput, AnalogCtrlOutput],
-                  direction: PortDir):
+    def gen_port(self, io_obj: io_obj_types_union, direction: PortDir):
         """
         Generate an input port using the io_obj object as input.
         :param port: Port object
         """
         raise NotImplementedError()
 
-    def gen_parameter(self, param_obj: Union[DigitalCtrlInput, DigitalCtrlOutput, AnalogCtrlInput, AnalogCtrlOutput]):
+    def gen_parameter(self, param_obj: io_obj_types_union):
         """
         Generate a parameter using the param_obj as input.
 
@@ -68,6 +46,17 @@ class GenAPI(CodeGenerator):
         :param upper_io_obj:
         :param lower_io_obj:
         :return:
+        """
+        raise NotImplementedError()
+
+    def assign_to(self, io_obj: io_obj_types_union, exp):
+        """
+        Assign 'exp' to signal 'io_obj.name'.
+        NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
+        or a constant value.
+
+        :param io_obj: Signal to be assigned holds name of io_obj.name.
+        :param exp: Expression to be assigned.
         """
         raise NotImplementedError()
 
@@ -87,7 +76,6 @@ class GenAPI(CodeGenerator):
         """
         raise NotImplementedError()
 
-
 class SVAPI(GenAPI):
     """
     This is the SV specific generator API custom for generation of anasymod project files, e.g. top.sv.
@@ -96,29 +84,7 @@ class SVAPI(GenAPI):
     def __init__(self, line_ending='\n'):
         super().__init__(line_ending=line_ending)
 
-    def gen_port(self, port: Union[Port, PortIN, PortOUT]):
-        """
-        Generate a port using the port object as input.
-        :param port: Port object
-        """
-
-        if port.width > 1:
-            self.writeln(f"{'input' if port.direction == PortDir.IN else 'output'} wire logic [{str(port.width)}  - 1:0] {port.name}")
-        else:
-            self.writeln(f"{'input' if port.direction == PortDir.IN else 'output'} wire logic {port.name}")
-
-    def gen_signal(self, port: Union[Port, PortIN, PortOUT]):
-        """
-        Generate a signal using the port object as input.
-        :param port: Port object
-        """
-
-        if port.width > 1:
-            self.writeln(f"logic [{str(port.width)}  - 1:0] {port.name};")
-        else:
-            self.writeln(f"logic {port.name};")
-
-    def _gen_signal(self, io_obj: io_obj_types_union):
+    def gen_signal(self, io_obj: io_obj_types_union):
         """
         Generate a signal using the io object as input.
         :param io_obj: io object
@@ -132,34 +98,7 @@ class SVAPI(GenAPI):
             else:
                 self.writeln(f"logic {io_obj.name};")
 
-    def assign_to(self, io_obj: io_obj_types_union, exp):
-        """
-        Assign 'exp' to signal 'io_obj.name'.
-        NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
-        or a constant value.
-
-        :param io_obj: Signal to be assigned holds name of io_obj.name.
-        :param exp: Expression to be assigned.
-        """
-
-        if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-            if isinstance(exp, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
-                self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
-                #self.println(f"`REAL_INTO_INT({exp}, `LONG_WIDTH_REAL, {io_obj.name});")
-            if isinstance(exp, str):
-                self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
-                #self.println(f"assign {io_obj.name} = {exp};")
-            else:
-                try:
-                    exp = str(float(exp))
-                    self.writeln(f"`ASSIGN_CONST_REAL({exp}, {io_obj.name});")
-                except:
-                    raise Exception(f"The provided expression is not supported for Analog Signals, only assignment of another"
-                                    f"AnalogSignal object or a constant value is supported; given: '{exp}'")
-        elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
-            self.writeln(f"assign {io_obj.name} = {exp};")
-
-    def _gen_port(self, io_obj: io_obj_types_union, direction: PortDir):
+    def gen_port(self, io_obj: io_obj_types_union, direction: PortDir):
         """
         Generate an input port using the io_obj object as input.
         :param port: Port object
@@ -167,21 +106,25 @@ class SVAPI(GenAPI):
         """
 
         if direction in [PortDir.IN]:
-            if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
+            if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"`INPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 if io_obj.width > 1:
                     return f"input wire logic [{str(io_obj.width)}  - 1:0] {io_obj.name}"
                 else:
                     return f"input wire logic {io_obj.name}"
+            elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+                return f"input wire logic [`LONG_WIDTH_REAL  - 1:0] {io_obj.name}"
         elif direction in [PortDir.OUT]:
-            if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
+            if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"`OUTPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 if io_obj.width > 1:
                     return f"output wire logic [{str(io_obj.width)}  - 1:0] {io_obj.name}"
                 else:
                     return f"output wire logic {io_obj.name}"
+            elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+                return f"input wire logic [`LONG_WIDTH_REAL  - 1:0] {io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
@@ -210,6 +153,33 @@ class SVAPI(GenAPI):
         else:
             raise Exception(
                 f"Wrong number of io_objects provided in list, exactly two are requrend, provided were: {len(io_objs)}")
+
+    def assign_to(self, io_obj: io_obj_types_union, exp):
+        """
+        Assign 'exp' to signal 'io_obj.name'.
+        NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
+        or a constant value.
+
+        :param io_obj: Signal to be assigned holds name of io_obj.name.
+        :param exp: Expression to be assigned.
+        """
+
+        if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(exp, AnalogSignal):
+                self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
+                #self.println(f"`REAL_INTO_INT({exp}, `LONG_WIDTH_REAL, {io_obj.name});")
+            if isinstance(exp, str):
+                self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
+                #self.println(f"assign {io_obj.name} = {exp};")
+            else:
+                try:
+                    exp = str(float(exp))
+                    self.writeln(f"`ASSIGN_CONST_REAL({exp}, {io_obj.name});")
+                except:
+                    raise Exception(f"The provided expression is not supported for Analog Signals, only assignment of another"
+                                    f"AnalogSignal object or a constant value is supported; given: '{exp}'")
+        elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput)):
+            self.writeln(f"assign {io_obj.name} = {exp};")
 
     def decl_analog_port(self, io_obj: Union[AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]):
         """
@@ -338,6 +308,11 @@ class ModuleInst():
 
         ### Check if module includes analog ports or parameters
         analog_ports = self.analog_inputs + self.analog_outputs
+        # Remove analog control signals as for those signals no parameters will be transmitted
+        for analog_port in analog_ports:
+            if isinstance(analog_port, (AnalogCtrlInput, AnalogCtrlOutput)):
+                analog_ports.remove(analog_port)
+
         if (analog_ports or self.parameters):
             self.api.writeln(f"module {self.name} #(")
             self.api.indent()
@@ -362,12 +337,12 @@ class ModuleInst():
         self.api.indent()
         if inputs:
             for input in inputs[:-1]:
-                self.api.writeln(line=self.api._gen_port(io_obj=input, direction=PortDir.IN) + ",")
-            self.api.writeln(self.api._gen_port(io_obj=inputs[-1], direction=PortDir.IN) + ("," if outputs else ""))
+                self.api.writeln(line=self.api.gen_port(io_obj=input, direction=PortDir.IN) + ",")
+            self.api.writeln(self.api.gen_port(io_obj=inputs[-1], direction=PortDir.IN) + ("," if outputs else ""))
         if outputs:
             for output in outputs[:-1]:
-                self.api.writeln(self.api._gen_port(io_obj=output, direction=PortDir.OUT) + ",")
-            self.api.writeln(self.api._gen_port(io_obj=outputs[-1], direction=PortDir.OUT))
+                self.api.writeln(self.api.gen_port(io_obj=output, direction=PortDir.OUT) + ",")
+            self.api.writeln(self.api.gen_port(io_obj=outputs[-1], direction=PortDir.OUT))
 
         self.api.dedent()
         self.api.writeln(f");")
@@ -376,29 +351,35 @@ class ModuleInst():
         """
         Generate instantiation for module.
         """
-        self.api.indent()
-        self.api.writeln(f"{self.name} #(")
 
         ## Add parameter section
         analog_connections = []
         for connection in self.connections:
-            if isinstance(connection[0], AnalogSignal):
+            # Remove analog control signals as for those signals no parameters will be transmitted
+            if isinstance(connection[0], AnalogSignal) and not isinstance(connection[0], (AnalogCtrlInput, AnalogCtrlOutput)):
                 analog_connections.append(connection)
 
-        self.api.indent()
+        if (analog_connections or self.parameters):
+            self.api.indent()
+            self.api.writeln(f"{self.name} #(")
 
-        if analog_connections:
-            for analog_connection in analog_connections[:-1]:
-                self.api.writeln(self.api.pass_analog_port_format(io_obj=analog_connection[0], io_obj_format=analog_connection[1]) + ",")
-            self.api.writeln(self.api.pass_analog_port_format(io_obj=analog_connections[-1][0], io_obj_format=analog_connections[-1][1]) + ("," if self.parameters else ""))
+            self.api.indent()
+            if analog_connections:
+                for analog_connection in analog_connections[:-1]:
+                    self.api.writeln(self.api.pass_analog_port_format(io_obj=analog_connection[0], io_obj_format=analog_connection[1]) + ",")
+                self.api.writeln(self.api.pass_analog_port_format(io_obj=analog_connections[-1][0], io_obj_format=analog_connections[-1][1]) + ("," if self.parameters else ""))
 
-        if self.parameters:
-            for parameter in self.parameters[:-1]:
-                self.api.writeln(self.api.gen_parameter(param_obj=parameter) + ",")
-            self.api.writeln(self.api.gen_parameter(param_obj=self.parameters[-1]))
+            if self.parameters:
+                for parameter in self.parameters[:-1]:
+                    self.api.writeln(self.api.gen_parameter(param_obj=parameter) + ",")
+                self.api.writeln(self.api.gen_parameter(param_obj=self.parameters[-1]))
 
-        self.api.dedent()
-        self.api.writeln(f") {self.inst_name} (")
+            self.api.dedent()
+            self.api.writeln(f") {self.inst_name} (")
+        else:
+            self.api.indent()
+            self.api.writeln(f"{self.name} {self.inst_name} (")
+
 
         ## Add port section
         self.api.indent()
