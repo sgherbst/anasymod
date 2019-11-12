@@ -114,7 +114,7 @@ class SVAPI(GenAPI):
                 else:
                     return f"input wire logic {io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
-                return f"input wire logic [`LONG_WIDTH_REAL  - 1:0] {io_obj.name}"
+                return f"input `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
         elif direction in [PortDir.OUT]:
             if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"`OUTPUT_REAL({io_obj.name})"
@@ -124,7 +124,7 @@ class SVAPI(GenAPI):
                 else:
                     return f"output wire logic {io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
-                return f"input wire logic [`LONG_WIDTH_REAL  - 1:0] {io_obj.name}"
+                return f"output `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
