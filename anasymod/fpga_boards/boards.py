@@ -45,7 +45,7 @@ class ZC702():
     full_part_name = 'xc7z020clg484-1'
     short_part_name = 'xc7z020'
     dbg_hub_clk_freq = 100e6
-    sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
+    fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
 class ULTRA96():
     """
