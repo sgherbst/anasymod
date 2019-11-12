@@ -12,7 +12,6 @@ from anasymod.enums import BoardNames, FPGASimCtrl
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
-from inicio import config_dict
 
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
@@ -30,8 +29,18 @@ class EmuConfig:
         # Update config options by reading from config file
         self.cfg.update_config()
 
-        # Initialize Inicio config_dict
-        self.cfg_dict = config_dict()
+        # Try to initialize Inicio config_dict
+        # TODO: add more reasonable defaults
+        try:
+            from inicio import config_dict
+            self.cfg_dict = config_dict()
+        except:
+            self.cfg_dict = {
+                'TOOLS_xilinx': '',
+                'INICIO_TOOLS': '',
+                'TOOLS_iverilog': '',
+                'TOOLS_gtkwave': ''
+            }
 
         # FPGA board configuration
         self.board = self.fetch_board()
@@ -68,6 +77,8 @@ class EmuConfig:
             return ULTRA96()
         elif self.cfg.board_name == BoardNames.TE0720:
             return TE0720()
+        elif self.cfg.board_name == BoardNames.ZC702:
+            return ZC702()
         else:
             raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
 

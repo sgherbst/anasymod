@@ -59,11 +59,11 @@ class VivadoBuild():
         #ToDo: should be run while setting up the target, on the other hand it is dependent which kind of sim control
         #ToDo: interface shall be used
 
-        # generate clock wizard IP block
-        self.v.use_templ(TemplClkWiz(target=self.target))
-
-        # generate vio IP block
-        self.v.use_templ(TemplVIO(target=self.target))
+        if not self.target.cfg.custom_top:
+            # generate clock wizard IP block
+            self.v.use_templ(TemplClkWiz(target=self.target))
+            # generate vio IP block
+            self.v.use_templ(TemplVIO(target=self.target))
 
         # read user-provided IPs
         constrs.println('# Custom user-provided IP cores')
@@ -77,26 +77,29 @@ class VivadoBuild():
         # generate all IPs
         self.v.println('generate_target all [get_ips]')
 
-        # run synthesis
-        self.v.println('reset_run synth_1')
-        self.v.println(f'launch_runs synth_1 -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
-        self.v.println('wait_on_run synth_1')
+        # TODO: make more general
+        # TODO: allow tracing for custom_top
+        if not self.target.cfg.custom_top:
+            # run synthesis
+            self.v.println('reset_run synth_1')
+            self.v.println(f'launch_runs synth_1 -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
+            self.v.println('wait_on_run synth_1')
 
-        # extact probes from design
-        self.v.use_templ(TemplPROBE_EXTRACT(target=self.target))
+            # extact probes from design
+            self.v.use_templ(TemplPROBE_EXTRACT(target=self.target))
+            self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"synthesis.tcl")
 
-        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"synthesis.tcl")
+            # append const file with ILA according to extracted probes
+            constrs.read_from_file(cpath)
+            constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, inst_name=self.target.prj_cfg.vivado_config.ila_inst_name))
+    
+            # write constraints to file
+            constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.target.prj_cfg.board.dbg_hub_clk_freq))
+            constrs.write_to_file(cpath)
 
-        # append const file with ILA according to extracted probes
-        constrs.read_from_file(cpath)
-        constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, inst_name=self.target.prj_cfg.vivado_config.ila_inst_name))
-
-        constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.target.prj_cfg.board.dbg_hub_clk_freq))
-        constrs.write_to_file(cpath)
-
-        # Open project
-        project_path = os.path.join(self.target.project_root, self.target.prj_cfg.vivado_config.project_name + '.xpr')
-        self.v.println(f'open_project "{back2fwd(project_path)}"')
+            # Open project
+            project_path = os.path.join(self.target.project_root, self.target.prj_cfg.vivado_config.project_name + '.xpr')
+            self.v.println(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish
         self.v.println(f'launch_runs impl_1 -to_step write_bitstream -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')

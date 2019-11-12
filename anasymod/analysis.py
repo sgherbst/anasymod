@@ -483,7 +483,9 @@ class Analysis():
         # Update simulation target specific configuration
         self.sim.cfg.update_config(subsection=r"sim")
         self.sim.update_structure_config()
-        self.sim.gen_structure()
+        if not self.sim.cfg.custom_top:
+            print('!!! gen_structure for simulation target')
+            self.sim.gen_structure()
         self.sim.set_tstop()
         self.sim.setup_vcd()
 
@@ -498,7 +500,9 @@ class Analysis():
         # Update simulation target specific configuration
         self.fpga.cfg.update_config(subsection=r"fpga")
         self.fpga.update_structure_config()
-        self.fpga.gen_structure()
+        if not self.fpga.cfg.custom_top:
+            print('!!! gen_structure for FPGA target')
+            self.fpga.gen_structure()
         self.fpga.set_tstop()
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
