@@ -489,7 +489,9 @@ class Analysis():
         self.sim.cfg.update_config(subsection=r"sim")
         self.sim.update_structure_config()
         #ToDo: currently structure generation is only necessary for FPGA simulation, in future at least signals selected in probing file should automatically be included in vcd file
-        #self.sim.gen_structure()
+        #if not self.sim.cfg.custom_top:
+        #    print('!!! gen_structure for simulation target')
+        #    self.sim.gen_structure()
         self.sim.set_tstop()
         self.sim.setup_vcd()
 
@@ -506,9 +508,10 @@ class Analysis():
         self.fpga.update_structure_config()
         # Instantiate Simulation Control Interface
         # ToDo: This should only be executed for FPGA simulation!
-        self.fpga.setup_ctrl_ifc()
-        self.fpga.gen_structure()
-        self.fpga.set_tstop()
+        if not self.fpga.cfg.custom_top:
+            print('!!! gen_structure for FPGA target')
+            self.fpga.setup_ctrl_ifc()
+            self.fpga.gen_structure()        self.fpga.set_tstop()
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
         """

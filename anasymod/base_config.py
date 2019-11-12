@@ -1,5 +1,4 @@
 from anasymod.enums import ConfigSections
-from inicio import config_dict
 
 class BaseConfig():
     """

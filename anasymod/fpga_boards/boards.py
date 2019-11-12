@@ -35,6 +35,18 @@ class VC707():
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
+class ZC702():
+    """
+    Container to store ZC702 FPGA board specific properties.
+    """
+    clk_pin = ['D18', 'C19']
+    clk_io = 'LVDS_25'
+    clk_freq = 200e6
+    full_part_name = 'xc7z020clg484-1'
+    short_part_name = 'xc7z020'
+    dbg_hub_clk_freq = 100e6
+    sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
+
 class ULTRA96():
     """
     Container to store ULTRA96 FPGA board specific properties.

@@ -20,11 +20,13 @@ class BoardNames:
     Currently supported boards are:
     PYNQ_Z1
     VC707
+    ZC702
     ULTRA96
     TE0720
     """
     PYNQ_Z1 = 'PYNQ_Z1'
     VC707 = 'VC707'
+    ZC702 = 'ZC702'
     ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
 
