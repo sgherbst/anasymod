@@ -20,10 +20,16 @@ def call(args, cwd=None, wait=True):
     os.chdir(cwd)
 
     # run the command
-    kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
+    kwargs = dict(args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if wait:
-        ret = subprocess.call(**kwargs)
-        assert ret == 0
+        result = subprocess.run(**kwargs)
+        if result.returncode == 0:
+            print(result.stdout.decode('utf-8'))
+            return result.returncode
+        else:
+            print(result.stderr.decode('utf-8'))
+            return result.returncode
+
     else:
         subprocess.Popen(**kwargs)
 
