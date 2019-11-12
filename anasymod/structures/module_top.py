@@ -82,8 +82,8 @@ class ModuleTop(JinjaTempl):
         # Instantiate testbench
         #####################################################
         self.tb_inst_ifc = SVAPI()
-        tb_inst = ModuleInst(api=self.tb_inst_ifc, name='tb')
-        tb_inst.add_inputs(scfg.clk_o, connections=scfg.clk_o)
+        tb_inst = ModuleInst(api=self.tb_inst_ifc, name='fpga_top')
+        tb_inst.add_inputs(scfg.clk_m, connections=scfg.clk_m)
         tb_inst.generate_instantiation()
 
     TEMPLATE_TEXT = '''
