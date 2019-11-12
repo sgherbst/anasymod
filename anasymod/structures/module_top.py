@@ -89,7 +89,7 @@ class ModuleTop(JinjaTempl):
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
-`include "msdsl.sv"
+//`include "msdsl.sv"
 
 `default_nettype none
 
@@ -115,19 +115,19 @@ module top(
 logic emu_clk;
 
 // Declaration of control signals
-{{subst.inst_itl_ctlsigs.text}}
+/* {{subst.inst_itl_ctlsigs.text}} */
 
 // Assignment of custom control signals via absolute paths to design signals
-{{subst.assign_custom_ctlsigs.text}}
+/* {{subst.assign_custom_ctlsigs.text}} */
 
 // Instantiation of control wrapper
-{{subst.sim_ctrl_inst_ifc.text}}
+/* {{subst.sim_ctrl_inst_ifc.text}} */
 
 // Clock generator
 {{subst.clk_gen_ifc.text}}
 
 // make probes needed for emulation control
-`MAKE_EMU_CTRL_PROBES;
+//`MAKE_EMU_CTRL_PROBES;
 
 // instantiate testbench
 {{subst.tb_inst_ifc.text}}

@@ -31,7 +31,7 @@ class ModuleClkManager(JinjaTempl):
         self.clk_wiz_inst = SVAPI()
 
         clk_wiz = ModuleInst(api=self.clk_wiz_inst, name='clk_wiz_0')
-        clk_wiz.add_inputs(scfg.clk_i)
+        clk_wiz.add_inputs(scfg.clk_i, connections=scfg.clk_i)
 
         for k, port in enumerate(scfg.clk_g):
             clk_wiz.add_input(DigitalSignal(abspath=None, width=1, name='TODO- find out how ce inputs to IP core are named!!!' + f''), connection=port)
@@ -85,7 +85,7 @@ class ModuleClkManager(JinjaTempl):
 	
 	{{subst.clk_gate_inst.text}}
 `else
-	logic dbg_hub_clk, locked;
+	logic locked;
 
     {{subst.clk_wiz_inst.text}}
 

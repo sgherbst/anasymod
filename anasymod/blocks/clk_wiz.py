@@ -32,13 +32,15 @@ class TemplClkWiz(TemplGenericIp):
 
         # Add master output clk (emu_clk)
         props[f'CONFIG.CLKOUT1_USED'] = 'true'
-        props[f'CONFIG.CLKOUT1_PORT'] = self.target.str_cfg.clk_m[0].name
+        # commented out the line below because the "_PORT" config option is buggy
+        #props[f'CONFIG.CLKOUT1_PORT'] = self.target.str_cfg.clk_m[0].name
         props['CONFIG.CLKOUT1_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.cfg.emu_clk_freq * 1e-6)
 
         # Add debug clks
         for k, port in enumerate(self.target.str_cfg.clk_d):
             props[f'CONFIG.CLKOUT{k+2}_USED'] = 'true'
-            props[f'CONFIG.CLKOUT{k+2}_PORT'] = port.name
+            # commented out the line below because the "_PORT" config option is buggy
+            #props[f'CONFIG.CLKOUT{k+2}_PORT'] = port.name
             props[f'CONFIG.CLKOUT{k+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.board.dbg_hub_clk_freq * 1e-6)
 
         # Add additional output clks
@@ -46,7 +48,8 @@ class TemplClkWiz(TemplGenericIp):
             props['CONFIG.FEEDBACK_SOURCE'] = 'FDBK_AUTO'
 
         for k, port in enumerate(self.target.str_cfg.clk_o):
-            props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_PORT'] = port.name
+            # commented out the line below because the "_PORT" config option is buggy
+            #props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_PORT'] = port.name
             props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_USED'] = 'true'
             props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.cfg.emu_clk_freq * 1e-6)
             props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_DRIVES'] = 'BUFGCE'
@@ -55,7 +58,7 @@ class TemplClkWiz(TemplGenericIp):
         # Prepare Template substitutions
         ####################################################
 
-        props[f'CONFIG.NUM_OUT_CLKS'] = '2' #ToDo: This shall not be hardwired!!!
+        props[f'CONFIG.NUM_OUT_CLKS'] = len(self.target.str_cfg.clk_m + self.target.str_cfg.clk_d + self.target.str_cfg.clk_o) #ToDo: This shall not be hardwired!!!
 
         super().__init__(ip_name='clk_wiz', ip_dir=self.target.ip_dir, props=props)
 

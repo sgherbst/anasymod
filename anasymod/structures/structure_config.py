@@ -52,8 +52,8 @@ class StructureConfig():
         #self.digital_ctrl_outputs[0].o_addr = self._assign_o_addr()
         #self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='testii', range=500)]
         #self.analog_ctrl_inputs[0].i_addr = self._assign_i_addr()
-        self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
-        self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
+        #self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
+        #self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
 
         #########################################################
         # CLK manager interfaces
