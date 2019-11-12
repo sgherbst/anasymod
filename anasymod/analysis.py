@@ -511,7 +511,8 @@ class Analysis():
         if not self.fpga.cfg.custom_top:
             print('!!! gen_structure for FPGA target')
             self.fpga.setup_ctrl_ifc()
-            self.fpga.gen_structure()        self.fpga.set_tstop()
+            self.fpga.gen_structure()
+        self.fpga.set_tstop()
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
         """
