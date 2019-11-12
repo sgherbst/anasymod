@@ -69,7 +69,7 @@ class VivadoBuild():
 
         #ToDo: tidy up this sequential build script and in doing so, create a wrapper class that takes care of this conditional structure
 
-        if self.target.prj_cfg.board.sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+        if self.target.prj_cfg.board.fpga_sim_ctrl is FPGASimCtrl.VIVADO_VIO:
             # generate vio IP block
             self.v.use_templ(TemplVIO(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir))
 
@@ -110,14 +110,7 @@ class VivadoBuild():
 
             # Open project
             project_path = os.path.join(self.target.project_root, self.target.prj_cfg.vivado_config.project_name + '.xpr')
-            self.v.println(f'open_project "{back2fwd(project_path)}"')
-
-        constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.target.prj_cfg.board.dbg_hub_clk_freq))
-        constrs.write_to_file(cpath)
-
-        # Open project
-        project_path = os.path.join(self.target.project_root, self.target.prj_cfg.vivado_config.project_name + '.xpr')
-        self.v.writeln(f'open_project "{back2fwd(project_path)}"')
+            self.v.writeln(f'open_project "{back2fwd(project_path)}"')
 
         # launch the build and wait for it to finish
         self.v.writeln(f'launch_runs impl_1 -to_step write_bitstream -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
