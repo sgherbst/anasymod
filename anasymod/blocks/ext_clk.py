@@ -7,6 +7,8 @@ class TemplExtClk(JinjaTempl):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
         self.target = target
 
+        self.ports = self.target.str_cfg.clk_i
+
         self.ext_clk_pin = self.target.prj_cfg.board.clk_pin
         self.ext_clk_io_std = self.target.prj_cfg.board.clk_io
 
@@ -14,7 +16,7 @@ class TemplExtClk(JinjaTempl):
         self.ext_clk_full_period_ns = str(period_ns)
         self.ext_clk_half_period_ns = str(0.5*period_ns)
 
-        self.zipped = zip(self.ext_clk_pin, [port.name for port in self.target.str_cfg.clk_i])
+        self.zipped = zip(self.ext_clk_pin, [port.name for port in self.ports])
 
     TEMPLATE_TEXT = '''
 # start auto-generated code for external clock
