@@ -31,6 +31,10 @@ class ModuleClkManager(JinjaTempl):
         clk_wiz = ModuleInst(api=self.clk_wiz_inst, name='clk_wiz_0')
         clk_wiz.add_inputs(scfg.clk_i, connections=scfg.clk_i)
 
+        # handled by emu clk generator
+        for k, port in enumerate(scfg.clk_m + scfg.clk_d):
+            clk_wiz.add_output(DigitalSignal(abspath=None, width=1, name=f'clk_out{k + 1}'), connection=port)
+
         clk_wiz.add_input(DigitalSignal(abspath=None, width=1, name='reset'), connection=r"1'b0")
         clk_wiz.add_output(DigitalSignal(abspath=None, width=1, name='locked'), DigitalSignal(abspath=None, width=1, name='locked'))
 
