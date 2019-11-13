@@ -21,8 +21,9 @@ class Target():
         _name               Target name
         content    Dict of Lists of source and define objects associated with target
     """
-    def __init__(self, prj_cfg: EmuConfig, name):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, name):
         self.prj_cfg = prj_cfg
+        self.plugins = plugins
 
         # Initialize structure configuration
         self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
@@ -108,8 +109,8 @@ class Target():
         return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
 
 class SimulationTarget(Target):
-    def __init__(self, prj_cfg: EmuConfig, name=r"sim"):
-        super().__init__(prj_cfg=prj_cfg, name=name)
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"sim"):
+        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name)
 
     def setup_vcd(self):
         self.content.defines.append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
@@ -120,9 +121,9 @@ class FPGATarget(Target):
     Attributes:
         _ip_cores        List of ip_core objects associated with target, those will generated during the build process
     """
-    def __init__(self, prj_cfg: EmuConfig, name=r"fpga"):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"fpga"):
         # call the super constructor
-        super().__init__(prj_cfg=prj_cfg, name=name)
+        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name)
 
         # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
         # emulation time for most purposes.
