@@ -124,13 +124,13 @@ module top(
 logic emu_clk;
 
 // Declaration of control signals
-/* {{subst.inst_itl_ctlsigs.text}} */
+{{subst.inst_itl_ctlsigs.text}}
 
 // Assignment of custom control signals via absolute paths to design signals
-/* {{subst.assign_custom_ctlsigs.text}} */
+{{subst.assign_custom_ctlsigs.text}}
 
 // Instantiation of control wrapper
-/* {{subst.sim_ctrl_inst_ifc.text}} */
+{{subst.sim_ctrl_inst_ifc.text}}
 
 // Clock generator
 {{subst.clk_gen_ifc.text}}
