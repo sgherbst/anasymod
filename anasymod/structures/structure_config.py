@@ -22,7 +22,11 @@ class StructureConfig():
         self.i_addr_counter = 0
         self.o_addr_counter = 0
 
+        # Path to ctrl_io file
         self._ctrl_iofile_path = os.path.join(prj_cfg.root, 'ctrl_io.config')
+        # Path to clk file
+        self._clk_file_path = os.path.join(prj_cfg.root, 'clk.config')
+
 
         self.cfg = Config(prj_cfg=prj_cfg)
         self.cfg.update_config()
@@ -77,7 +81,7 @@ class StructureConfig():
         # the num parameter needs to be exposed and naming needs to be configurable -> names might still be hardcoded at
         # some places!!!
         self.clk_m_num = 1
-        self.clk_m = [DigitalSignal(abspath=None, width=1, name='emu_clk')]
+        self.clk_m = [DigitalSignal(abspath=None, width=1, name='emu_clk_2x')]
 
         # add debug clk_out
         self.clk_d_num = 1
@@ -92,9 +96,11 @@ class StructureConfig():
         # EMU CLK generator interfaces
         #########################################################
 
-        # add custom clk_out and associated clk_gate (currently all of them are derrived from this one master clk) signals as tuple
-        self.clk_o_g = []
-        self.clk_o_g += [(DigitalSignal(abspath=None, width=1, name=f'emu_clk'), None)] # default clk_out
+        # add custom clk_out and associated clk_gate (currently all of them are derrived from this one master clk)
+        # signals as tuples (clk_out, clk_gate)
+        self.clk_o = []
+
+        self._read_clkfile()
 
     def _assign_i_addr(self):
         """
@@ -114,7 +120,7 @@ class StructureConfig():
 
     def _read_iofile(self):
         """
-        Read all lines from iofile and call parse function to populate ctrl_ios container.
+        Read all lines from iofile and call parse function to populate ctrl_ios attributes.
         """
         if os.path.isfile(self._ctrl_iofile_path):
             with open(self._ctrl_iofile_path, "r") as f:
@@ -156,6 +162,45 @@ class StructureConfig():
                         raise Exception(f"Line {k+1} of ctrl_io file: {self._ctrl_iofile_path} does not fit do a specified source or config type")
                 except:
                     raise Exception(f"Line {k+1} of config file: {self._ctrl_iofile_path} could not be processed properely")
+
+    def _read_clkfile(self):
+        """
+        Read all lines from clk.config file and call parse function to populate emu clk attribute.
+        """
+        if os.path.isfile(self._clk_file_path):
+            with open(self._clk_file_path, "r") as f:
+                clks = f.readlines()
+            self._parse_clkfile(clks=clks)
+        else:
+            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
+
+    def _parse_clkfile(self, clks: [tuple]):
+        """
+        Read all lines from ctrl io file and store IO objects in CtrlIO container while adding access addresses to
+        each IO object.
+        :param clks: Lines extracted from clk file
+        """
+
+        for k, item in enumerate(clks):
+            item = item.strip()
+
+            if item.startswith('#'):
+                # skip comments
+                continue
+
+            if item:
+                try:
+                    item = eval(item)
+                    if isinstance(item, tuple):
+                        if isinstance(item[0], str) and isinstance(item[1], str):
+                            self.clk_o += item
+                        else:
+                            raise Exception(f"Tuple elements of line {k + 1} in clk file: {self._clk_file_path} don't consist of strings")
+                    else:
+                        raise Exception(f"Line {k + 1} of clk file: {self._clk_file_path} is not a tuple")
+                except:
+                    raise Exception(f"Line {k+1} of clk file: {self._clk_file_path} could not be processed properely")
+
 
 class Config(BaseConfig):
     """

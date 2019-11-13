@@ -57,13 +57,6 @@ class ModuleTop(JinjaTempl):
         clk_gen.generate_instantiation()
 
         #####################################################
-        # Instantiate emu clk manager Module
-        #####################################################
-
-        # Add clk in signals for simulation case
-        self.clk_in_sim_sigs = SVAPI()
-
-        #####################################################
         # Instantiate Ctrl Module
         #####################################################
 
@@ -93,6 +86,20 @@ class ModuleTop(JinjaTempl):
         self.assign_custom_ctlsigs = SVAPI()
         for ctrl_io in custom_ctrl_ios:
             self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io, exp=ctrl_io.abs_path)
+
+        #####################################################
+        # Instantiate emu clk manager Module
+        #####################################################
+
+        # Number of output clocks
+        self.num_o_clks = len(scfg.clk_o)
+
+        # Absolute path assignments for clk_o tuples
+        self.clk_out_assigns = SVAPI()
+        for k, clk_tuple in enumerate(scfg.clk_o):
+            self.clk_out_assigns.writeln(f'// emulated clock {k}')
+            self.clk_out_assigns.writeln(f'assign clk_val[{k}] = {clk_tuple[1]}')
+            self.clk_out_assigns.writeln(f'assign {clk_tuple[0]} = clks[{k}]')
 
         #####################################################
         # Instantiate testbench
@@ -140,6 +147,20 @@ logic emu_clk;
 
 // Clock generator
 {{subst.clk_gen_ifc.text}}
+
+// Emu Clk generator
+localparam integer n_clks = {{str(subst.num_o_clks)}};
+logic clk_vals [n_clks];
+logic clks [n_clks];
+
+gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
+    .emu_clk_2x(emu_clk_2x),
+    .emu_clk(emu_clk),
+    .clk_vals(clk_vals),
+    .clks(clks)
+);
+
+{{subst.clk_out_assigns.text}}
 
 // make probes needed for emulation control
 //`MAKE_EMU_CTRL_PROBES;

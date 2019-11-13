@@ -67,12 +67,17 @@ class VivadoBuild():
 
             #ToDo: tidy up this sequential build script and in doing so, create a wrapper class that takes care of this conditional structure
 
+            #Add constraints for additional generated emu_clks
+            constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
+            for k in range(self.target.str_cfg.clk_o):
+                constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
+
             if self.target.cfg.fpga_sim_ctrl is FPGASimCtrl.VIVADO_VIO:
                 # generate vio IP block
                 self.v.use_templ(TemplVIO(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir))
 
         # read user-provided IPs
-        constrs.writeln('# Custom user-provided IP cores')
+        self.v.writeln('# Custom user-provided IP cores')
         for xci_file in self.target.content.xci_files:
             for file in xci_file.files:
                 self.v.writeln(f'read_ip "{back2fwd(file)}"')

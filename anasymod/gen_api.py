@@ -167,10 +167,8 @@ class SVAPI(GenAPI):
         if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
             if isinstance(exp, AnalogSignal):
                 self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
-                #self.println(f"`REAL_INTO_INT({exp}, `LONG_WIDTH_REAL, {io_obj.name});")
             if isinstance(exp, str):
                 self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
-                #self.println(f"assign {io_obj.name} = {exp};")
             else:
                 try:
                     exp = str(float(exp))
