@@ -12,6 +12,18 @@ class PYNQ_Z1():
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
 
+class ARTY_A7():
+    """
+    Container to store ARTY_A7 FPGA board specific properties.
+    """
+    clk_pin = ['E3']
+    clk_io = 'LVCMOS33'
+    clk_freq = 100e6
+    full_part_name = 'xc7a35ticsg324-1L'
+    short_part_name = 'xc7a35'
+    dbg_hub_clk_freq = 100e6
+    fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
+
 class TE0720():
     """
     Container to store PYNQ_Z1 FPGA board specific properties.

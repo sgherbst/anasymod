@@ -71,6 +71,8 @@ class EmuConfig:
 
         if self.cfg.board_name == BoardNames.PYNQ_Z1:
             return PYNQ_Z1()
+        elif self.cfg.board_name == BoardNames.ARTY_A7:
+            return ARTY_A7()
         elif self.cfg.board_name == BoardNames.VC707:
             return VC707()
         elif self.cfg.board_name == BoardNames.ULTRA96:

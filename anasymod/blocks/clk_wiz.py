@@ -28,7 +28,12 @@ class TemplClkWiz(TemplGenericIp):
         props = {}
         # Add input clks
         props['CONFIG.PRIM_IN_FREQ'] = str(self.target.prj_cfg.board.clk_freq * 1e-6)
-        props['CONFIG.PRIM_SOURCE'] = self.cfg.input_source
+        if len(self.target.str_cfg.clk_i) == 2:
+            props['CONFIG.PRIM_SOURCE'] = 'Differential_clock_capable_pin'
+        elif len(self.target.str_cfg.clk_i) == 1:
+            props['CONFIG.PRIM_SOURCE'] = 'Single_ended_clock_capable_pin'
+        else:
+            raise Exception("Wrong number of master clk pins is provided")
 
         # Add master output clk (emu_clk)
         props[f'CONFIG.CLKOUT1_USED'] = 'true'
@@ -74,7 +79,7 @@ class Config(BaseConfig):
         #single_ended = 'Single_ended_clock_capable_pin'
         #differential = 'Differential_clock_capable_pin'
 
-        self.input_source = 'Single_ended_clock_capable_pin'
+        #self.input_source = 'Single_ended_clock_capable_pin'
 
 def main():
     print(TemplClkWiz(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
