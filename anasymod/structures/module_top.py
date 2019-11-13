@@ -79,7 +79,7 @@ class ModuleTop(JinjaTempl):
                                   [scfg.reset_ctrl], connections=scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
                                                                  [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
         # add master clk to ctrl module
-        sim_ctrl_inst.add_input(scfg.clk_m[0], connection=scfg.clk_m[0])
+        sim_ctrl_inst.add_input(DigitalSignal(name='emu_clk', width=1, abspath=None), connection=DigitalSignal(name='emu_clk', width=1, abspath=None))
         sim_ctrl_inst.generate_instantiation()
 
         ## Assign custom ctrl signals via abs paths into design

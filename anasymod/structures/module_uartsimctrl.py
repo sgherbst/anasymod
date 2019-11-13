@@ -52,7 +52,7 @@ class ModuleUARTSimCtrl(JinjaTempl):
 
         reg_map = ModuleInst(api=self.reg_map_inst, name="reg_map")
 
-        reg_map.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=scfg.clk_m[0])
+        reg_map.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=DigitalSignal(name='emu_clk', width=1, abspath=None))
 
         rst = DigitalSignal(name='rst', width=1, abspath=None)
         reg_map.add_input(io_obj=rst, connection=scfg.reset_ctrl)
