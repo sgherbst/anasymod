@@ -55,7 +55,7 @@ class TemplClkWiz(TemplGenericIp):
         # Prepare Template substitutions
         ####################################################
 
-        props[f'CONFIG.NUM_OUT_CLKS'] = len(self.target.str_cfg.clk_m + self.target.str_cfg.clk_d + self.target.str_cfg.clk_o) #ToDo: This shall not be hardwired!!!
+        props[f'CONFIG.NUM_OUT_CLKS'] = len(self.target.str_cfg.clk_m + self.target.str_cfg.clk_d) #ToDo: This shall not be hardwired!!!
 
         super().__init__(ip_name='clk_wiz', ip_dir=self.target.ip_dir, props=props)
 
