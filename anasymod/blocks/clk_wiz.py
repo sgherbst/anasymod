@@ -41,15 +41,15 @@ class TemplClkWiz(TemplGenericIp):
             props[f'CONFIG.CLKOUT{k+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.board.dbg_hub_clk_freq * 1e-6)
 
         # Add additional output clks
-        if self.target.str_cfg.cfg.clk_o_num:
-            props['CONFIG.FEEDBACK_SOURCE'] = 'FDBK_AUTO'
+        #if self.target.str_cfg.cfg.clk_o_num:
+        #    props['CONFIG.FEEDBACK_SOURCE'] = 'FDBK_AUTO'
 
-        for k, port in enumerate(self.target.str_cfg.clk_o):
-            # commented out the line below because the "_PORT" config option is buggy
-            #props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_PORT'] = port.name
-            props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_USED'] = 'true'
-            props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.cfg.emu_clk_freq * 1e-6)
-            props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_DRIVES'] = 'BUFGCE'
+        #for k, port in enumerate(self.target.str_cfg.clk_o):
+        #    # commented out the line below because the "_PORT" config option is buggy
+        #    #props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_PORT'] = port.name
+        #    props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_USED'] = 'true'
+        #    props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_REQUESTED_OUT_FREQ'] = (self.target.prj_cfg.cfg.emu_clk_freq * 1e-6)
+        #    props[f'CONFIG.CLKOUT{k+self.target.str_cfg.clk_d_num+2}_DRIVES'] = 'BUFGCE'
 
         ####################################################
         # Prepare Template substitutions
