@@ -98,6 +98,8 @@ class StructureConfig():
         for k in range(self.cfg.clk_o_num):
             self.clk_g += [DigitalSignal(abspath=None, width=1, name=f'clk_o_{k}_ce')]
 
+        self._read_iofile()
+
     def _assign_i_addr(self):
         """
         Function to assign an input address to an Input object.
