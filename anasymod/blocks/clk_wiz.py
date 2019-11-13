@@ -67,20 +67,6 @@ class TemplClkWiz(TemplGenericIp):
 
         super().__init__(ip_name='clk_wiz', ip_dir=self.target.ip_dir, props=props)
 
-class Config(BaseConfig):
-    """
-    Container to store all config attributes.
-    """
-
-    def __init__(self, target: FPGATarget):
-        super().__init__(cfg_file=target.prj_cfg.cfg_file, section=ConfigSections.CLK)
-
-        # add some default enums
-        #single_ended = 'Single_ended_clock_capable_pin'
-        #differential = 'Differential_clock_capable_pin'
-
-        #self.input_source = 'Single_ended_clock_capable_pin'
-
 def main():
     print(TemplClkWiz(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
