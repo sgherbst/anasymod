@@ -15,6 +15,15 @@ class ModuleTop(JinjaTempl):
         """ :type: StructureConfig """
 
         #####################################################
+        # Add plugin specific includes
+        #####################################################
+
+        self.plugin_includes = SVAPI()
+        for plugin in target.plugins:
+            for include_statement in plugin.include_statements:
+                self.plugin_includes.writeln(f'{include_statement}')
+
+        #####################################################
         # Create module interface
         #####################################################
         self.module_ifc = SVAPI()
@@ -89,7 +98,7 @@ class ModuleTop(JinjaTempl):
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
-//`include "msdsl.sv"
+{{subst.plugin_includes.text}}
 
 `default_nettype none
 

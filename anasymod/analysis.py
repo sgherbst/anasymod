@@ -478,7 +478,7 @@ class Analysis():
         # Create and setup simulation target
         #######################################################
 
-        self.sim = SimulationTarget(prj_cfg=self._prj_cfg, name=r"sim")
+        self.sim = SimulationTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=r"sim")
         self.sim.assign_fileset(fileset=filesets['default'])
         if 'sim' in filesets:
             self.sim.assign_fileset(fileset=filesets['sim'])
@@ -498,7 +498,7 @@ class Analysis():
         #######################################################
         # Create and setup FPGA target
         #######################################################
-        self.fpga = FPGATarget(prj_cfg=self._prj_cfg, name=r"fpga")
+        self.fpga = FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=r"fpga")
         self.fpga.assign_fileset(fileset=filesets['default'])
         if 'fpga' in filesets:
             self.fpga.assign_fileset(fileset=filesets['fpga'])
