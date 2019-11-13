@@ -55,6 +55,8 @@ class StructureConfig():
         #self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
         #self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
 
+        self._read_iofile()
+
         #########################################################
         # CLK manager interfaces
         #########################################################
@@ -86,19 +88,13 @@ class StructureConfig():
         for k in range(self.clk_d_num):
             self.clk_d += [DigitalSignal(abspath=None, width=1, name='dbg_hub_clk')]
 
-        # add custom clk_outs -> number of gated clks is defined in config
-        self.clk_o = []
+        #########################################################
+        # EMU CLK generator interfaces
+        #########################################################
 
-        for k in range(self.cfg.clk_o_num):
-            self.clk_o += [DigitalSignal(abspath=None, width=1, name=f'clk_o_{k}')]
-
-        # add clk enable signals for each custom  clk_out -> currently all of them are derrived from this one master clk
-        self.clk_g = []
-
-        for k in range(self.cfg.clk_o_num):
-            self.clk_g += [DigitalSignal(abspath=None, width=1, name=f'clk_o_{k}_ce')]
-
-        self._read_iofile()
+        # add custom clk_out and associated clk_gate (currently all of them are derrived from this one master clk) signals as tuple
+        self.clk_o_g = []
+        self.clk_o_g += [(DigitalSignal(abspath=None, width=1, name=f'emu_clk'), None)] # default clk_out
 
     def _assign_i_addr(self):
         """
@@ -161,17 +157,6 @@ class StructureConfig():
                 except:
                     raise Exception(f"Line {k+1} of config file: {self._ctrl_iofile_path} could not be processed properely")
 
-
-class CtrlIOs():
-    """
-    Container to store all Control IOs for associated Control Interface.
-    """
-    def __init__(self):
-        self.digital_inputs = []
-        self.digital_outputs = []
-        self.analog_inputs = []
-        self.analog_outputs = []
-
 class Config(BaseConfig):
     """
     Container to store all config attributes.
@@ -188,3 +173,6 @@ class Config(BaseConfig):
 
         # add gated clk_outs
         self.clk_o_num = 0
+        self.clk_g_num = 0
+
+        # add clk file, dt_req file and ila file

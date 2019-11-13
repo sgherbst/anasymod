@@ -33,7 +33,7 @@ class ModuleTop(JinjaTempl):
         module.generate_header()
 
         #####################################################
-        # Instantiate clk management
+        # Instantiate clk management Module
         #####################################################
 
         # Add clk in signals for simulation case
@@ -52,9 +52,16 @@ class ModuleTop(JinjaTempl):
         self.clk_gen_ifc = SVAPI()
         clk_gen = ModuleInst(api=self.clk_gen_ifc, name='clk_gen')
 
-        for clk in scfg.clk_i + scfg.clk_o + scfg.clk_m + scfg.clk_d + scfg.clk_g:
+        for clk in scfg.clk_i + scfg.clk_m + scfg.clk_d:
             clk_gen.add_input(clk, connection=clk)
         clk_gen.generate_instantiation()
+
+        #####################################################
+        # Instantiate emu clk manager Module
+        #####################################################
+
+        # Add clk in signals for simulation case
+        self.clk_in_sim_sigs = SVAPI()
 
         #####################################################
         # Instantiate Ctrl Module
@@ -92,7 +99,6 @@ class ModuleTop(JinjaTempl):
         #####################################################
         self.tb_inst_ifc = SVAPI()
         tb_inst = ModuleInst(api=self.tb_inst_ifc, name='fpga_top')
-        tb_inst.add_inputs(scfg.clk_m, connections=scfg.clk_m)
         tb_inst.generate_instantiation()
 
     TEMPLATE_TEXT = '''

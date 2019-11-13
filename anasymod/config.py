@@ -222,8 +222,8 @@ class Config(BaseConfig):
         self.fpga_sim_crtl = FPGASimCtrl.VIVADO_VIO
         self.plugins = []
         self.plugins.append('msdsl')
-        #self.plugins.append('netexplorer')
-        #self.plugins.append('stargazer')
+        self.dt_exponent = -46
+        self.dt_width = 27
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
