@@ -64,14 +64,12 @@ class VivadoBuild():
         if not self.target.cfg.custom_top:
             # generate clock wizard IP block
             self.v.use_templ(TemplClkWiz(target=self.target))
-            # generate vio IP block
-            # self.v.use_templ(TemplVIO(target=self.target))
 
-        #ToDo: tidy up this sequential build script and in doing so, create a wrapper class that takes care of this conditional structure
+            #ToDo: tidy up this sequential build script and in doing so, create a wrapper class that takes care of this conditional structure
 
-        if self.target.prj_cfg.board.fpga_sim_ctrl is FPGASimCtrl.VIVADO_VIO:
-            # generate vio IP block
-            self.v.use_templ(TemplVIO(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir))
+            if self.target.cfg.fpga_sim_ctrl is FPGASimCtrl.VIVADO_VIO:
+                # generate vio IP block
+                self.v.use_templ(TemplVIO(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir))
 
         # read user-provided IPs
         constrs.writeln('# Custom user-provided IP cores')

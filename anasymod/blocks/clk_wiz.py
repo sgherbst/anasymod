@@ -10,14 +10,6 @@ class TemplClkWiz(TemplGenericIp):
         self.target = target
 
         ####################################################
-        # Initialize config
-        ####################################################
-        self.cfg = Config(target=self.target)
-
-        # Update config options by reading from config file
-        self.cfg.update_config()
-
-        ####################################################
         # Add module ports
         ####################################################
 

@@ -178,8 +178,12 @@ class SVAPI(GenAPI):
                 except:
                     raise Exception(f"The provided expression is not supported for Analog Signals, only assignment of another"
                                     f"AnalogSignal object or a constant value is supported; given: '{exp}'")
-        elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput)):
+        elif isinstance(io_obj, (DigitalCtrlOutput, AnalogCtrlOutput)):
             self.writeln(f"assign {io_obj.name} = {exp};")
+        elif isinstance(io_obj, (DigitalCtrlInput, AnalogCtrlInput)):
+            self.writeln(f"assign {exp} = {io_obj.name};")
+        else:
+            raise Exception(f'Not supported signal type provided:{type(io_obj)}')
 
     def decl_analog_port(self, io_obj: Union[AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]):
         """
