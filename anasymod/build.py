@@ -44,6 +44,14 @@ class VivadoBuild():
         constrs = CodeGenerator()
         constrs.use_templ(TemplExtClk(target=self.target))
 
+        if not self.target.cfg.custom_top:
+            # Add constraints for additional generated emu_clks
+            constrs.writeln(
+                'create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
+            for k in range(len(self.target.str_cfg.clk_o)):
+                constrs.writeln(
+                    f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
+
         cpath = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
         constrs.write_to_file(cpath)
 
@@ -66,11 +74,6 @@ class VivadoBuild():
             self.v.use_templ(TemplClkWiz(target=self.target))
 
             #ToDo: tidy up this sequential build script and in doing so, create a wrapper class that takes care of this conditional structure
-
-            #Add constraints for additional generated emu_clks
-            constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
-            for k in range(self.target.str_cfg.clk_o):
-                constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
             if self.target.cfg.fpga_sim_ctrl is FPGASimCtrl.VIVADO_VIO:
                 # generate vio IP block

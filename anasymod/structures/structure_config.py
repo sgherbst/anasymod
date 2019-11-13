@@ -193,7 +193,7 @@ class StructureConfig():
                     item = eval(item)
                     if isinstance(item, tuple):
                         if isinstance(item[0], str) and isinstance(item[1], str):
-                            self.clk_o += item
+                            self.clk_o.append(item)
                         else:
                             raise Exception(f"Tuple elements of line {k + 1} in clk file: {self._clk_file_path} don't consist of strings")
                     else:

@@ -33,7 +33,8 @@ module gen_emu_clks #(
                 BUFG buf_i (.I(clk_unbufs[k]), .O(clks[k]));
             `else
                 assign clks[k] = clk_unbufs[k];
-            end
+            `endif
+        end
     endgenerate
 
 endmodule

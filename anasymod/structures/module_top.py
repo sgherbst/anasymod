@@ -98,8 +98,8 @@ class ModuleTop(JinjaTempl):
         self.clk_out_assigns = SVAPI()
         for k, clk_tuple in enumerate(scfg.clk_o):
             self.clk_out_assigns.writeln(f'// emulated clock {k}')
-            self.clk_out_assigns.writeln(f'assign clk_val[{k}] = {clk_tuple[1]}')
-            self.clk_out_assigns.writeln(f'assign {clk_tuple[0]} = clks[{k}]')
+            self.clk_out_assigns.writeln(f'assign clk_vals[{k}] = {clk_tuple[1]};')
+            self.clk_out_assigns.writeln(f'assign {clk_tuple[0]} = clks[{k}];')
 
         #####################################################
         # Instantiate testbench
@@ -134,7 +134,7 @@ module top(
 {{subst.dbg_clk_sigs.text}}
 
 // emulation clock declarations
-logic emu_clk;
+logic emu_clk, emu_clk_2x;
 
 // Declaration of control signals
 {{subst.inst_itl_ctlsigs.text}}
@@ -149,7 +149,7 @@ logic emu_clk;
 {{subst.clk_gen_ifc.text}}
 
 // Emu Clk generator
-localparam integer n_clks = {{str(subst.num_o_clks)}};
+localparam integer n_clks = {{subst.num_o_clks}};
 logic clk_vals [n_clks];
 logic clks [n_clks];
 
