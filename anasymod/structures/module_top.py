@@ -96,10 +96,12 @@ class ModuleTop(JinjaTempl):
 
         # Absolute path assignments for clk_o tuples
         self.clk_out_assigns = SVAPI()
-        for k, clk_tuple in enumerate(scfg.clk_o):
+        for k, clk in enumerate(scfg.clk_o):
             self.clk_out_assigns.writeln(f'// emulated clock {k}')
-            self.clk_out_assigns.writeln(f'assign clk_vals[{k}] = {clk_tuple[1]};')
-            self.clk_out_assigns.writeln(f'assign {clk_tuple[0]} = clks[{k}];')
+            self.clk_out_assigns.writeln(f'assign clk_vals[{k}] = {clk}.__emu_clk_val;')
+            self.clk_out_assigns.writeln(f'assign {clk}.__emu_clk_i = clks[{k}];')
+            self.clk_out_assigns.writeln(f'assign {clk}.__emu_rst = emu_rst;')
+            self.clk_out_assigns.writeln(f'assign {clk}.__emu_clk = emu_clk;')
 
         #####################################################
         # Instantiate emu clk manager Module
@@ -110,7 +112,7 @@ class ModuleTop(JinjaTempl):
         # Absolute path assignments for dt_reqs
         self.dt_req_assigns = SVAPI()
         for k, dt_req in enumerate(scfg.dt_reqs):
-            self.dt_req_assigns.writeln(f'assign dt_req[{k}] = {dt_req};')
+            self.dt_req_assigns.writeln(f'assign dt_req[{k}] = {dt_req}.__emu_dt_req;')
 
         #####################################################
         # Instantiate testbench
