@@ -102,6 +102,17 @@ class ModuleTop(JinjaTempl):
             self.clk_out_assigns.writeln(f'assign {clk_tuple[0]} = clks[{k}];')
 
         #####################################################
+        # Instantiate emu clk manager Module
+        #####################################################
+
+        self.num_dt_reqs = len(scfg.dt_reqs)
+
+        # Absolute path assignments for dt_reqs
+        self.dt_req_assigns = SVAPI()
+        for k, dt_req in enumerate(scfg.dt_reqs):
+            self.dt_req_assigns.writeln(f'assign dt_req[{k}] = {dt_req};')
+
+        #####################################################
         # Instantiate testbench
         #####################################################
         self.tb_inst_ifc = SVAPI()
@@ -161,6 +172,20 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
 );
 
 {{subst.clk_out_assigns.text}}
+
+// Time manager
+
+localparam integer n_dt = {{subst.num_dt_reqs}};
+logic signed [((`DT_SIGNIFICAND_WIDTH)-1):0] dt_req [n_dt];
+time_manager  #(
+    .n(n_dt),
+    .width(`DT_SIGNIFICAND_WIDTH)
+) time_manager_i (
+    .dt_req(dt_req),
+    .emu_dt(emu.dt)
+);
+
+{{subst.dt_req_assigns.text}}
 
 // make probes needed for emulation control
 //`MAKE_EMU_CTRL_PROBES;

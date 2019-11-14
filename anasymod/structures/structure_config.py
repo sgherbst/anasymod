@@ -26,6 +26,8 @@ class StructureConfig():
         self._ctrl_iofile_path = os.path.join(prj_cfg.root, 'ctrl_io.config')
         # Path to clk file
         self._clk_file_path = os.path.join(prj_cfg.root, 'clk.config')
+        # Path to clk file
+        self._dt_req_file_path = os.path.join(prj_cfg.root, 'dt_req.config')
 
 
         self.cfg = Config(prj_cfg=prj_cfg)
@@ -101,6 +103,14 @@ class StructureConfig():
         self.clk_o = []
 
         self._read_clkfile()
+
+        #########################################################
+        # Time manager interfaces
+        #########################################################
+
+        self.dt_reqs = []
+
+        self._read_dt_reqfile()
 
     def _assign_i_addr(self):
         """
@@ -201,6 +211,40 @@ class StructureConfig():
                 except:
                     raise Exception(f"Line {k+1} of clk file: {self._clk_file_path} could not be processed properely")
 
+    def _read_dt_reqfile(self):
+        """
+        Read all lines from dt_req.config file and call parse function to populate dt_req attribute.
+        """
+        if os.path.isfile(self._dt_req_file_path):
+            with open(self._dt_req_file_path, "r") as f:
+                dt_reqs = f.readlines()
+            self._parse_dt_reqfile(dt_reqs=dt_reqs)
+        else:
+            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
+
+    def _parse_dt_reqfile(self, dt_reqs: list):
+        """
+        Read all lines from dt_req file dt_req.config and store in dt_req attribute.
+        :param clks: Lines extracted from dt_req file
+        """
+
+        for k, dt_req in enumerate(dt_reqs):
+            dt_req = dt_req.strip()
+
+            if dt_req.startswith('#'):
+                # skip comments
+                continue
+
+            if dt_req:
+                try:
+                    dt_req = eval(dt_req)
+                    if isinstance(dt_req, str):
+                        self.dt_reqs.append(dt_req)
+                    else:
+                        raise Exception(f"Tuple elements of line {k + 1} in clk file: {self._dt_req_file_path} don't consist of strings")
+                except:
+                    raise Exception(f"Line {k+1} of clk file: {self._dt_req_file_path} could not be processed properely")
+
 
 class Config(BaseConfig):
     """
@@ -220,4 +264,4 @@ class Config(BaseConfig):
         self.clk_o_num = 0
         self.clk_g_num = 0
 
-        # add clk file, dt_req file and ila file
+        # add dt_req file and ila file
