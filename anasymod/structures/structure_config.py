@@ -184,7 +184,7 @@ class StructureConfig():
         else:
             print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
 
-    def _parse_clkfile(self, clks: [tuple]):
+    def _parse_clkfile(self, clks: []):
         """
         Read all lines from ctrl io file and store IO objects in CtrlIO container while adding access addresses to
         each IO object.
@@ -201,13 +201,10 @@ class StructureConfig():
             if item:
                 try:
                     item = eval(item)
-                    if isinstance(item, tuple):
-                        if isinstance(item[0], str) and isinstance(item[1], str):
-                            self.clk_o.append(item)
-                        else:
-                            raise Exception(f"Tuple elements of line {k + 1} in clk file: {self._clk_file_path} don't consist of strings")
+                    if isinstance(item, str):
+                        self.clk_o.append(item)
                     else:
-                        raise Exception(f"Line {k + 1} of clk file: {self._clk_file_path} is not a tuple")
+                        raise Exception(f"Elements of line {k + 1} in clk file: {self._clk_file_path} don't consist of strings")
                 except:
                     raise Exception(f"Line {k+1} of clk file: {self._clk_file_path} could not be processed properely")
 
