@@ -448,6 +448,7 @@ class Analysis():
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_clkmanager_wrap.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'emu_intf.sv'), config_path=config_path, fileset=fileset))
 
                 get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
 
@@ -466,7 +467,7 @@ class Analysis():
             self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='EMU', value=f'{top_module}.emu', fileset=fileset))
+            self.filesets.add_define(define=Define(name='EMU', value=f'"$root.{top_module}.emu"', fileset=fileset))
 
 
     def _setup_targets(self):

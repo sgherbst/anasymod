@@ -147,6 +147,13 @@ module top(
 // emulation clock declarations
 logic emu_clk, emu_clk_2x;
 
+// emulator interface
+emu_intf #(.dt_width(`DT_WIDTH)) emu ();
+assign emu.clk = emu_clk;
+
+// instantiate testbench
+{{subst.tb_inst_ifc.text}}
+
 // Declaration of control signals
 {{subst.inst_itl_ctlsigs.text}}
 
@@ -176,10 +183,10 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
 // Time manager
 
 localparam integer n_dt = {{subst.num_dt_reqs}};
-logic signed [((`DT_SIGNIFICAND_WIDTH)-1):0] dt_req [n_dt];
+logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
 time_manager  #(
     .n(n_dt),
-    .width(`DT_SIGNIFICAND_WIDTH)
+    .width(`DT_WIDTH)
 ) time_manager_i (
     .dt_req(dt_req),
     .emu_dt(emu.dt)
@@ -189,12 +196,6 @@ time_manager  #(
 
 // make probes needed for emulation control
 //`MAKE_EMU_CTRL_PROBES;
-
-// instantiate testbench
-{{subst.tb_inst_ifc.text}}
-
-// TODO: make more generic
-assign fpga_top_i.emu.clk = emu_clk;
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL
