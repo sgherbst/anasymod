@@ -168,6 +168,9 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
 // instantiate testbench
 {{subst.tb_inst_ifc.text}}
 
+// TODO: make more generic
+assign fpga_top_i.emu.clk = emu_clk;
+
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL
     // stop simulation after some time

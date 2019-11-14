@@ -12,7 +12,7 @@ module gen_emu_clks #(
     always @(posedge emu_clk_2x) begin
         emu_clk_unbuf <= ~emu_clk_unbuf;
     end
-    `ifdef SIMULATION_MODE_MSDSL
+    `ifndef SIMULATION_MODE_MSDSL
         BUFG buf_emu_clk (.I(emu_clk_unbuf), .O(emu_clk));
     `else
         assign emu_clk = emu_clk_unbuf;
@@ -29,7 +29,7 @@ module gen_emu_clks #(
                     clk_unbufs[k] <= clk_unbufs[k];
                 end
             end
-            `ifdef SIMULATION_MODE_MSDSL
+            `ifndef SIMULATION_MODE_MSDSL
                 BUFG buf_i (.I(clk_unbufs[k]), .O(clks[k]));
             `else
                 assign clks[k] = clk_unbufs[k];
