@@ -8,6 +8,7 @@ from anasymod.targets import FPGATarget
 class VivadoControl(CodeGenerator):
     def __init__(self, target: FPGATarget):
         self.target = target
+        super().__init__()
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):
         cmd = ['create_project']
