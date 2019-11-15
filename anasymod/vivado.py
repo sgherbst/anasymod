@@ -3,8 +3,11 @@ import os
 from anasymod.util import call, back2fwd
 from anasymod.codegen import CodeGenerator
 from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, MEMFile, BDFile
+from anasymod.targets import FPGATarget
 
 class VivadoControl(CodeGenerator):
+    def __init__(self, target: FPGATarget):
+        self.target = target
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):
         cmd = ['create_project']
@@ -96,17 +99,17 @@ class VivadoControl(CodeGenerator):
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
-    def run(self, vivado, build_dir, filename=r"run.tcl", nolog=True, nojournal=True):
+    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False):
         # write the TCL script
-        tcl_script = os.path.join(build_dir, filename)
+        tcl_script = os.path.join(self.target.prj_cfg.build_root, filename)
         self.write_to_file(tcl_script)
 
         # assemble the command
-        cmd = [vivado, '-mode', 'batch', '-source', tcl_script]
+        cmd = [self.target.prj_cfg.vivado_config.vivado, '-mode', 'tcl' if interactive else 'batch', '-source', tcl_script]
         if nolog:
             cmd.append('-nolog')
         if nojournal:
             cmd.append('-nojournal')
 
         # run the script
-        call(args=cmd, cwd=build_dir)
+        call(args=cmd, cwd=self.target.prj_cfg.build_root)

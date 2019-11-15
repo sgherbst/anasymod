@@ -222,6 +222,7 @@ class Config(BaseConfig):
         self.fpga_sim_crtl = FPGASimCtrl.VIVADO_VIO
         self.plugins = []
         self.plugins.append('msdsl')
+        self.dt = 0.1e-6
         self.dt_exponent = -46
         self.dt_width = 27
 

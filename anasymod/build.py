@@ -11,6 +11,7 @@ from anasymod.blocks.clk_wiz import TemplClkWiz
 from anasymod.blocks.vio_wiz import TemplVIO
 from anasymod.blocks.probe_extract import TemplPROBE_EXTRACT
 from anasymod.blocks.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
+from anasymod.blocks.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
 
@@ -22,7 +23,7 @@ class VivadoBuild():
         self.target = target
 
         # TCL generators
-        self.v = VivadoControl()
+        self.v = VivadoControl(target=self.target)
 
     def build(self):
         # create a new project
@@ -135,8 +136,29 @@ class VivadoBuild():
         self.v.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         # run bitstream generation
-        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"bitstream.tcl")
+        self.v.run(filename=r"bitstream.tcl")
 
-    def run_FPGA(self, start_time: float, stop_time: float, dt: float, server_addr: str):
-        self.v.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, start_time=start_time, stop_time=stop_time, dt=dt, server_addr=server_addr))
-        self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"run_FPGA.tcl")
+    def run_FPGA(self, start_time: float, stop_time: float, server_addr: str):
+        """
+        Run the FPGA in non-interactive mode. This means FPGA will run for specified duration, all specified signals
+        will be captured and dumped to a file.
+
+        :param start_time: Point in time from which recording run data will start
+        :param stop_time: Point in time where FPGA run will be stopped
+        :param dt: Update rate of analog behavior calculation
+        :param server_addr: Hardware server address for hw server launched by Vivado
+        """
+
+        self.v.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, start_time=start_time, stop_time=stop_time, server_addr=server_addr))
+        self.v.run(filename=r"run_FPGA.tcl", interactive=False)
+
+    def launch_FPGA(self, server_addr: str):
+        """
+        Run the FPGA in interactive mode. This means FPGA will be programmed and control interfaces prepared. After that
+        interactive communication with FPGA is possible.
+
+        :param server_addr: Hardware server address for hw server launched by Vivado
+        """
+
+        self.v.use_templ(TemplLAUNCH_FPGA_SIM(target=self.target, server_addr=server_addr))
+        self.v.run(filename=r"launch_FPGA.tcl", interactive=True)

@@ -59,6 +59,8 @@ class Analysis():
         # Initialize project config
         self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
 
+        # Initialize vivado control
+
         # Assign simulation control interface object
         #self.ctrl = ToDo HIER WEITER
 
@@ -67,7 +69,7 @@ class Analysis():
         for plugin in self._prj_cfg.cfg.plugins:
             try:
                 i = import_module(f"plugin.{plugin}")
-                inst = i.CustomPlugin(cfg_file=self.cfg_file, prj_root=self.args.input, build_root=self._prj_cfg.build_root)
+                inst = i.CustomPlugin(prj_cfg=self._prj_cfg, cfg_file=self.cfg_file, prj_root=self.args.input)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
             except:
@@ -143,7 +145,7 @@ class Analysis():
 
     def emulate(self, target: FPGATarget, server_addr=None):
         """
-        Run bitstream on FPGA
+        Program bitstream to FPGA and run simulation/emulation on FPGA
         """
 
         if server_addr is None:
@@ -164,12 +166,44 @@ class Analysis():
             build = VivadoBuild(target=target)
 
         # run the emulation
-        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, dt=self.msdsl.cfg.dt, server_addr=server_addr)
+        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
         ConvertWaveform(target=target)
+
+    def launch(self, target: FPGATarget, server_addr=None):
+        """
+        Program bitstream to FPGA, setup control infrastructure and wait for interactive commands.
+        :param target:
+        :param server_addr:
+        :return:
+        """
+
+        if server_addr is None:
+            server_addr = self.args.server_addr
+
+        # Check if project setup was finished
+        self._check_setup()
+
+        # create sim result folders
+        if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(target.cfg.vcd_path))
+
+        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
+            mkdir_p(os.path.dirname(target.cfg.csv_path))
+
+        # create VivadoBuild object if necessary (this does not actually build the design)
+        if r"build" not in locals():
+            build = VivadoBuild(target=target)
+
+        # launch the emulation
+        build.launch_FPGA(server_addr=server_addr)
+        statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
+
+        #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
+        #ToDo: the conversion step to .vcd needs to be triggered via some command
 
     def prepare(self, target: SimulationTarget, unit=None, id=None):
         """
