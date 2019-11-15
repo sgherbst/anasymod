@@ -112,13 +112,14 @@ class ModuleTop(JinjaTempl):
         # Absolute path assignments for dt_reqs
         self.dt_req_assigns = SVAPI()
         for k, dt_req in enumerate(scfg.dt_reqs):
+            self.dt_req_assigns.writeln(f'assign {dt_req}.__emu_dt = emu_dt;')
             self.dt_req_assigns.writeln(f'assign dt_req[{k}] = {dt_req}.__emu_dt_req;')
 
         #####################################################
         # Instantiate testbench
         #####################################################
         self.tb_inst_ifc = SVAPI()
-        tb_inst = ModuleInst(api=self.tb_inst_ifc, name='fpga_top')
+        tb_inst = ModuleInst(api=self.tb_inst_ifc, name='tb')
         tb_inst.generate_instantiation()
 
     TEMPLATE_TEXT = '''
@@ -149,6 +150,9 @@ module top(
 // emulation clock declarations
 logic emu_clk, emu_clk_2x;
 
+// instantiate testbench
+{{subst.tb_inst_ifc.text}}
+
 // Declaration of control signals
 {{subst.inst_itl_ctlsigs.text}}
 
@@ -178,25 +182,20 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
 // Time manager
 
 localparam integer n_dt = {{subst.num_dt_reqs}};
-logic signed [((`DT_SIGNIFICAND_WIDTH)-1):0] dt_req [n_dt];
+logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
+logic signed [((`DT_WIDTH)-1):0] emu_dt;
 time_manager  #(
     .n(n_dt),
-    .width(`DT_SIGNIFICAND_WIDTH)
+    .width(`DT_WIDTH)
 ) time_manager_i (
     .dt_req(dt_req),
-    .emu_dt(emu.dt)
+    .emu_dt(emu_dt)
 );
 
 {{subst.dt_req_assigns.text}}
 
 // make probes needed for emulation control
 //`MAKE_EMU_CTRL_PROBES;
-
-// instantiate testbench
-{{subst.tb_inst_ifc.text}}
-
-// TODO: make more generic
-assign fpga_top_i.emu.clk = emu_clk;
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL
