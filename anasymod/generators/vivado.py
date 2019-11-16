@@ -1,12 +1,17 @@
 import os
 
 from anasymod.util import call, back2fwd
-from anasymod.codegen import CodeGenerator
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, MEMFile, BDFile
+from anasymod.generators.codegen import CodeGenerator
+from anasymod.sources import VerilogSource, MEMFile, BDFile
 from anasymod.targets import FPGATarget
 
-class VivadoControl(CodeGenerator):
+class VivadoTCLGenerator(CodeGenerator):
+    """
+    Class for generating a TCL control file to setup Vivado Projects, launch Vivado and execute the generated TCL file.
+    """
+
     def __init__(self, target: FPGATarget):
+        super().__init__()
         self.target = target
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):

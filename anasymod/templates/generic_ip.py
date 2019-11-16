@@ -1,8 +1,8 @@
 import os.path
 
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.util import back2fwd
-from anasymod.targets import FPGATarget
+
 
 class TemplGenericIp(JinjaTempl):
     def __init__(self, ip_name, ip_module_name=None, props=None, ip_dir=None):

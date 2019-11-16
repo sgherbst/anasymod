@@ -1,9 +1,7 @@
-from anasymod.structures.port_base import Port, PortIN, PortOUT
 from anasymod.sim_ctrl.ctrlifc_datatypes import *
-from anasymod.structures.signal_base import Signal
 from anasymod.enums import PortDir
 from typing import Union
-from anasymod.codegen import CodeGenerator
+from anasymod.generators.codegen import CodeGenerator
 
 io_obj_types = DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal
 io_obj_types_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]

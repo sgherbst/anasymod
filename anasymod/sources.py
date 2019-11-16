@@ -1,7 +1,7 @@
 import os
 
 from glob import glob
-from anasymod.codegen import CodeGenerator
+from anasymod.generators.codegen import CodeGenerator
 from anasymod.util import back2fwd
 from typing import Union
 

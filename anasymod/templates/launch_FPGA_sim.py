@@ -1,9 +1,8 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
-from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
-from anasymod.gen_api import SVAPI
+from anasymod.generators.gen_api import SVAPI
 
 class TemplLAUNCH_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, server_addr: str):

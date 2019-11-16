@@ -1,6 +1,6 @@
-from anasymod.templ import JinjaTempl
-from anasymod.gen_api import SVAPI, ModuleInst
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.templates.templ import JinjaTempl
+from anasymod.generators.gen_api import SVAPI, ModuleInst
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalSignal
 from anasymod.structures.structure_config import StructureConfig
 
 class ModuleUARTSimCtrl(JinjaTempl):

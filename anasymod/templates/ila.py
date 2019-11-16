@@ -1,4 +1,4 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.util import next_pow_2
 from anasymod.probe_config import ProbeConfig
 

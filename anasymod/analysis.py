@@ -4,7 +4,6 @@ import json
 import numpy as np
 
 from argparse import ArgumentParser
-from sys import platform
 
 from anasymod.config import EmuConfig, SimVisionConfig, XceliumConfig
 from anasymod.sim.vivado import VivadoSimulator
@@ -13,9 +12,9 @@ from anasymod.sim.xcelium import XceliumSimulator
 from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
-from anasymod.build import VivadoBuild
+from anasymod.emu.vivado_emu import VivadoEmulation
 from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.sources import VerilogSource, VerilogHeader, VHDLSource, Sources
+from anasymod.sources import VerilogSource
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import SimulationTarget, FPGATarget, Target
@@ -139,8 +138,7 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        build = VivadoBuild(target=target)
-        build.build()
+        VivadoEmulation(target=target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
     def emulate(self, target: FPGATarget, server_addr=None):
@@ -161,12 +159,8 @@ class Analysis():
         if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
             mkdir_p(os.path.dirname(target.cfg.csv_path))
 
-        # create VivadoBuild object if necessary (this does not actually build the design)
-        if r"build" not in locals():
-            build = VivadoBuild(target=target)
-
         # run the emulation
-        build.run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
+        VivadoEmulation(target=target).run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
@@ -194,13 +188,12 @@ class Analysis():
         if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
             mkdir_p(os.path.dirname(target.cfg.csv_path))
 
-        # create VivadoBuild object if necessary (this does not actually build the design)
-        if r"build" not in locals():
-            build = VivadoBuild(target=target)
-
         # launch the emulation
-        build.launch_FPGA(server_addr=server_addr)
+        ctrl_handle = VivadoEmulation(target=target).launch_FPGA(server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
+
+        # Return ctrl handle for interactive control
+        return ctrl_handle
 
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command

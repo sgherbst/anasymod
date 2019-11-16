@@ -1,4 +1,4 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 from anasymod.probe_config import ProbeConfig

@@ -1,9 +1,9 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
-from anasymod.gen_api import SVAPI, ModuleInst
-from anasymod.enums import PortDir
+from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal
+
 
 class ModuleClkManager(JinjaTempl):
     """
@@ -51,7 +51,7 @@ class ModuleClkManager(JinjaTempl):
 	logic emu_clk_state = 1'b0;
 	initial begin
 		// since the reset signal is initially "1", this delay+posedge will
-		// cause the MSDSL blocks to be reset
+		// cause the MSDSL templates to be reset
 	    #((0.5*`DT_MSDSL)*1s);
 	    emu_clk_state = 1'b1;
 

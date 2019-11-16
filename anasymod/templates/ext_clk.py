@@ -1,4 +1,4 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
 

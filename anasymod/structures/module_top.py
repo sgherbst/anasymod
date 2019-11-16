@@ -1,9 +1,8 @@
-from anasymod.enums import PortDir
-from anasymod.gen_api import SVAPI, ModuleInst
-from anasymod.templ import JinjaTempl
+from anasymod.generators.gen_api import SVAPI, ModuleInst
+from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
-from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal
+
 
 class ModuleTop(JinjaTempl):
     """

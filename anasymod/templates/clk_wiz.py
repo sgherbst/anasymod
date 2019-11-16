@@ -1,4 +1,4 @@
-from anasymod.blocks.generic_ip import TemplGenericIp
+from anasymod.templates.generic_ip import TemplGenericIp
 from anasymod.targets import FPGATarget
 from anasymod.base_config import BaseConfig
 from anasymod.enums import ConfigSections

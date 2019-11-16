@@ -1,4 +1,4 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 
 class TemplDbgHub(JinjaTempl):
     def __init__(self, dbg_hub_clk_freq=300e6):
