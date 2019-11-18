@@ -122,19 +122,80 @@ class Analysis():
 
 ##### Functions exposed for user to exercise on Analysis Object
 
+    def setup_filesets(self):
+        """
+        Setup filesets for project.
+        This may differ from one project to another and needs customization.
+        1. Read in source objects from source.config files and store those in a fileset object
+        2. Add additional source objects to fileset object
+        """
+
+        # Read source.config files and store in fileset object
+        default_filesets = ['default', 'sim', 'fpga']
+        self.filesets = Filesets(root=self.args.input, default_filesets=default_filesets)
+        self.filesets.read_filesets()
+
+        # Add Defines and Sources from plugins
+        for plugin in self._plugins:
+            plugin._setup_sources()
+            plugin._setup_defines()
+            self.filesets._defines += plugin._dump_defines()
+            self.filesets._verilog_sources += plugin._dump_verilog_sources()
+            self.filesets._verilog_headers += plugin._dump_verilog_headers()
+            self.filesets._vhdl_sources += plugin._dump_vhdl_sources()
+
+        # Add custom source and define objects here e.g.:
+        # self.filesets.add_source(source=VerilogSource())
+        # self.filesets.add_define(define=Define())
+        config_path = os.path.join(self.args.input, 'source.config')
+
+        # Add some default files depending on whether there is a custom top level
+        # TODO: clean this part up with generated top level
+        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'vio_gen.sv'), config_path=config_path))
+        for fileset in ['sim', 'fpga']:
+            try:
+                custom_top = self.cfg_file['TARGET'][fileset]['custom_top']
+                print(f'Using custom top for fileset {fileset}.')
+            except:
+                custom_top = False
+
+            if not custom_top:
+                #ToDo: check if file inclusion should be target specific -> less for simulation only for example
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_top.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
+                #self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlregmap.sv'), config_path=config_path, fileset=fileset)) #probably not needed
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_clkmanager_wrap.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
+
+                get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
+
+        # Set define variables specifying the emulator control architecture
+        # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
+        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
+        for fileset in ['sim', 'fpga']:
+            try:
+                top_module = self.cfg_file['TARGET'][fileset]['top_module']
+            except:
+                top_module = 'top'
+
+            print(f'Using top module {top_module} for fileset {fileset}.')
+            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
+            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
+
     def finish_setup(self):
         """
         Finalize filesets and setup targets. Both should not be modified anymore afterwards.
         :return:
         """
-        # Initialize Filesets
-        self._setup_filesets()
 
         # Initialize Targets
         self._setup_targets()
-
-        # Set indication that project setup is complete
-        self._setup_finished = True
 
     def set_target(self, target_name):
         self.args.active_target = target_name
@@ -457,72 +518,6 @@ class Analysis():
 
         self.args, _ = parser.parse_known_args()
 
-    def _setup_filesets(self):
-        """
-        Setup filesets for project.
-        This may differ from one project to another and needs customization.
-        1. Read in source objects from source.config files and store those in a fileset object
-        2. Add additional source objects to fileset object
-        """
-
-        # Read source.config files and store in fileset object
-        default_filesets = ['default', 'sim', 'fpga']
-        self.filesets = Filesets(root=self.args.input, default_filesets=default_filesets)
-        self.filesets.read_filesets()
-
-        # Add Defines and Sources from plugins
-        for plugin in self._plugins:
-            plugin._setup_sources()
-            plugin._setup_defines()
-            self.filesets._defines += plugin._dump_defines()
-            self.filesets._verilog_sources += plugin._dump_verilog_sources()
-            self.filesets._verilog_headers += plugin._dump_verilog_headers()
-            self.filesets._vhdl_sources += plugin._dump_vhdl_sources()
-
-        # Add custom source and define objects here e.g.:
-        # self.filesets.add_source(source=VerilogSource())
-        # self.filesets.add_define(define=Define())
-        config_path = os.path.join(self.args.input, 'source.config')
-
-        # Add some default files depending on whether there is a custom top level
-        # TODO: clean this part up with generated top level
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'vio_gen.sv'), config_path=config_path))
-        for fileset in ['sim', 'fpga']:
-            try:
-                custom_top = self.cfg_file['TARGET'][fileset]['custom_top']
-                print(f'Using custom top for fileset {fileset}.')
-            except:
-                custom_top = False
-
-            if not custom_top:
-                #ToDo: check if file inclusion should be target specific -> less for simulation only for example
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_top.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
-                #self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlregmap.sv'), config_path=config_path, fileset=fileset)) #probably not needed
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_clkmanager_wrap.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
-
-                get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
-
-        # Set define variables specifying the emulator control architecture
-        # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
-        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
-        for fileset in ['sim', 'fpga']:
-            try:
-                top_module = self.cfg_file['TARGET'][fileset]['top_module']
-            except:
-                top_module = 'top'
-
-            print(f'Using top module {top_module} for fileset {fileset}.')
-            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
-            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
-
     def _setup_targets(self):
         """
         Setup targets for project.
@@ -574,6 +569,9 @@ class Analysis():
             self.fpga.setup_ctrl_ifc()
             self.fpga.gen_structure()
         self.fpga.set_tstop()
+
+        # Set indication that project setup is complete
+        self._setup_finished = True
 
     def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
         """
