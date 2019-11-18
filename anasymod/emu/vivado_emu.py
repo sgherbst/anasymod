@@ -10,6 +10,8 @@ from anasymod.templates.clk_wiz import TemplClkWiz
 from anasymod.templates.vio_wiz import TemplVIO
 from anasymod.templates.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.templates.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
+from anasymod.templates.probe_extract import TemplPROBE_EXTRACT
+from anasymod.templates.ila import TemplILA
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
 
@@ -52,7 +54,7 @@ class VivadoEmulation(VivadoTCLGenerator):
                     f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
         cpath = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
-        constrs.write_to_file(cpath)
+        #constrs.write_to_file(cpath)
 
         # add master constraints file to project
         self.add_files([cpath], fileset='constrs_1')
@@ -103,15 +105,15 @@ class VivadoEmulation(VivadoTCLGenerator):
             self.writeln('wait_on_run synth_1')
 
             # extact probes from design
-            # self.v.use_templ(TemplPROBE_EXTRACT(target=self.target))
-            # self.v.run(vivado=self.target.prj_cfg.vivado_config.vivado, build_dir=self.target.prj_cfg.build_root, filename=r"synthesis.tcl")
+            #self.use_templ(TemplPROBE_EXTRACT(target=self.target))
+            #self.run(filename=r"synthesis.tcl")
 
             # append const file with ILA according to extracted probes
-            constrs.read_from_file(cpath)
-            # constrs.use_templ(TemplILA(probe_cfg_path=self.target.probe_cfg_path, inst_name=self.target.prj_cfg.vivado_config.ila_inst_name))
+            #constrs.read_from_file(cpath)
+            constrs.use_templ(TemplILA(target=self.target))
     
             # write constraints to file
-            constrs.use_templ(TemplDbgHub(dbg_hub_clk_freq=self.target.prj_cfg.board.dbg_hub_clk_freq))
+            constrs.use_templ(TemplDbgHub(target=self.target))
             constrs.write_to_file(cpath)
 
             # Open project

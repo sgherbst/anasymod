@@ -104,3 +104,15 @@ class AnalogCtrlOutput(AnalogSignal):
     def __init__(self, abspath, name, range, delimiter='.'):
         super().__init__(abspath=abspath, name=name, range=range, delimiter=delimiter)
         self.o_addr = None
+
+
+class ProbeSignal():
+    """
+    Temporary container to store all the information necessary for generating ila probe signals.
+    """
+
+    def __init__(self, name, abspath, width, exponent):
+        self.name = name
+        self.abspath = abspath
+        self.width = width
+        self.exponent = exponent

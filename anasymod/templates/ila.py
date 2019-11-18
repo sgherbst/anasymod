@@ -1,9 +1,9 @@
 from anasymod.templates.templ import JinjaTempl
 from anasymod.util import next_pow_2
-from anasymod.probe_config import ProbeConfig
+from anasymod.targets import FPGATarget
 
 class TemplILA(JinjaTempl):
-    def __init__(self, probe_cfg_path, depth=4096, inst_name='u_ila_0', ila_clk='emu_clk'):
+    def __init__(self, target: FPGATarget, depth=4096):
         super().__init__()
         # set defaults
 
@@ -11,10 +11,10 @@ class TemplILA(JinjaTempl):
         assert next_pow_2(depth) == depth, 'The ILA depth must be a power of 2.'
         assert depth >= 1024, 'The ILA depth must be at least 1024.'
 
-        self.inst_name = inst_name
+        self.inst_name = target.prj_cfg.vivado_config.ila_inst_name
 
         self.width_ila_clk = '1'
-        self.conn_ila_clk = ila_clk
+        self.conn_ila_clk = target.str_cfg.clk_m[0].name
 
         self.ila_prop = {}
 
@@ -31,14 +31,13 @@ class TemplILA(JinjaTempl):
         self.ila_prop['ALL_PROBE_SAME_MU_CNT'] = '2'
 
         # specify all signals to be probed
-        self.probe_cfg = ProbeConfig(probe_cfg_path=probe_cfg_path)
         self.probes = {}
-        signals = self.probe_cfg.analog_signals + self.probe_cfg.time_signal + self.probe_cfg.reset_signal + self.probe_cfg.digital_signals
-        print(f"Signals:{signals}")
-        for k, (conn, width, _) in enumerate(signals):
+        signals = target.str_cfg.probes
+        print(f"Signals:{signals.name}")
+        for k, (_, abspath, width, _) in enumerate(signals):
             probe_name = f'probe{k}'
             self.probes[probe_name] = {}
-            self.probes[probe_name]['conn'] = conn
+            self.probes[probe_name]['conn'] = abspath
             self.probes[probe_name]['width'] = str(width)
 
     TEMPLATE_TEXT = '''

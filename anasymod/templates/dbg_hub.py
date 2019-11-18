@@ -1,13 +1,16 @@
 from anasymod.templates.templ import JinjaTempl
+from anasymod.targets import FPGATarget
 
 class TemplDbgHub(JinjaTempl):
-    def __init__(self, dbg_hub_clk_freq=300e6):
+    def __init__(self, target: FPGATarget):
         super().__init__()
         self.dbg_hub_prop = {}
         self.dbg_hub_prop['C_ENABLE_CLK_DIVIDER'] = 'false'
         self.dbg_hub_prop['C_USER_SCAN_CHAIN'] = '1'
-        self.dbg_hub_prop['C_CLK_INPUT_FREQ_HZ'] = str(int(dbg_hub_clk_freq))
-        self.conn_dbg_clk = 'clk_gen_i/clk_wiz_0_i/clk_out2'
+        self.dbg_hub_prop['C_CLK_INPUT_FREQ_HZ'] = str(int(target.prj_cfg.board.dbg_hub_clk_freq))
+        self.conn_dbg_clk = f'clk_gen_i/clk_wiz_0_i/{target.str_cfg.clk_d[0]}'
+        #ToDo: In case multiple dbg hubs are necessary, managing signal names needs to be adapted and several
+        # instantiations are necessary
 
     TEMPLATE_TEXT = '''
 # start auto-generated code for debug hub

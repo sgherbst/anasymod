@@ -5,7 +5,7 @@ from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.structures.port_base import PortIN, PortOUT, Port
 from anasymod.structures.signal_base import Signal
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, ProbeSignal
 
 #ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
@@ -28,6 +28,8 @@ class StructureConfig():
         self._clk_file_path = os.path.join(prj_cfg.root, 'clk.config')
         # Path to clk file
         self._dt_req_file_path = os.path.join(prj_cfg.root, 'dt_req.config')
+        # Path to probe file
+        self._probe_file_path = os.path.join(prj_cfg.root, 'probe.config')
 
 
         self.cfg = Config(prj_cfg=prj_cfg)
@@ -92,7 +94,7 @@ class StructureConfig():
         # currently there is exactly one debug clock, in case there is the need for multiple ones, name handling must be
         # implemented, there are some places in codebase where the debug clk name is still hard coded!!!
         for k in range(self.clk_d_num):
-            self.clk_d += [DigitalSignal(abspath=None, width=1, name='dbg_hub_clk')]
+            self.clk_d += [DigitalSignal(abspath=None, width=1, name=f'dbg_hub_clk{k}')]
 
         #########################################################
         # EMU CLK generator interfaces
@@ -111,6 +113,20 @@ class StructureConfig():
         self.dt_reqs = []
 
         self._read_dt_reqfile()
+
+        #########################################################
+        # Probe interfaces
+        #########################################################
+
+        self.analog_probes = [] # user later
+        self.time_probes = [] # user later
+        self.reset_probes = [] # user later
+        self.digital_probes = [] # user later
+
+        #temporary
+        self.probes = []
+
+        self._read_probefile()
 
     def _assign_i_addr(self):
         """
@@ -182,7 +198,7 @@ class StructureConfig():
                 clks = f.readlines()
             self._parse_clkfile(clks=clks)
         else:
-            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
+            print(f"No clk.config file existing, no additional clks will be added.")
 
     def _parse_clkfile(self, clks: []):
         """
@@ -217,7 +233,7 @@ class StructureConfig():
                 dt_reqs = f.readlines()
             self._parse_dt_reqfile(dt_reqs=dt_reqs)
         else:
-            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
+            print(f"No dt_req.config file existing, no additional dt requests will be added.")
 
     def _parse_dt_reqfile(self, dt_reqs: list):
         """
@@ -242,6 +258,60 @@ class StructureConfig():
                 except:
                     raise Exception(f"Line {k+1} of clk file: {self._dt_req_file_path} could not be processed properely")
 
+    def _read_probefile(self):
+        """
+        Read all lines from probe.config file and call parse function to populate probe attribute.
+        """
+        if os.path.isfile(self._probe_file_path):
+            with open(self._probe_file_path, "r") as f:
+                probes = f.readlines()
+            self._parse_probefile(probes=probes)
+        else:
+            print(f"No probe.config file existing, no additional probes will be available for this simulation.")
+
+    def _parse_probefile(self, probes: list):
+        """
+        Read all lines from probe file probe.config and store in probe attribute.
+        :param clks: Lines extracted from dt_req file
+        """
+
+        for k, probe in enumerate(probes):
+            probe = probe.strip()
+
+            if probe.startswith('#'):
+                # skip comments
+                continue
+
+            if probe:
+                try:
+                    probe = eval(probe)
+                    if (isinstance(probe, list) and len(probe) == 4):
+                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=[2], exponent=probe[3]))
+                    else:
+                        raise Exception(f"Probe specified in line {k + 1} in probe file: {self._probe_file_path} has "
+                                        f"wrong format, expected is: ['name', 'abspath', 'width','exponent']")
+                except:
+                    raise Exception(f"Line {k+1} of probe.config file: {self._dt_req_file_path} could not be processed properely")
+
+        # ToDo: Once different probe types are supported, parser needs to differenciate properly
+        #self.analog_signals = []
+        #for name, width, exponent in zip(signals[0], signals[2], signals[1]):
+        #    self.analog_signals.append((name, width, exponent))
+
+        #self.time_signal = []
+        #for name,width, exponent in zip(signals[3], signals[5], signals[4]):
+        #    self.time_signal.append((name, width, exponent))
+
+        #self.reset_signal = []
+        #for name,width, exponent in zip(signals[6], [r"1"], [None]):
+        #    self.reset_signal.append((name, width, exponent))
+
+        #self.digital_signals = []
+        #for name in signals[7]:
+        #    self.digital_signals.append((name, r"1", None))
+
+        #for name, width in zip(signals[8], signals[9]):
+        #    self.digital_signals.append((name, width, None))
 
 class Config(BaseConfig):
     """
@@ -260,5 +330,3 @@ class Config(BaseConfig):
         # add gated clk_outs
         self.clk_o_num = 0
         self.clk_g_num = 0
-
-        # add dt_req file and ila file
