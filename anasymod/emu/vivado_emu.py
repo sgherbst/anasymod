@@ -14,7 +14,7 @@ from anasymod.templates.probe_extract import TemplPROBE_EXTRACT
 from anasymod.templates.ila import TemplILA
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
-from anasymod.sim_ctrl.control import Control
+from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
 
 
 class VivadoEmulation(VivadoTCLGenerator):
@@ -57,7 +57,7 @@ class VivadoEmulation(VivadoTCLGenerator):
             self.use_templ(TemplClkWiz(target=self.target))
 
             # Add IP cores necessary for control interface
-            ip_core_templates = self.target.ctrl._add_ip_cores(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir)
+            ip_core_templates = self.target.ctrl.add_ip_cores(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir)
             for ip_core_template in ip_core_templates:
                 self.use_templ(ip_core_template)
 

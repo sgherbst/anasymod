@@ -1,16 +1,16 @@
-from anasymod.sim_ctrl.control import Control
+from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 from anasymod.sources import VerilogSource
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.templates.vio_wiz import TemplVIO
 
-class VIOControl(Control):
+class VIOControlInfrastructure(ControlInfrastructure):
     def __init__(self, prj_cfg):
         super().__init__(prj_cfg=prj_cfg)
 
         # Initialize internal variables
 
-    def _build_base_ctrl_structure(self, str_cfg: StructureConfig, content):
+    def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for base control infrastructure. This will generate the sim ctrl wrapper for VIO control.
         """
@@ -21,7 +21,7 @@ class VIOControl(Control):
 
         content.verilog_sources += [VerilogSource(files=self._simctrlwrap_path)]
 
-    def _build_FPGA_ctrl_structure(self, str_cfg: StructureConfig, content):
+    def gen_ctrl_infrastructure(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
         For VIO control, no additional RTL sources need to be generated.
@@ -29,7 +29,7 @@ class VIOControl(Control):
         """
         pass
 
-    def _add_ip_cores(self, scfg, ip_dir):
+    def add_ip_cores(self, scfg, ip_dir):
         """
         Configures and adds IP cores that are necessary for selected IP cores. VIO IP core is configured and added.
         :return rendered template for configuring a vio IP core
@@ -38,8 +38,8 @@ class VIOControl(Control):
 
 
 def main():
-    ctrl = VIOControl(prj_cfg=EmuConfig(root='test', cfg_file=''))
-    ctrl._build_base_ctrl_structure(str_cfg=StructureConfig(prj_cfg=EmuConfig(root='test', cfg_file='')), content='')
+    ctrl = VIOControlInfrastructure(prj_cfg=EmuConfig(root='test', cfg_file=''))
+    ctrl.gen_ctrlwrapper(str_cfg=StructureConfig(prj_cfg=EmuConfig(root='test', cfg_file='')), content='')
 
 if __name__ == "__main__":
     main()

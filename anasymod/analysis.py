@@ -26,7 +26,7 @@ class Analysis():
     """
     This is the top user Class that shall be used to exercise anasymod.
     """
-    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None, op_mode=None):
+    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None, op_mode=None, active_target=None):
 
         # Indicate that setup is not finished yet
         self._setup_finished = False
@@ -47,6 +47,15 @@ class Analysis():
         self.args.synthesizer_name = synthesizer_name if synthesizer_name is not None else self.args.synthesizer_name
         self.args.viewer_name = viewer_name if viewer_name is not None else self.args.viewer_name
         self.args.preprocess_only = preprocess_only if preprocess_only is not None else self.args.preprocess_only
+        self.args.active_target = active_target if active_target is not None else self.args.active_target
+
+        self.default_fpga_target = 'fpga'
+        self.default_sim_target = 'sim'
+
+        if isinstance(self.args.active_target, FPGATarget):
+            self.default_fpga_target = self.args.active_target
+        elif isinstance(self.args.active_target, SimulationTarget):
+            self.default_sim_target = self.args.active_target
 
         # Load config file
         try:
@@ -57,11 +66,6 @@ class Analysis():
 
         # Initialize project config
         self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
-
-        # Initialize vivado control
-
-        # Assign simulation control interface object
-        #self.ctrl = ToDo HIER WEITER
 
         # Initialize Plugins
         self._plugins = []
@@ -93,26 +97,28 @@ class Analysis():
 
             # generate bitstream
             if self.args.build:
-                self.build(target=getattr(self, self.args.fpga_target))
+                self.build()
 
             # run FPGA if desired
             if self.args.emulate:
-                self.emulate(target=getattr(self, self.args.fpga_target))
+                self.emulate()
 
             #prepare for simulation if needed
             if self.args.prepare:
-                self.prepare(target=getattr(self, self.args.fpga_target), unit=self.args.unit, id=self.args.id)
+                self.prepare(unit=self.args.unit, id=self.args.id)
 
             # run simulation if desired
             if self.args.sim or self.args.preprocess_only:
-                self.simulate(target=getattr(self, self.args.sim_target), unit=self.args.unit, id=self.args.id)
+                self.simulate(unit=self.args.unit, id=self.args.id)
 
             # view results if desired
             if self.args.view and (self.args.sim or self.args.preprocess_only):
-                self.view(target=getattr(self, self.args.sim_target))
+                self.view(target=getattr(self, self.default_sim_target))
 
             if self.args.view and self.args.emulate:
-                self.view(target=getattr(self, self.args.fpga_target))
+                self.view(target=getattr(self, self.default_fpga_target))
+
+            self.view()
 
 ##### Functions exposed for user to exercise on Analysis Object
 
@@ -130,7 +136,14 @@ class Analysis():
         # Set indication that project setup is complete
         self._setup_finished = True
 
-    def build(self, target: FPGATarget):
+    def set_target(self, target_name):
+        self.args.active_target = target_name
+        if isinstance(target_name, FPGATarget):
+            self.default_fpga_target = target_name
+        elif isinstance(target_name, SimulationTarget):
+            self.default_sim_target = target_name
+
+    def build(self):
         """
         Generate bitstream for FPGA target
         """
@@ -138,10 +151,14 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        VivadoEmulation(target=target).build()
+        # Check if active target is an FPGA target
+        if not isinstance(self.default_fpga_target, FPGATarget):
+            raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
+
+        VivadoEmulation(target=self.default_fpga_target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
-    def emulate(self, target: FPGATarget, server_addr=None):
+    def emulate(self, server_addr=None):
         """
         Program bitstream to FPGA and run simulation/emulation on FPGA
         """
@@ -152,26 +169,29 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        # create sim result folders
-        if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
-            mkdir_p(os.path.dirname(target.cfg.vcd_path))
+        # Check if active target is an FPGA target
+        if not isinstance(self.default_fpga_target, FPGATarget):
+            raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
 
-        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
-            mkdir_p(os.path.dirname(target.cfg.csv_path))
+        # create sim result folders
+        if not os.path.exists(os.path.dirname(self.default_fpga_target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(self.args.default_fpga_target.cfg.vcd_path))
+
+        if not os.path.exists(os.path.dirname(self.default_fpga_target.cfg.csv_path)):
+            mkdir_p(os.path.dirname(self.args.default_fpga_target.cfg.csv_path))
 
         # run the emulation
-        VivadoEmulation(target=target).run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
+        VivadoEmulation(target=self.default_fpga_target).run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
         from anasymod.wave import ConvertWaveform
-        ConvertWaveform(target=target)
+        ConvertWaveform(target=self.default_fpga_target)
 
-    def launch(self, target: FPGATarget, server_addr=None):
+    def launch(self, server_addr=None):
         """
         Program bitstream to FPGA, setup control infrastructure and wait for interactive commands.
-        :param target:
-        :param server_addr:
+        :param server_addr: Address of Vivado hardware server used for communication to FPGA board
         :return:
         """
 
@@ -181,15 +201,19 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        # create sim result folders
-        if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
-            mkdir_p(os.path.dirname(target.cfg.vcd_path))
+        # Check if active target is an FPGA target
+        if not isinstance(self.default_fpga_target, FPGATarget):
+            raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
 
-        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
-            mkdir_p(os.path.dirname(target.cfg.csv_path))
+        # create sim result folders
+        if not os.path.exists(os.path.dirname(self.default_fpga_target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(self.default_fpga_target.cfg.vcd_path))
+
+        if not os.path.exists(os.path.dirname(self.default_fpga_target.cfg.csv_path)):
+            mkdir_p(os.path.dirname(self.default_fpga_target.cfg.csv_path))
 
         # launch the emulation
-        ctrl_handle = VivadoEmulation(target=target).launch_FPGA(server_addr=server_addr)
+        ctrl_handle = VivadoEmulation(target=self.default_fpga_target).launch_FPGA(server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # Return ctrl handle for interactive control
@@ -198,7 +222,7 @@ class Analysis():
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command
 
-    def prepare(self, target: SimulationTarget, unit=None, id=None):
+    def prepare(self, unit=None, id=None):
         """
         Prepare for simulation, e.g. ifxxcelium needs a prepare step to generate the needed Makefiles
         delete=True will remove content from generated xrun_files.f in order to use it from cmd line or in regressions
@@ -207,6 +231,10 @@ class Analysis():
         # check if setup is already finished, if not do so
         if not self._setup_finished:
             self.finish_setup()
+
+        # Check if active target is a SimulationTarget
+        if not isinstance(self.default_sim_target, SimulationTarget):
+            raise Exception(f'Active Target is of wrong type, only SimulationTarget is supported for this action')
 
         # pick simulator
         sim_cls = {
@@ -217,14 +245,14 @@ class Analysis():
 
         # prepare simulation
 
-        sim = sim_cls(target=target)
+        sim = sim_cls(target=self.default_sim_target)
 
         if self.args.simulator_name == "xrun":
             sim.unit = unit
             sim.id = id
             sim.prepare()
 
-    def simulate(self, target: SimulationTarget, unit=None, id=None):
+    def simulate(self, unit=None, id=None):
         """
         Run simulation on a pc target.
         """
@@ -233,9 +261,13 @@ class Analysis():
         if not self._setup_finished:
             self.finish_setup()
 
+        # Check if active target is a SimulationTarget
+        if not isinstance(self.default_sim_target, SimulationTarget):
+            raise Exception(f'Active Target is of wrong type, only SimulationTarget is supported for this action')
+
         # create sim result folder
-        if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
-            mkdir_p(os.path.dirname(target.cfg.vcd_path))
+        if not os.path.exists(os.path.dirname(self.default_sim_target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(self.default_sim_target.cfg.vcd_path))
 
         # pick simulator
         sim_cls = {
@@ -246,7 +278,7 @@ class Analysis():
 
         # run simulation
 
-        sim = sim_cls(target=target)
+        sim = sim_cls(target=self.default_sim_target)
 
         if self.args.simulator_name == "xrun":
             sim.unit = unit
@@ -255,7 +287,7 @@ class Analysis():
         sim.simulate()
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
-    def probe(self, target: Union[FPGATarget, SimulationTarget], name, emu_time=False):
+    def probe(self, name, emu_time=False):
         """
         Probe specified signal. Signal will be stored in a numpy array.
         """
@@ -263,21 +295,20 @@ class Analysis():
         # Check if project setup was finished
         self._check_setup()
 
-        probeobj = self._setup_probeobj(target=target)
+        probeobj = self._setup_probeobj(target=self.args.active_target)
 
         return probeobj._probe(name=name, emu_time=emu_time)
 
-    def probes(self, target: Union[FPGATarget, SimulationTarget]):
+    def probes(self):
         """
         Display all signals that were stored for specified target run (simulation or emulation)
-        :param target: Target for which all stored signals will be displayed
         :return: list of signal names
         """
 
         # Check if project setup was finished
         self._check_setup()
 
-        probeobj = self._setup_probeobj(target=target)
+        probeobj = self._setup_probeobj(target=self.args.active_target)
 
         return probeobj._probes()
 
@@ -302,13 +333,16 @@ class Analysis():
         except:
             return np.array(wave_step, dtype='O').transpose()
 
-    def view(self, target: Target):
+    def view(self, target: Target=None):
         """
         View results from selected target run.
         """
 
         # Check if project setup was finished
         self._check_setup()
+
+        target=self.args.active_target if target is None else target
+
 
         # pick viewer
         viewer_cls = {
@@ -341,7 +375,6 @@ class Analysis():
         viewer = viewer_cls(target=target)
         viewer.view()
 
-
 ##### Utility Functions
 
     def _parse_args(self):
@@ -361,11 +394,8 @@ class Analysis():
         --viewer_name: Waveform viewer that shall be used for viewing result waveforms.
             default=gtkwave for windows, simvision for linux
 
-        --sim_target: Target that shall be used for running logic simulations.
+        --active_target: Target that shall be actively used.
             default='sim'
-
-        --fpga_target: Target that shall be used for FPGA runs.
-            default='fpga'
 
         --prepare: Executes preparation step for simulation. Is needed for ifxxcelium Camino wrapper.
 
@@ -412,8 +442,7 @@ class Analysis():
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
-        parser.add_argument('--sim_target', type=str, default='sim')
-        parser.add_argument('--fpga_target', type=str, default='fpga')
+        parser.add_argument('--active_target', type=str, default='sim')
         parser.add_argument('--prepare', action='store_true')
         parser.add_argument('--unit', type=str, default=None)
         parser.add_argument('--id', type=str, default=None)
@@ -494,7 +523,6 @@ class Analysis():
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
 
-
     def _setup_targets(self):
         """
         Setup targets for project.
@@ -539,7 +567,7 @@ class Analysis():
         # Update simulation target specific configuration
         self.fpga.cfg.update_config(subsection=r"fpga")
         self.fpga.update_structure_config()
-        # Instantiate Simulation Control Interface
+        # Instantiate Simulation ControlInfrastructure Interface
         # ToDo: This should only be executed for FPGA simulation!
         if not self.fpga.cfg.custom_top:
             print('!!! gen_structure for FPGA target')

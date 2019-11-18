@@ -5,28 +5,28 @@ from anasymod.structures.structure_config import StructureConfig
 
 import serial, os
 
-class Control():
+class ControlInfrastructure():
     def __init__(self, prj_cfg):
         # Initialize control config
         self.cfg = Config(cfg_file=prj_cfg.cfg_file)
 
         self._simctrlwrap_path = os.path.join(prj_cfg.build_root, 'gen_ctrlwrap.sv')
 
-    def _build_base_ctrl_structure(self, str_cfg: StructureConfig, content):
+    def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for base control infrastructure, depending on the interface selected for communication.
         """
         raise NotImplementedError("This function cannot be called from the base control class itself and is overloaded "
                                   "in the inheriting classes.")
 
-    def _build_FPGA_ctrl_structure(self, str_cfg: StructureConfig, content):
+    def gen_ctrl_infrastructure(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
         """
         raise NotImplementedError("This function cannot be called from the base control class itself and is overloaded "
                                   "in the inheriting classes.")
 
-    def _add_ip_cores(self, scfg, ip_dir):
+    def add_ip_cores(self, scfg, ip_dir):
         """
         Configures and adds IP cores that are necessary for selected IP cores.
         """

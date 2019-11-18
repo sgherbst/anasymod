@@ -2,14 +2,14 @@ import serial
 import io, os
 import serial.tools.list_ports as ports
 from anasymod.enums import CtrlOps, FPGASimCtrl
-from anasymod.sim_ctrl.control import Control
+from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
 from anasymod.structures.module_uartsimctrl import ModuleUARTSimCtrl
 from anasymod.structures.module_regmapsimctrl import ModuleRegMapSimCtrl
 from anasymod.sources import VerilogSource, BDFile
 from anasymod.files import mkdir_p, rm_rf, get_from_module, which
 from anasymod.structures.structure_config import StructureConfig
 
-class UARTControl(Control):
+class UARTControlInfrastructure(ControlInfrastructure):
     def __init__(self, prj_cfg):
         super().__init__(prj_cfg=prj_cfg)
 
@@ -82,7 +82,7 @@ class UARTControl(Control):
                 return int(result.decode("utf-8").rstrip())
         raise Exception(f"ERROR: Couldn't read from FPGA after:{count} attempts.")
 
-    def _build_base_ctrl_structure(self, str_cfg: StructureConfig, content):
+    def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for control infrastructure. This will generate the register map, add the block diagram
         including the zynq PS and add the firmware running on the zynq PS.
@@ -94,7 +94,7 @@ class UARTControl(Control):
 
         content['verilog_sources'] += [VerilogSource(files=self._simctrlwrap_path)]
 
-    def _build_FPGA_ctrl_structure(self, str_cfg: StructureConfig, content):
+    def gen_ctrl_infrastructure(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
         For UART_ZYNQ control a register map, ZYNQ CPU SS block diagram and the firmware running on the zynq PS
@@ -121,7 +121,7 @@ class UARTControl(Control):
         pass
         #HIER WEITER
 
-    def _add_ip_cores(self, scfg, ip_dir):
+    def add_ip_cores(self, scfg, ip_dir):
         """
         Configures and adds IP cores that are necessary for selected IP cores. No IP core is configured and added.
         :return rendered template for configuring a vio IP core
@@ -129,7 +129,7 @@ class UARTControl(Control):
         return []
 
 def main():
-    ctrl = UARTControl(prj_cfg=EmuConfig(root='test', cfg_file=''))
+    ctrl = UARTControlInfrastructure(prj_cfg=EmuConfig(root='test', cfg_file=''))
     ctrl.write_parameter(addr=0, data=3)
     ctrl.write_parameter(addr=1, data=4)
     print(ctrl.read_parameter(addr=0))

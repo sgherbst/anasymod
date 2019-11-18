@@ -10,8 +10,8 @@ from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
 from typing import Union
 from anasymod.sources import VerilogSource
-from anasymod.sim_ctrl.uart_control import UARTControl
-from anasymod.sim_ctrl.vio_control import VIOControl
+from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
+from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 
 class Target():
     """
@@ -28,9 +28,9 @@ class Target():
         # Initialize structure configuration
         self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
 
-        # Instantiate Simulation Control Interface
+        # Instantiate Simulation ControlInfrastructure Interface
         self.ctrl = None
-        """ :type : Control"""
+        """ :type : ControlInfrastructure"""
 
         self._name = name
 
@@ -77,7 +77,7 @@ class Target():
         self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
 
         # Build control structure and add all sources to project
-        self.ctrl._build_base_ctrl_structure(str_cfg=self.str_cfg, content=self.content)
+        self.ctrl.gen_ctrlwrapper(str_cfg=self.str_cfg, content=self.content)
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
@@ -91,16 +91,16 @@ class Target():
         Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
         mode, which does not possess a direct control interface via anasymod.
 
-        :rtype: Control
+        :rtype: ControlInfrastructure
         """
         #ToDo: This should only be executed for FPGA simulation!
 
         if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
             print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
-            self.ctrl = VIOControl(prj_cfg=self.prj_cfg)
+            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
         elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControl(prj_cfg=self.prj_cfg)
+            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
         else:
             raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
@@ -134,7 +134,7 @@ class FPGATarget(Target):
         Generate toplevel, IPCore wrappers, debug/ctrl infrastructure for FPGA and clk manager.
         """
         super().gen_structure()
-        self.ctrl._build_FPGA_ctrl_structure(str_cfg=self.str_cfg, content=self.content)
+        self.ctrl.gen_ctrl_infrastructure(str_cfg=self.str_cfg, content=self.content)
 
     @property
     def probe_cfg_path(self):

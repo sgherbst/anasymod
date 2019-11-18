@@ -42,7 +42,7 @@ class ModuleRegMapSimCtrl(JinjaTempl):
         #ToDo: currently clk will be treated as inputs to this wrapper, might be driven from PS at one point
 
         #####################################################
-        # Initialize Default Values for Control Parameters
+        # Initialize Default Values for ControlInfrastructure Parameters
         #####################################################
 
         self.init_ctrlios = SVAPI()
