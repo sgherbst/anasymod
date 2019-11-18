@@ -26,6 +26,13 @@ class Control():
         raise NotImplementedError("This function cannot be called from the base control class itself and is overloaded "
                                   "in the inheriting classes.")
 
+    def _add_ip_cores(self, scfg, ip_dir):
+        """
+        Configures and adds IP cores that are necessary for selected IP cores.
+        """
+        raise NotImplementedError("This function cannot be called from the base control class itself and is overloaded "
+                                  "in the inheriting classes.")
+
 class Config(BaseConfig):
     """
     Container to store all config attributes.

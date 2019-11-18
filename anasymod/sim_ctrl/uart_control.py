@@ -121,6 +121,13 @@ class UARTControl(Control):
         pass
         #HIER WEITER
 
+    def _add_ip_cores(self, scfg, ip_dir):
+        """
+        Configures and adds IP cores that are necessary for selected IP cores. No IP core is configured and added.
+        :return rendered template for configuring a vio IP core
+        """
+        return []
+
 def main():
     ctrl = UARTControl(prj_cfg=EmuConfig(root='test', cfg_file=''))
     ctrl.write_parameter(addr=0, data=3)

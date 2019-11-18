@@ -2,6 +2,7 @@ from anasymod.sim_ctrl.control import Control
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 from anasymod.sources import VerilogSource
 from anasymod.structures.structure_config import StructureConfig
+from anasymod.templates.vio_wiz import TemplVIO
 
 class VIOControl(Control):
     def __init__(self, prj_cfg):
@@ -27,6 +28,14 @@ class VIOControl(Control):
 
         """
         pass
+
+    def _add_ip_cores(self, scfg, ip_dir):
+        """
+        Configures and adds IP cores that are necessary for selected IP cores. VIO IP core is configured and added.
+        :return rendered template for configuring a vio IP core
+        """
+        return [TemplVIO(scfg=scfg, ip_dir=ip_dir)]
+
 
 def main():
     ctrl = VIOControl(prj_cfg=EmuConfig(root='test', cfg_file=''))
