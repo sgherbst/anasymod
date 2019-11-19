@@ -77,7 +77,8 @@ class Target():
         self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
 
         # Build control structure and add all sources to project
-        self.ctrl.gen_ctrlwrapper(str_cfg=self.str_cfg, content=self.content)
+        if self.ctrl is not None:
+            self.ctrl.gen_ctrlwrapper(str_cfg=self.str_cfg, content=self.content)
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
