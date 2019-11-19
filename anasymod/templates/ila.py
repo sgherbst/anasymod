@@ -41,6 +41,7 @@ class TemplILA(JinjaTempl):
             self.probes[probe_name]['width'] = str(width)
 
     TEMPLATE_TEXT = '''
+{% if subst.probes %}  
 # start auto-generated code for ILA
 
 create_debug_core {{subst.inst_name}} ila
@@ -71,6 +72,7 @@ connect_debug_port {{ subst.inst_name }}/{{ probename }} [get_nets [list
 {%- endfor %}
 
 # end auto-generated code for ILA
+{% endif %}  
 '''
 
 def main():
