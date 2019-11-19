@@ -33,7 +33,7 @@ class TemplILA(JinjaTempl):
         # specify all signals to be probed
         self.probes = {}
         signals = target.str_cfg.probes
-        print(f"Signals:{signals.name}")
+        print(f"Signals: {[f'{signal.name}' for signal in signals]}")
         for k, (_, abspath, width, _) in enumerate(signals):
             probe_name = f'probe{k}'
             self.probes[probe_name] = {}

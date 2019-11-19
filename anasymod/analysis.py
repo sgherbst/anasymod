@@ -212,10 +212,11 @@ class Analysis():
         self._check_setup()
 
         # Check if active target is an FPGA target
-        if not isinstance(self.default_fpga_target, FPGATarget):
+        fpga_target = getattr(self, self.default_fpga_target)
+        if not isinstance(fpga_target, FPGATarget):
             raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
 
-        VivadoEmulation(target=self.default_fpga_target).build()
+        VivadoEmulation(target=fpga_target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
     def emulate(self, server_addr=None):
