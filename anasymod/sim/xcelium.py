@@ -14,7 +14,7 @@ class XceliumSimulator(Simulator):
         self.unit = None
         self.id = None
 
-    def simulate(self, licqueue=True, smartorder=True):
+    def simulate(self, licqueue=True, smartorder=True, timescale='1ns/1ps'):
         # build up the simulation command
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
@@ -36,6 +36,10 @@ class XceliumSimulator(Simulator):
         # wait to get a license
         if licqueue:
             cmd += ['-licqueue']
+
+        # specify the default timescale
+        if timescale is not None:
+            cmd += ['-timescale', f'{timescale}']
 
         # 64-bit or 32-bit mode
         # TODO: is this actually necessary?  the problem is that sometimes xrun is submitted through a bsub command,
