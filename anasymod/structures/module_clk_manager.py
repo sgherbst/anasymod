@@ -63,7 +63,7 @@ class ModuleClkManager(JinjaTempl):
 	end
 	
 	// output assignment
-	assign emu_clk = emu_clk_state;
+	assign emu_clk_2x = emu_clk_state;
 	
 `else
 	logic locked;

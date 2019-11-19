@@ -52,9 +52,9 @@ class Analysis():
         self.default_fpga_target = 'fpga'
         self.default_sim_target = 'sim'
 
-        if isinstance(self.args.active_target, FPGATarget):
+        if self.args.active_target == 'fpga':
             self.default_fpga_target = self.args.active_target
-        elif isinstance(self.args.active_target, SimulationTarget):
+        elif self.args.active_target == 'sim':
             self.default_sim_target = self.args.active_target
 
         # Load config file
@@ -83,6 +83,7 @@ class Analysis():
             print(f"Running in commandline mode.")
 
             # Finalize project setup, no more modifications of filesets and targets after that!!!
+            self.setup_filesets()
             self.finish_setup()
 
             ###############################################################
@@ -117,8 +118,6 @@ class Analysis():
 
             if self.args.view and self.args.emulate:
                 self.view(target=getattr(self, self.default_fpga_target))
-
-            self.view()
 
 ##### Functions exposed for user to exercise on Analysis Object
 
@@ -323,12 +322,13 @@ class Analysis():
             self.finish_setup()
 
         # Check if active target is a SimulationTarget
-        if not isinstance(self.default_sim_target, SimulationTarget):
+        sim_target = getattr(self, self.default_sim_target)
+        if not isinstance(sim_target, SimulationTarget):
             raise Exception(f'Active Target is of wrong type, only SimulationTarget is supported for this action')
 
         # create sim result folder
-        if not os.path.exists(os.path.dirname(self.default_sim_target.cfg.vcd_path)):
-            mkdir_p(os.path.dirname(self.default_sim_target.cfg.vcd_path))
+        if not os.path.exists(os.path.dirname(sim_target.cfg.vcd_path)):
+            mkdir_p(os.path.dirname(sim_target.cfg.vcd_path))
 
         # pick simulator
         sim_cls = {
@@ -339,7 +339,7 @@ class Analysis():
 
         # run simulation
 
-        sim = sim_cls(target=self.default_sim_target)
+        sim = sim_cls(target=sim_target)
 
         if self.args.simulator_name == "xrun":
             sim.unit = unit

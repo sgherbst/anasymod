@@ -1,5 +1,4 @@
 from anasymod.templates.generic_ip import TemplGenericIp
-from anasymod.targets import FPGATarget
 from anasymod.config import EmuConfig
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
@@ -53,6 +52,7 @@ class TemplVIO(TemplGenericIp):
         super().__init__(ip_name='vio', ip_dir=ip_dir, props=props)
 
 def main():
+    from anasymod.targets import FPGATarget
     print(TemplVIO(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
 if __name__ == "__main__":
