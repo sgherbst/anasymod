@@ -286,12 +286,12 @@ class StructureConfig():
                 try:
                     probe = eval(probe)
                     if (isinstance(probe, list) and len(probe) == 4):
-                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=[2], exponent=probe[3]))
+                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=probe[2], exponent=probe[3]))
                     else:
                         raise Exception(f"Probe specified in line {k + 1} in probe file: {self._probe_file_path} has "
                                         f"wrong format, expected is: ['name', 'abspath', 'width','exponent']")
                 except:
-                    raise Exception(f"Line {k+1} of probe.config file: {self._dt_req_file_path} could not be processed properely")
+                    raise Exception(f"Line {k+1} of probe.config file: {self._probe_file_path} could not be processed properely")
 
         # ToDo: Once different probe types are supported, parser needs to differenciate properly
         #self.analog_signals = []
