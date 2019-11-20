@@ -1,10 +1,9 @@
-from anasymod.templates.templ import JinjaTempl
+from anasymod.templates.generic_ip import TemplGenericIp
 from anasymod.util import next_pow_2
 from anasymod.targets import FPGATarget
 
-class TemplILA(JinjaTempl):
+class TemplILA(TemplGenericIp):
     def __init__(self, target: FPGATarget, depth=4096):
-        super().__init__()
         # set defaults
 
         # Sanity checking for ILA depth
@@ -16,67 +15,37 @@ class TemplILA(JinjaTempl):
         self.width_ila_clk = '1'
         self.conn_ila_clk = target.str_cfg.clk_m[0].name
 
-        self.ila_prop = {}
+        props = {}
 
         # set the number samples per signal
-        self.ila_prop['C_DATA_DEPTH'] = str(depth)
+        props['C_DATA_DEPTH'] = str(depth)
 
         # add a pipelined input to reduce burden on timing closure
-        self.ila_prop['C_INPUT_PIPE_STAGES'] = '1'
+        props['C_INPUT_PIPE_STAGES'] = '1'
 
         # enable capture control
-        self.ila_prop['C_EN_STRG_QUAL'] = 'true'
+        props['C_EN_STRG_QUAL'] = 'true'
 
         # two comparators per probe are recommended when using capture control (per UG908, p 40)
-        self.ila_prop['ALL_PROBE_SAME_MU_CNT'] = '2'
+        props['ALL_PROBE_SAME_MU_CNT'] = '2'
 
         # specify all signals to be probed
         self.probes = {}
         signals = target.str_cfg.probes
         print(f"Signals: {[f'{signal.name}' for signal in signals]}")
+
+        # Set number of probes in total
+        props['ALL_PROBE_SAME_MU_CNT'] = str(len(signals))
+
         for k, signal in enumerate(signals):
-            probe_name = f'probe{k}'
-            self.probes[probe_name] = {}
-            self.probes[probe_name]['conn'] = str(signal.abspath)
-            self.probes[probe_name]['width'] = str(signal.width)
+            # Add depth for ila signal
+            props[f'C_PROBE{k}_WIDTH'] = str(signal.width)
 
-    TEMPLATE_TEXT = '''
-{% if subst.probes %}  
-# start auto-generated code for ILA
+        super().__init__(ip_name='ila', props=props, ip_dir=target.ip_dir)
 
-create_debug_core {{subst.inst_name}} ila
-
-{% for propname, propvalue in subst.ila_prop.items() -%}
-    set_property {{propname}} {{ propvalue }} [get_debug_cores {{ subst.inst_name }}]
-{% endfor -%}
-
-set_property port_width {{ subst.width_ila_clk }} [get_debug_ports {{ subst.inst_name }}/clk]
-connect_debug_port {{ subst.inst_name }}/clk [get_nets [list {{ subst.conn_ila_clk }}]]
-
-{%- set probe = probe0 -%}
-{% for probename, probevalue in subst.probes.items() -%}
-    {% if probename != 'probe0' %}
-create_debug_port {{ subst.inst_name }} probe
-    {%- endif %}
-set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports {{ subst.inst_name }}/{{probename}}]
-set_property port_width {{probevalue['width']}} [get_debug_ports {{ subst.inst_name }}/{{probename}}]
-connect_debug_port {{ subst.inst_name }}/{{ probename }} [get_nets [list
-    {%- if probevalue['width'] != '1' %}
-    {%- for idx in range(probevalue['width']|int) -%}
-        {{ ' {' }}{{ probevalue['conn'] }}[{{ idx }}]{{'}'}}
-    {%- endfor %}
-    {%- else -%}
-        {{' '}}{{ probevalue['conn'] }}
-    {%- endif -%}
-]]
-{%- endfor %}
-
-# end auto-generated code for ILA
-{% endif %}  
-'''
 
 def main():
-    print(TemplILA().render())
+    print(TemplILA(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
 if __name__ == "__main__":
     main()

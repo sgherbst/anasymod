@@ -19,8 +19,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
         module = ModuleInst(api=self.module_ifc, name="sim_ctrl_gen")
         module.add_inputs(ctrl_outputs)
         module.add_outputs(crtl_inputs + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
-        #ToDo: after revamp of clk in structure config, adding the master clk can be cleaned up as well
-        module.add_input(DigitalSignal(name='emu_clk', width=1, abspath=None))
+        module.add_input(scfg.clk_m[0])
 
         module.generate_header()
 
@@ -69,7 +68,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
             vio_o = DigitalSignal(name=f'probe_out{k}', width=width, abspath=None)
             vio_wiz.add_output(io_obj=vio_o, connection=output)
 
-        vio_wiz.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=DigitalSignal(name='emu_clk', width=1, abspath=None))
+        vio_wiz.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=scfg.clk_m[0])
         vio_wiz.generate_instantiation()
 
     TEMPLATE_TEXT = '''

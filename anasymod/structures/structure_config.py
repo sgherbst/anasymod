@@ -118,10 +118,10 @@ class StructureConfig():
         # Probe interfaces
         #########################################################
 
-        self.analog_probes = [] # user later
-        self.time_probes = [] # user later
-        self.reset_probes = [] # user later
-        self.digital_probes = [] # user later
+        self.analog_probes = [] # use later
+        self.time_probes = [] # use later
+        self.reset_probes = [] # use later
+        self.digital_probes = [] # use later
 
         #temporary
         self.probes = []

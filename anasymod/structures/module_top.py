@@ -87,6 +87,34 @@ class ModuleTop(JinjaTempl):
             self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io, exp=ctrl_io.abs_path)
 
         #####################################################
+        # Instantiate trace port Module
+        ######################################################
+        # ToDo: This needs cleanup once probe class is conveniently implemented
+
+        ## Instantiate all probe signals
+        self.inst_probesigs = SVAPI()
+        for signal in scfg.probes:
+            sig = DigitalSignal(name=signal[0], abspath=signal[1], width=signal[2])
+            self.inst_probesigs.gen_signal(sig)
+
+        ## Instantiate traceport module
+        self.trap_inst_ifc = SVAPI()
+        trap_inst = ModuleInst(api=self.trap_inst_ifc, name='trace_port_gen')
+        for signal in scfg.probes:
+            inst_sig = DigitalSignal(name=signal[0], abspath=signal[1], width=signal[2])
+            trap_inst.add_input(inst_sig, connection=inst_sig)
+
+        #Add master clk to traceport module
+        trap_inst.add_input(scfg.clk_m[0])
+        trap_inst.generate_instantiation()
+
+        ## Assign probe signals via abs paths into design
+        self.assign_probesigs = SVAPI()
+        for signal in scfg.probes:
+            sig = DigitalSignal(name=signal[0], abspath=signal[1], width=signal[2])
+            self.assign_probesigs.assign_to(io_obj=sig, exp=sig.abs_path)
+
+        #####################################################
         # Instantiate emu clk manager Module
         #####################################################
 
@@ -160,6 +188,15 @@ logic emu_clk, emu_clk_2x;
 
 // Instantiation of control wrapper
 {{subst.sim_ctrl_inst_ifc.text}}
+
+// Declaration of probe signals
+{{subst.inst_probesigs.text}}
+
+// Assignment of probe signals via absolute paths to design signals
+{{subst.assign_probesigs.text}}
+
+// Instantiation of traceport wrapper
+{{subst.trap_inst_ifc.text}}
 
 // Clock generator
 {{subst.clk_gen_ifc.text}}

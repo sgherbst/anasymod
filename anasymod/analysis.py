@@ -161,11 +161,8 @@ class Analysis():
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_top.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
-                #self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlregmap.sv'), config_path=config_path, fileset=fileset)) #probably not needed
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_clkmanager_wrap.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
 

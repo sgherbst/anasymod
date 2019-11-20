@@ -12,6 +12,7 @@ from typing import Union
 from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
+from anasymod.structures.module_traceport import ModuleTracePort
 
 class Target():
     """
@@ -82,10 +83,17 @@ class Target():
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
-        with (open(clkmanagerwrapper_path, 'w')) as top_file:
-            top_file.write(ModuleClkManager(scfg=self.str_cfg).render())
+        with (open(clkmanagerwrapper_path, 'w')) as clkm_file:
+            clkm_file.write(ModuleClkManager(scfg=self.str_cfg).render())
 
         self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path)]
+
+        # Generate traceport wrapper and add to target sources
+        trapwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_traceport_wrap.sv')
+        with (open(trapwrapper_path, 'w')) as trap_file:
+            trap_file.write(ModuleTracePort(scfg=self.str_cfg).render())
+
+        self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
 
     def setup_ctrl_ifc(self):
         """
