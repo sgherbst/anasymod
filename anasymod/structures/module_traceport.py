@@ -31,7 +31,7 @@ class ModuleTracePort(JinjaTempl):
         #####################################################
 
         self.ila_wiz_inst = SVAPI()
-        ila_wiz = ModuleInst(api=self.ila_wiz_inst, name="vio_0")
+        ila_wiz = ModuleInst(api=self.ila_wiz_inst, name="ila_0")
 
         for k, signal in enumerate(scfg.probes):
             ila_wiz.add_input(DigitalSignal(name=f'probe{k}', abspath=None, width=signal.width),
