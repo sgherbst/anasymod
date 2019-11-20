@@ -125,6 +125,7 @@ class StructureConfig():
 
         #temporary
         self.probes = []
+        """ : type: ProbeSignal"""
 
         self._read_probefile()
 
