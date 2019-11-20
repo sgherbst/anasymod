@@ -110,7 +110,7 @@ class SimulationTarget(Target):
         super().__init__(prj_cfg=prj_cfg, name=name)
 
     def setup_vcd(self):
-        self.content['defines'].append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
+        self.content['defines'].append(Define(name='VCD_FILE_MSDSL', value='"'+back2fwd(self.cfg.vcd_path)+'"'))
 
 class FPGATarget(Target):
     """
