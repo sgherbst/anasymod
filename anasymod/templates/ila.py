@@ -13,7 +13,7 @@ class TemplILA(TemplGenericIp):
         self.inst_name = target.prj_cfg.vivado_config.ila_inst_name
 
         self.width_ila_clk = '1'
-        self.conn_ila_clk = target.str_cfg.clk_m[0].name
+        self.conn_ila_clk = target.str_cfg.emu_clk.name
 
         props = {}
 

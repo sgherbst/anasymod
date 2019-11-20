@@ -69,6 +69,8 @@ class StructureConfig():
         # CLK manager interfaces
         #########################################################
 
+        self.emu_clk = DigitalSignal(name='emu_clk', abspath=None, width=1)
+
         # add clk_in
         self.clk_i_num = len(prj_cfg.board.clk_pin)
 

@@ -1,7 +1,7 @@
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, ProbeSignal
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, ProbeSignal, DigitalCtrlInput, DigitalCtrlOutput
 
 
 class ModuleTop(JinjaTempl):
@@ -105,13 +105,13 @@ class ModuleTop(JinjaTempl):
             trap_inst.add_input(inst_sig, connection=inst_sig)
 
         #Add master clk to traceport module
-        trap_inst.add_input(scfg.clk_m[0])
+        trap_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
         trap_inst.generate_instantiation()
 
         ## Assign probe signals via abs paths into design
         self.assign_probesigs = SVAPI()
         for signal in scfg.probes:
-            sig = DigitalSignal(name=signal.name, abspath=signal.abspath, width=signal.width)
+            sig = DigitalCtrlOutput(name=signal.name, abspath=signal.abspath, width=signal.width)
             self.assign_probesigs.assign_to(io_obj=sig, exp=sig.abs_path)
 
         #####################################################
