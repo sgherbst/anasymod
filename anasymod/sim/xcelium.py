@@ -15,6 +15,9 @@ class XceliumSimulator(Simulator):
         self.id = None
 
     def simulate(self, licqueue=True, smartorder=True, timescale='1ns/1ps'):
+        # prepare ifxxcelium makefile by adding inicio target
+        self.prepare()
+
         # build up the simulation command
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
