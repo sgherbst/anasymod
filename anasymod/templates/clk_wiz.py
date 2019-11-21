@@ -28,7 +28,6 @@ class TemplClkWiz(TemplGenericIp):
         # Add master output clk (emu_clk)
         props[f'CONFIG.CLKOUT1_USED'] = 'true'
         # commented out the line below because the "_PORT" config option is buggy
-        #props[f'CONFIG.CLKOUT1_PORT'] = self.target.str_cfg.clk_m[0].name
         props['CONFIG.CLKOUT1_REQUESTED_OUT_FREQ'] = (target.prj_cfg.cfg.emu_clk_freq * 1e-6)
 
         # Add debug clks

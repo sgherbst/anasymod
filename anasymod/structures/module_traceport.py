@@ -2,7 +2,7 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, ProbeSignal
+from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal
 
 class ModuleTracePort(JinjaTempl):
     def __init__(self, scfg: StructureConfig):
@@ -22,7 +22,7 @@ class ModuleTracePort(JinjaTempl):
             module.add_input(inst_sig, connection=inst_sig)
 
         # Add master clk
-        module.add_input(scfg.clk_m[0])
+        module.add_input(scfg.emu_clk)
 
         module.generate_header()
 
@@ -31,14 +31,14 @@ class ModuleTracePort(JinjaTempl):
         #####################################################
 
         self.ila_wiz_inst = SVAPI()
-        ila_wiz = ModuleInst(api=self.ila_wiz_inst, name="vio_0")
+        ila_wiz = ModuleInst(api=self.ila_wiz_inst, name="ila_0")
 
         for k, signal in enumerate(scfg.probes):
             ila_wiz.add_input(DigitalSignal(name=f'probe{k}', abspath=None, width=signal.width),
                               connection=DigitalSignal(name=signal.name, abspath=signal.abspath, width=signal.width))
 
         # Add master clk
-        ila_wiz.add_input(DigitalSignal(name='clk', abspath=None, width=1), connection=scfg.clk_m[0])
+        ila_wiz.add_input(DigitalSignal(name='clk', abspath=None, width=1), connection=scfg.emu_clk)
 
         ila_wiz.generate_instantiation()
 
