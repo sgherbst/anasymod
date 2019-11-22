@@ -163,6 +163,12 @@ module top(
 );
 `endif // `ifndef SIMULATION_MODE_MSDSL
 
+// Declaration of control signals
+{{subst.inst_itl_ctlsigs.text}}
+
+// Declaration of probe signals
+{{subst.inst_probesigs.text}}
+
 // create ext_clk signal when running in simulation mode
 `ifdef SIMULATION_MODE_MSDSL
     logic ext_clk;
@@ -177,23 +183,22 @@ module top(
 // emulation clock declarations
 logic emu_clk, emu_clk_2x;
 
+// declarations for time manager
+localparam integer n_dt = {{subst.num_dt_reqs}};
+logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
+logic signed [((`DT_WIDTH)-1):0] emu_dt;
+logic signed [((`TIME_WIDTH)-1):0] emu_time;
+
+// declarations for emu clock generator
+localparam integer n_clks = {{subst.num_o_clks}};
+logic clk_vals [n_clks];
+logic clks [n_clks];
+
 // instantiate testbench
 {{subst.tb_inst_ifc.text}}
 
-// Declaration of control signals
-{{subst.inst_itl_ctlsigs.text}}
-
-// Assignment of custom control signals via absolute paths to design signals
-{{subst.assign_custom_ctlsigs.text}}
-
 // Instantiation of control wrapper
 {{subst.sim_ctrl_inst_ifc.text}}
-
-// Declaration of probe signals
-{{subst.inst_probesigs.text}}
-
-// Assignment of probe signals via absolute paths to design signals
-{{subst.assign_probesigs.text}}
 
 // Instantiation of traceport wrapper
 {{subst.trap_inst_ifc.text}}
@@ -202,10 +207,6 @@ logic emu_clk, emu_clk_2x;
 {{subst.clk_gen_ifc.text}}
 
 // Emu Clk generator
-localparam integer n_clks = {{subst.num_o_clks}};
-logic clk_vals [n_clks];
-logic clks [n_clks];
-
 gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
     .emu_clk_2x(emu_clk_2x),
     .emu_clk(emu_clk),
@@ -213,14 +214,7 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
     .clks(clks)
 );
 
-{{subst.clk_out_assigns.text}}
-
 // Time manager
-
-localparam integer n_dt = {{subst.num_dt_reqs}};
-logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
-logic signed [((`DT_WIDTH)-1):0] emu_dt;
-logic signed [((`TIME_WIDTH)-1):0] emu_time;
 time_manager  #(
     .n(n_dt),
     .width(`DT_WIDTH),
@@ -229,10 +223,21 @@ time_manager  #(
     .dt_req(dt_req),
     .emu_dt(emu_dt),
     .emu_clk(emu_clk),
-    .emu_rst(emu_rst)
+    .emu_rst(emu_rst),
+    .emu_time(emu_time)
 );
 
+// Assignment for output clks
+{{subst.clk_out_assigns.text}}
+
+//Assignment for requested time steps
 {{subst.dt_req_assigns.text}}
+
+// Assignment of custom control signals via absolute paths to design signals
+{{subst.assign_custom_ctlsigs.text}}
+
+// Assignment of probe signals via absolute paths to design signals
+{{subst.assign_probesigs.text}}
 
 // make probes needed for emulation control
 //`MAKE_EMU_CTRL_PROBES;
