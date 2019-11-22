@@ -1,6 +1,6 @@
 from anasymod.templates.templ import JinjaTempl
 from anasymod.generators.gen_api import SVAPI, ModuleInst
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal
+from anasymod.sim_ctrl.datatypes import DigitalSignal
 
 
 class ModuleRegMapSimCtrl(JinjaTempl):

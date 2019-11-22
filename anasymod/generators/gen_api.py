@@ -1,4 +1,4 @@
-from anasymod.sim_ctrl.ctrlifc_datatypes import *
+from anasymod.sim_ctrl.datatypes import *
 from anasymod.enums import PortDir
 from typing import Union
 from anasymod.generators.codegen import CodeGenerator

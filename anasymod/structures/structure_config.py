@@ -5,7 +5,7 @@ from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.structures.port_base import PortIN, PortOUT, Port
 from anasymod.structures.signal_base import Signal
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, ProbeSignal
+from anasymod.sim_ctrl.datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, ProbeSignal
 
 #ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 

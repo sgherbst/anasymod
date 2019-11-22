@@ -126,12 +126,8 @@ class VivadoEmulation(VivadoTCLGenerator):
         :param server_addr: Hardware server address for hw server launched by Vivado
         """
 
-        self.use_templ(TemplLAUNCH_FPGA_SIM(target=self.target, server_addr=server_addr))
-        self.run(filename=r"launch_FPGA.tcl", interactive=True)
+        self.target.ctrl_api._initialize()
+        self.target.ctrl_api._setup_ctrl(server_addr=server_addr)
 
-        # ToDo: Depending on the fpga_ctrl setting in the project, setup the control interface e.g. UART or VIO, also
-        # ToDo: check that VIO only works for linux
-
-        # Return the control interface handle
-        # ToDo: include spawnu + Steven's control setup to start Vivado TCL shell and return the shell handle
-        #return
+        # return ctrl object to user for further interactive commands
+        return self.target.ctrl_api

@@ -1,7 +1,7 @@
 from anasymod.templates.generic_ip import TemplGenericIp
 from anasymod.config import EmuConfig
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.sim_ctrl.datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 class TemplVIO(TemplGenericIp):
     def __init__(self, scfg: StructureConfig, ip_dir):

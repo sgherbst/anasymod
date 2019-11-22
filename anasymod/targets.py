@@ -13,6 +13,8 @@ from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
+from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
+from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
 
 class Target():
     """
@@ -95,24 +97,6 @@ class Target():
 
         self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
 
-    def setup_ctrl_ifc(self):
-        """
-        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
-        mode, which does not possess a direct control interface via anasymod.
-
-        :rtype: ControlInfrastructure
-        """
-        #ToDo: This should only be executed for FPGA simulation!
-
-        if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
-            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
-            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
-        elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
-            print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
-        else:
-            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
-
     @property
     def project_root(self):
         return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
@@ -144,6 +128,26 @@ class FPGATarget(Target):
         """
         super().gen_structure()
         self.ctrl.gen_ctrl_infrastructure(str_cfg=self.str_cfg, content=self.content)
+
+    def setup_ctrl_ifc(self):
+        """
+        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
+        mode, which does not possess a direct control interface via anasymod.
+
+        :rtype: ControlInfrastructure
+        """
+        #ToDo: This should only be executed for FPGA simulation!
+
+        if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
+            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
+            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl_api = VIOCtrlApi(target=self)
+        elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            print("Direct anasymod FPGA simulation control via UART enabled.")
+            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg)
+        else:
+            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
     @property
     def probe_cfg_path(self):

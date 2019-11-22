@@ -2,7 +2,7 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal
+from anasymod.sim_ctrl.datatypes import DigitalSignal
 
 class ModuleTracePort(JinjaTempl):
     def __init__(self, scfg: StructureConfig):

@@ -1,7 +1,7 @@
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, ProbeSignal, DigitalCtrlInput, DigitalCtrlOutput
+from anasymod.sim_ctrl.datatypes import DigitalSignal, ProbeSignal, DigitalCtrlInput, DigitalCtrlOutput
 
 
 class ModuleTop(JinjaTempl):
