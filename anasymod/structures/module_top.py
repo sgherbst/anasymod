@@ -220,12 +220,16 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
 localparam integer n_dt = {{subst.num_dt_reqs}};
 logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
 logic signed [((`DT_WIDTH)-1):0] emu_dt;
+logic signed [((`TIME_WIDTH)-1):0] emu_time;
 time_manager  #(
     .n(n_dt),
-    .width(`DT_WIDTH)
+    .width(`DT_WIDTH),
+    .time_width(`TIME_WIDTH)
 ) time_manager_i (
     .dt_req(dt_req),
-    .emu_dt(emu_dt)
+    .emu_dt(emu_dt),
+    .emu_clk(emu_clk),
+    .emu_rst(emu_rst)
 );
 
 {{subst.dt_req_assigns.text}}

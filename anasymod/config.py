@@ -225,6 +225,7 @@ class Config(BaseConfig):
         self.dt = 0.1e-6
         self.dt_exponent = -46
         self.dt_width = 27
+        self.time_width = 64
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
