@@ -16,6 +16,8 @@ from anasymod.structures.module_traceport import ModuleTracePort
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
 
+from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
+
 class Target():
     """
     This class inherits all source and define objects necessary in order to run actions for a specific target.
@@ -82,6 +84,12 @@ class Target():
         # Build control structure and add all sources to project
         if self.ctrl is not None:
             self.ctrl.gen_ctrlwrapper(str_cfg=self.str_cfg, content=self.content)
+        else:
+            #ToDO: needs to be cleaned up, should have individual module for pc simulation control
+            with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
+                ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
+
+            self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'))]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
@@ -141,7 +149,8 @@ class FPGATarget(Target):
         if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
             print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
             self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
-            self.ctrl_api = VIOCtrlApi(target=self)
+            self.ctrl_api = VIOCtrlApi(pcfg=self.prj_cfg, scfg=self.str_cfg, bitfile_path=self.bitfile_path,
+                                       ltxfile_path=self.ltxfile_path)
         elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
             self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)

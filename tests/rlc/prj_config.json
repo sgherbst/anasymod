@@ -1,8 +1,6 @@
 {
-  "PLUGIN": {
-    "msdsl": {
-      "dt": 0.01e-6
-    }
+  "PROJECT": {
+    "dt": 0.01e-6
   },
   "TARGET": {
     "sim": {

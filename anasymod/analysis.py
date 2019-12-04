@@ -169,8 +169,9 @@ class Analysis():
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
+
+                #self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
+                #self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
 
                 get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
 
@@ -531,7 +532,7 @@ class Analysis():
         #ToDo: currently structure generation is only necessary for FPGA simulation, in future at least signals selected in probing file should automatically be included in vcd file
         if not self.sim.cfg.custom_top:
             print('!!! gen_structure for simulation target')
-            self.sim.setup_ctrl_ifc()
+            #self.sim.setup_ctrl_ifc()
             self.sim.gen_structure()
         self.sim.set_tstop()
         self.sim.setup_vcd()

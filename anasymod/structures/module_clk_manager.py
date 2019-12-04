@@ -52,12 +52,12 @@ class ModuleClkManager(JinjaTempl):
 	initial begin
 		// since the reset signal is initially "1", this delay+posedge will
 		// cause the MSDSL templates to be reset
-	    #((0.5*`DT_MSDSL)*1s);
+	    #((0.25*`DT_MSDSL)*1s);
 	    emu_clk_state = 1'b1;
 
 	    // clock runs forever
 	    forever begin
-	        #((0.5*`DT_MSDSL)*1s);
+	        #((0.25*`DT_MSDSL)*1s);
 	        emu_clk_state = ~emu_clk_state;
 	    end
 	end

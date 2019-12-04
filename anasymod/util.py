@@ -9,7 +9,7 @@ from math import ceil, log2
 from collections import namedtuple
 from argparse import ArgumentParser
 
-from msdsl import VerilogGenerator
+from msdsl.generator.verilog import VerilogGenerator
 
 def back2fwd(path: str):
     return path.replace('\\', '/')

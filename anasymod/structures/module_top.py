@@ -3,7 +3,6 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal, ProbeSignal, DigitalCtrlInput, DigitalCtrlOutput
 
-
 class ModuleTop(JinjaTempl):
     """
     This is the generator for top.sv.
@@ -183,16 +182,20 @@ module top(
 // emulation clock declarations
 logic emu_clk, emu_clk_2x;
 
+{% if subst.num_dt_reqs != 0 %}
 // declarations for time manager
 localparam integer n_dt = {{subst.num_dt_reqs}};
 logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
 logic signed [((`DT_WIDTH)-1):0] emu_dt;
 logic signed [((`TIME_WIDTH)-1):0] emu_time;
+{% endif %}
 
+{% if subst.num_o_clks != 0 %}
 // declarations for emu clock generator
 localparam integer n_clks = {{subst.num_o_clks}};
 logic clk_vals [n_clks];
 logic clks [n_clks];
+{% endif %}
 
 // instantiate testbench
 {{subst.tb_inst_ifc.text}}
@@ -206,6 +209,7 @@ logic clks [n_clks];
 // Clock generator
 {{subst.clk_gen_ifc.text}}
 
+{% if subst.num_o_clks != 0 %}
 // Emu Clk generator
 gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
     .emu_clk_2x(emu_clk_2x),
@@ -213,7 +217,20 @@ gen_emu_clks  #(.n(n_clks)) gen_emu_clks_i (
     .clk_vals(clk_vals),
     .clks(clks)
 );
+{% else %}
+// generate emu_clk
+logic emu_clk_unbuf = 0;
+always @(posedge emu_clk_2x) begin
+    emu_clk_unbuf <= ~emu_clk_unbuf;
+end
+`ifndef SIMULATION_MODE_MSDSL
+    BUFG buf_emu_clk (.I(emu_clk_unbuf), .O(emu_clk));
+`else
+    assign emu_clk = emu_clk_unbuf;
+`endif
+{% endif %}
 
+{% if subst.num_dt_reqs != 0 %}
 // Time manager
 time_manager  #(
     .n(n_dt),
@@ -226,12 +243,17 @@ time_manager  #(
     .emu_rst(emu_rst),
     .emu_time(emu_time)
 );
+{% endif %}
 
+{% if subst.num_o_clks != 0 %}
 // Assignment for output clks
 {{subst.clk_out_assigns.text}}
+{% endif %}
 
+{% if subst.num_dt_reqs != 0 %}
 //Assignment for requested time steps
 {{subst.dt_req_assigns.text}}
+{% endif %}
 
 // Assignment of custom control signals via absolute paths to design signals
 {{subst.assign_custom_ctlsigs.text}}
@@ -240,7 +262,7 @@ time_manager  #(
 {{subst.assign_probesigs.text}}
 
 // make probes needed for emulation control
-//`MAKE_EMU_CTRL_PROBES;
+`MAKE_EMU_CTRL_PROBES;
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL

@@ -6,7 +6,8 @@ from .console_print import cprint_block, cprint_block_start, cprint_block_end
 from anasymod.sim_ctrl.ctrlapi import CtrlApi
 from anasymod.generators.gen_api import CodeGenerator
 from anasymod.templates.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
-from anasymod.targets import FPGATarget
+from anasymod.structures.structure_config import StructureConfig
+from anasymod.config import EmuConfig
 
 SERVER_PORT = 57937
 
@@ -16,7 +17,7 @@ class VIOCtrlApi(CtrlApi):
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self, target: FPGATarget, cwd=None, prompt='Vivado% ', err_strs=None, debug=False):
+    def __init__(self, scfg: StructureConfig, pcfg: EmuConfig, bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False):
         super().__init__()
         # set defaults
         if err_strs is None:
@@ -27,7 +28,10 @@ class VIOCtrlApi(CtrlApi):
         self.prompt = prompt
         self.debug = debug
         self.err_strs = err_strs
-        self.target = target
+        self.pcfg = pcfg
+        self.scfg = scfg
+        self.bitfile_path = bitfile_path
+        self.ltxfile_path = ltxfile_path
 
     ### User Functions
 
@@ -145,7 +149,8 @@ class VIOCtrlApi(CtrlApi):
         """
         launch_script = r"launch_FPGA.tcl"
         codegen = CodeGenerator()
-        codegen.use_templ(TemplLAUNCH_FPGA_SIM(target=self.target, server_addr=server_addr))
+        codegen.use_templ(TemplLAUNCH_FPGA_SIM(pcfg=self.pcfg, scfg=self.scfg, bitfile_path=self.bitfile_path,
+                                               ltxfile_path=self.ltxfile_path, server_addr=server_addr))
         codegen.write_to_file(launch_script)
         self.source(script=launch_script)
 
@@ -173,8 +178,11 @@ class VIOCtrlApi(CtrlApi):
         return before
 
     def __del__(self):
-        print('Sending "exit" to Vivado TCL interpreter.')
-        self.proc.sendline('exit')
+        try:
+            print('Sending "exit" to Vivado TCL interpreter.')
+            self.proc.sendline('exit')
+        except:
+            print('Could not send "exit" to Vivado TCL interpreter.')
 
 def get_vivado_tcl_client():
     import xmlrpc.client

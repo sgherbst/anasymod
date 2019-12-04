@@ -1,21 +1,21 @@
 from anasymod.templates.templ import JinjaTempl
-from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
-from anasymod.targets import FPGATarget
 from anasymod.generators.gen_api import SVAPI
+from anasymod.config import EmuConfig
+from anasymod.structures.structure_config import StructureConfig
 
 class TemplLAUNCH_FPGA_SIM(JinjaTempl):
-    def __init__(self, target: FPGATarget, server_addr: str):
+    def __init__(self, pcfg: EmuConfig, scfg: StructureConfig, bitfile_path, ltxfile_path, server_addr: str):
         super().__init__(trim_blocks=False, lstrip_blocks=False)
-        pcfg = target.prj_cfg
-        scfg = target.str_cfg
+        pcfg = pcfg
+        scfg = scfg
 
         # set server address
         self.server_addr = server_addr
 
         # set the paths to the BIT and LTX file
-        self.bit_file = back2fwd(target.bitfile_path)
-        self.ltx_file = back2fwd(target.ltxfile_path)
+        self.bit_file = back2fwd(bitfile_path)
+        self.ltx_file = back2fwd(ltxfile_path)
 
         # set the JTAG frequency.  sometimes it is useful to try a slower frequency than default if there
         # are problems with the debug hub clock
