@@ -61,13 +61,18 @@ class VivadoEmulation(VivadoTCLGenerator):
             for ip_core_template in ip_core_templates:
                 self.use_templ(ip_core_template)
 
-            # Add constraints for additional generated emu_clks
-            constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
+            ## Add constraints for additional generated emu_clks
+            # In case no timemanager is used, remove hierarchy from instantiated gen_emu_clks module
+            if len(self.target.str_cfg.clk_o) == 0:
+                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
+            else:
+                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
             for k in range(len(self.target.str_cfg.clk_o)):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
-            # Setup ILA for signal probing
-            self.use_templ(TemplILA(target=self.target))
+            # Setup ILA for signal probing - only of at least one probe is defined
+            if len(self.target.probes) != 0:
+                self.use_templ(TemplILA(target=self.target))
     
             # Setup Debug Hub
             constrs.use_templ(TemplDbgHub(target=self.target))

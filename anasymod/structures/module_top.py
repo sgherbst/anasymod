@@ -97,6 +97,7 @@ class ModuleTop(JinjaTempl):
             self.inst_probesigs.gen_signal(sig)
 
         ## Instantiate traceport module
+        self.num_probes = len(scfg.probes)
         self.trap_inst_ifc = SVAPI()
         trap_inst = ModuleInst(api=self.trap_inst_ifc, name='trace_port_gen')
         for signal in scfg.probes:
@@ -165,8 +166,10 @@ module top(
 // Declaration of control signals
 {{subst.inst_itl_ctlsigs.text}}
 
+{% if subst.num_probes !=0 %}}
 // Declaration of probe signals
 {{subst.inst_probesigs.text}}
+{% endif %}
 
 // create ext_clk signal when running in simulation mode
 `ifdef SIMULATION_MODE_MSDSL
@@ -203,8 +206,10 @@ logic clks [n_clks];
 // Instantiation of control wrapper
 {{subst.sim_ctrl_inst_ifc.text}}
 
+{% if subst.num_probes !=0 %}}
 // Instantiation of traceport wrapper
 {{subst.trap_inst_ifc.text}}
+{% endif %}
 
 // Clock generator
 {{subst.clk_gen_ifc.text}}
@@ -258,8 +263,10 @@ time_manager  #(
 // Assignment of custom control signals via absolute paths to design signals
 {{subst.assign_custom_ctlsigs.text}}
 
+{% if subst.num_probes !=0 %}}
 // Assignment of probe signals via absolute paths to design signals
 {{subst.assign_probesigs.text}}
+{% endif %}
 
 // make probes needed for emulation control
 `MAKE_EMU_CTRL_PROBES;
