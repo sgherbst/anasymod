@@ -22,8 +22,8 @@ def call(args, cwd=None, wait=True):
     # run the command
     kwargs = dict(args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if wait:
-        result = subprocess.run(**kwargs)
         print(f"Checking return code of subprocess call: {args}")
+        result = subprocess.run(**kwargs)
         assert result.returncode == 0, f"Exited with error code: {result.returncode}"
     else:
         subprocess.Popen(**kwargs)
