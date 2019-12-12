@@ -127,7 +127,7 @@ class StructureConfig():
 
         #temporary
         self.probes = []
-        """ : type: ProbeSignal"""
+        """ : type: [ProbeSignal]"""
 
         self._read_probefile()
 
@@ -288,8 +288,8 @@ class StructureConfig():
             if probe:
                 try:
                     probe = eval(probe)
-                    if (isinstance(probe, list) and len(probe) == 4):
-                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=probe[2], exponent=probe[3]))
+                    if (isinstance(probe, list) and len(probe) == 5):
+                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=probe[2], exponent=probe[3], type=probe[4]))
                     else:
                         raise Exception(f"Probe specified in line {k + 1} in probe file: {self._probe_file_path} has "
                                         f"wrong format, expected is: ['name', 'abspath', 'width','exponent']")

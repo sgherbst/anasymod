@@ -166,7 +166,7 @@ module top(
 // Declaration of control signals
 {{subst.inst_itl_ctlsigs.text}}
 
-{% if subst.num_probes !=0 %}}
+{% if subst.num_probes !=0 %}
 // Declaration of probe signals
 {{subst.inst_probesigs.text}}
 {% endif %}
@@ -206,7 +206,7 @@ logic clks [n_clks];
 // Instantiation of control wrapper
 {{subst.sim_ctrl_inst_ifc.text}}
 
-{% if subst.num_probes !=0 %}}
+{% if subst.num_probes !=0 %}
 // Instantiation of traceport wrapper
 {{subst.trap_inst_ifc.text}}
 {% endif %}
@@ -246,8 +246,13 @@ time_manager  #(
     .emu_dt(emu_dt),
     .emu_clk(emu_clk),
     .emu_rst(emu_rst),
-    .emu_time(emu_time)
+    .emu_time_probe(emu_time_probe)
 );
+`MAKE_RESET_PROBE;
+`MAKE_DEC_PROBE;
+{% else %}
+// make probes needed for emulation control
+`MAKE_EMU_CTRL_PROBES;
 {% endif %}
 
 {% if subst.num_o_clks != 0 %}
@@ -263,13 +268,10 @@ time_manager  #(
 // Assignment of custom control signals via absolute paths to design signals
 {{subst.assign_custom_ctlsigs.text}}
 
-{% if subst.num_probes !=0 %}}
+{% if subst.num_probes !=0 %}
 // Assignment of probe signals via absolute paths to design signals
 {{subst.assign_probesigs.text}}
 {% endif %}
-
-// make probes needed for emulation control
-`MAKE_EMU_CTRL_PROBES;
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL

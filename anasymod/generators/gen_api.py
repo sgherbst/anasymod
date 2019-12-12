@@ -92,7 +92,7 @@ class SVAPI(GenAPI):
             self.writeln(f"`MAKE_REAL({io_obj.name}, {io_obj.range});")
         elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
             if io_obj.width > 1:
-                self.writeln(f"logic [{str(io_obj.width)}  - 1:0] {io_obj.name};")
+                self.writeln(f'logic [{str(io_obj.width)}  - 1:0] {io_obj.name};')
             else:
                 self.writeln(f"logic {io_obj.name};")
 

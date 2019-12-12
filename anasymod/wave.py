@@ -38,46 +38,51 @@ class ConvertWaveform():
             return np.genfromtxt(target.cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
 
         # read probe signal information to find out what signals are analog, digital, reset, time, etc.
-        signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
+        signals = target.str_cfg.probes
+        # signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
 
         # store data from FPGA in a dictionary
         probe_data = {}
         real_signals = set()
         reg_widths = {}
 
-        # Add analog signals to probe_data
-        for name, _, exponent in signals.analog_signals + signals.time_signal:
-            if name not in signal_lookup:
-                continue
+        for signal in signals:
+            name = 'trace_port_gen_i/' + signal.name
+            exponent = signal.exponent
+            width = signal.width
+            # Add analog signals to probe_data
+            if signal.type == 'a':
+                if (name) not in signal_lookup:
+                    continue
 
-            # add to set of probes with "real" data type
-            real_signals.add(name)
+                # add to set of probes with "real" data type
+                real_signals.add(name)
 
-            # get unscaled data and apply scaling factor
-            probe_data[name] = (2**int(exponent)) * get_csv_col(name)
+                # get unscaled data and apply scaling factor
+                probe_data[name] = (2**int(exponent)) * get_csv_col(name)
 
-            # convert data to native Python float type (rather than numpy float)
-            # this is required for PyVCD
-            probe_data[name] = [float(x) for x in probe_data[name]]
+                # convert data to native Python float type (rather than numpy float)
+                # this is required for PyVCD
+                probe_data[name] = [float(x) for x in probe_data[name]]
 
-        # Add digital signals to probe_data
-        for name, width, _ in signals.digital_signals + signals.reset_signal:
-            if name not in signal_lookup:
-                continue
+            # Add digital signals to probe_data
+            if signal.type == 'd':
+                if name not in signal_lookup:
+                    continue
 
-            # define width for this probe
-            reg_widths[name] = int(width)
+                # define width for this probe
+                reg_widths[name] = int(width)
 
-            # get unscaled data
-            probe_data[name] = get_csv_col(name)
+                # get unscaled data
+                probe_data[name] = get_csv_col(name)
 
-            # convert data to native Python float type (rather than numpy int)
-            # this is required for PyVCD
-            probe_data[name] = [int(x) for x in probe_data[name]]
+                # convert data to native Python float type (rather than numpy int)
+                # this is required for PyVCD
+                probe_data[name] = [int(x) for x in probe_data[name]]
 
         # Extract the time signal from the probe data since it is needed to produce a VCD file
-        time_signal_name, _, _ = signals.time_signal[0]
-        time_signal = probe_data[time_signal_name]
+        #time_signal_name, _, _ = signals.time_signal[0]
+        time_signal = probe_data['trace_port_gen_i/emu_time']
 
         # Write data to VCD file
         with open(target.cfg.vcd_path, 'w') as vcd:

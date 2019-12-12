@@ -111,8 +111,9 @@ class ProbeSignal():
     Temporary container to store all the information necessary for generating ila probe signals.
     """
 
-    def __init__(self, name, abspath, width, exponent):
+    def __init__(self, name, abspath, width, exponent, type):
         self.name = name
         self.abspath = abspath
         self.width = width
         self.exponent = exponent
+        self.type = type

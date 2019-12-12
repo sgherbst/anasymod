@@ -71,7 +71,7 @@ class VivadoEmulation(VivadoTCLGenerator):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
             # Setup ILA for signal probing - only of at least one probe is defined
-            if len(self.target.probes) != 0:
+            if len(self.target.str_cfg.probes) != 0:
                 self.use_templ(TemplILA(target=self.target))
     
             # Setup Debug Hub

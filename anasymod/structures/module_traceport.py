@@ -51,7 +51,7 @@ class ModuleTracePort(JinjaTempl):
 `ifdef SIMULATION_MODE_MSDSL
     //Will be added later
 `else
-	// VIO instantiation
+	// ILA instantiation
 {{subst.ila_wiz_inst.text}}
 `endif // `ifdef SIMULATION_MODE_MSDSL
 

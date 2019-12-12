@@ -334,9 +334,11 @@ class ProbeVCD(Probe):
             self.probe_caches[run_num] = run_cache
 
         #check complete name of emu_time_probe
-        matching = [s for s in self._probes() if 'emu_time_probe' in s]
+        matching = [s for s in self._probes() if 'emu_time' in s]
         if len(matching) == 1:
             emu_time_probe = matching[0]
+        else:
+            raise Exception(f'No Time probe was found in vcd file')
 
         if emu_time_probe not in run_cache:
             data = self.fetch_simdata(vcd_handle, name=emu_time_probe, update_data=True)
