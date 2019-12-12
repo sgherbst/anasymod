@@ -129,6 +129,12 @@ class StructureConfig():
         self.probes = []
         """ : type: [ProbeSignal]"""
 
+        ## Add ctrl signals for the ila block
+        # Time signal representing current simulated time
+        self.probes.append(ProbeSignal(name='emu_time', abspath='emu_time_probe', width=39, exponent=-34, type='a'))
+        # Decimation comparator signal, this controls enabling and disabling signal capturing via ila
+        self.probes.append(ProbeSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1, exponent=0, type='d'))
+
         self._read_probefile()
 
     def _assign_i_addr(self):
