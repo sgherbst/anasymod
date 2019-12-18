@@ -1,11 +1,9 @@
-import os
+import os, yaml
 
 from anasymod.enums import ConfigSections
 from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe
-
-#ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
 class StructureConfig():
     """
@@ -20,48 +18,15 @@ class StructureConfig():
         self.i_addr_counter = 0
         self.o_addr_counter = 0
 
-        # Path to ctrl_io file
-        self._ctrl_iofile_path = os.path.join(prj_cfg.root, 'ctrl_io.config')
         # Path to clk file
         self._clk_file_path = os.path.join(prj_cfg.root, 'clk.config')
         # Path to clk file
         self._dt_req_file_path = os.path.join(prj_cfg.root, 'dt_req.config')
-        # Path to probe file
-        self._probe_file_path = os.path.join(prj_cfg.root, 'probe.config')
-
+        # Path to simctrl file
+        self._simctrl_file_path = os.path.join(prj_cfg.root, 'simctrl.config')
 
         self.cfg = Config(prj_cfg=prj_cfg)
         self.cfg.update_config()
-
-        #########################################################
-        # VIO interfaces
-        #########################################################
-
-        # Add DigitalCtrlInput for reset
-        self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
-        self.reset_ctrl.i_addr = self._assign_i_addr()
-
-        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
-        self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
-        self.dec_thr_ctrl.i_addr = self._assign_i_addr()
-
-        # CtrlIOs
-        self.digital_ctrl_inputs = []
-        self.digital_ctrl_outputs = []
-        self.analog_ctrl_inputs = []
-        self.analog_ctrl_outputs = []
-
-        #Only for testing
-        #self.digital_ctrl_inputs = [DigitalCtrlInput(name='hufflpu', width=31, abspath='test',init_value=41)]
-        #self.digital_ctrl_inputs[0].i_addr = self._assign_i_addr()
-        #self.digital_ctrl_outputs = [DigitalCtrlOutput(name='banii', width=1, abspath='testi')]
-        #self.digital_ctrl_outputs[0].o_addr = self._assign_o_addr()
-        #self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='testii', range=500)]
-        #self.analog_ctrl_inputs[0].i_addr = self._assign_i_addr()
-        #self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
-        #self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
-
-        self._read_iofile()
 
         #########################################################
         # CLK manager interfaces
@@ -115,12 +80,14 @@ class StructureConfig():
         self._read_dt_reqfile()
 
         #########################################################
-        # Probe interfaces
+        # Simulation control interfaces
         #########################################################
 
         self.analog_probes = []
         self.time_probe = None
         self.digital_probes = []
+
+        # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
         ## Add ctrl signals for the ila block
         # Time signal representing current simulated time
@@ -128,7 +95,31 @@ class StructureConfig():
         # Decimation comparator signal, this controls enabling and disabling signal capturing via ila
         self.digital_probes.append(DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1))
 
-        self._read_probefile()
+        # Add DigitalCtrlInput for reset
+        self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
+        self.reset_ctrl.i_addr = self._assign_i_addr()
+
+        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
+        self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
+        self.dec_thr_ctrl.i_addr = self._assign_i_addr()
+
+        # CtrlIOs
+        self.digital_ctrl_inputs = []
+        self.digital_ctrl_outputs = []
+        self.analog_ctrl_inputs = []
+        self.analog_ctrl_outputs = []
+
+        # Only for testing
+        # self.digital_ctrl_inputs = [DigitalCtrlInput(name='hufflpu', width=31, abspath='test',init_value=41)]
+        # self.digital_ctrl_inputs[0].i_addr = self._assign_i_addr()
+        # self.digital_ctrl_outputs = [DigitalCtrlOutput(name='banii', width=1, abspath='testi')]
+        # self.digital_ctrl_outputs[0].o_addr = self._assign_o_addr()
+        # self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='testii', range=500)]
+        # self.analog_ctrl_inputs[0].i_addr = self._assign_i_addr()
+        # self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
+        # self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
+
+        self._read_simctrlfile()
 
     def _assign_i_addr(self):
         """
@@ -145,51 +136,6 @@ class StructureConfig():
         curr_addr = self.o_addr_counter
         self.o_addr_counter +=1
         return curr_addr
-
-    def _read_iofile(self):
-        """
-        Read all lines from iofile and call parse function to populate ctrl_ios attributes.
-        """
-        if os.path.isfile(self._ctrl_iofile_path):
-            with open(self._ctrl_iofile_path, "r") as f:
-                ctrlios = f.readlines()
-            self._parse_iofile(ctrlios=ctrlios)
-        else:
-            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
-
-    def _parse_iofile(self, ctrlios: list):
-        """
-        Read all lines from ctrl io file and store IO objects in CtrlIO container while adding access addresses to
-        each IO object.
-        :param ctrlios: Lines extracted to ctrl_io file
-        """
-
-        for k, line in enumerate(ctrlios):
-            line = line.strip()
-
-            if line.startswith('#'):
-                # skip comments
-                continue
-
-            if line:
-                try:
-                    line = eval(line)
-                    if isinstance(line, DigitalCtrlInput):
-                        line.i_addr = self._assign_i_addr()
-                        self.digital_ctrl_inputs.append(line)
-                    elif isinstance(line, DigitalCtrlOutput):
-                        line.o_addr = self._assign_o_addr()
-                        self.digital_ctrl_outputs.append(line)
-                    elif isinstance(line, AnalogCtrlInput):
-                        line.i_addr = self._assign_i_addr()
-                        self.analog_ctrl_inputs.append(line)
-                    elif isinstance(line, AnalogCtrlOutput):
-                        line.o_addr = self._assign_o_addr()
-                        self.analog_ctrl_outputs.append(line)
-                    else:
-                        raise Exception(f"Line {k+1} of ctrl_io file: {self._ctrl_iofile_path} does not fit do a specified source or config type")
-                except:
-                    raise Exception(f"Line {k+1} of config file: {self._ctrl_iofile_path} could not be processed properely")
 
     def _read_clkfile(self):
         """
@@ -260,45 +206,104 @@ class StructureConfig():
                 except:
                     raise Exception(f"Line {k+1} of clk file: {self._dt_req_file_path} could not be processed properely")
 
-    def _read_probefile(self):
+    def _read_simctrlfile(self):
         """
-        Read all lines from probe.config file and call parse function to populate probe attribute.
+        Read all lines from simulation control file simctrl.config and store in structure config attributes.
         """
-        if os.path.isfile(self._probe_file_path):
-            with open(self._probe_file_path, "r") as f:
-                probes = f.readlines()
-            self._parse_probefile(probes=probes)
+        if os.path.isfile(self._simctrl_file_path):
+            with open(self._simctrl_file_path, "r") as f:
+                try:
+                    sigs = yaml.safe_load(f)
+                except yaml.YAMLError as exc:
+                    print(exc)
         else:
             print(f"No probe.config file existing, no additional probes will be available for this simulation.")
 
-    def _parse_probefile(self, probes: list):
-        """
-        Read all lines from probe file probe.config and store in probe attribute.
-        :param clks: Lines extracted from dt_req file
-        """
+        # Add analog probes to structure config
+        if 'analog_probes' in sigs.keys():
+            print(f'Analog Probes: {[key for key in sigs["analog_probes"].keys()]}')
+            for analog_probe in sigs['analog_probes'].keys():
+                if 'width' in sigs['analog_probes'][analog_probe].keys(): # Set width if given
+                    self.analog_probes.append(AnalogProbe(name=analog_probe,
+                                                          abspath=sigs['analog_probes'][analog_probe]['abspath'],
+                                                          range=sigs['analog_probes'][analog_probe]['range'],
+                                                          width=sigs['analog_probes'][analog_probe]['width']))
+                else:
+                    self.analog_probes.append(AnalogProbe(name=analog_probe,
+                                                          abspath=sigs['analog_probes'][analog_probe]['abspath'],
+                                                          range=sigs['analog_probes'][analog_probe]['range']))
+        else:
+            print(f'No Analog Probes provided.')
 
-        for k, probe in enumerate(probes):
-            probe = probe.strip()
+        # Add digital probes to structure config
+        if 'digital_probes' in sigs.keys():
+            print(f'Digital Probes: {[key for key in sigs["digital_probes"].keys()]}')
+            for digital_probe in sigs['digital_probes'].keys():
+                self.digital_probes.append(DigitalSignal(name=digital_probe,
+                                                        abspath=sigs['digital_probes'][digital_probe]['abspath'],
+                                                        width=sigs['digital_probes'][digital_probe]['width']))
+        else:
+            print(f'No Digital Probes provided.')
 
-            if probe.startswith('#'):
-                # skip comments
-                continue
+        # Add digital ctrl inputs to structure config
+        if 'digital_ctrl_inputs' in sigs.keys() and sigs['digital_ctrl_inputs'] is not None:
+            print(f'Digital Ctrl Inputs: {[key for key in sigs["digital_ctrl_inputs"].keys()]}')
+            for d_ctrl_in in sigs['digital_ctrl_inputs'].keys():
+                if 'init_value' in sigs['digital_ctrl_inputs'][d_ctrl_in].keys():  # Set init_value if given
+                    d_ctrl_i = DigitalCtrlInput(name=d_ctrl_in,
+                                                abspath=sigs['digital_ctrl_inputs'][d_ctrl_in]['abspath'],
+                                                width=sigs['digital_ctrl_inputs'][d_ctrl_in]['width'],
+                                                init_value=sigs['digital_ctrl_inputs'][d_ctrl_in]['init_value'])
+                else:
+                    d_ctrl_i = DigitalCtrlInput(name=d_ctrl_in,
+                                                abspath=sigs['digital_ctrl_inputs'][d_ctrl_in]['abspath'],
+                                                width=sigs['digital_ctrl_inputs'][d_ctrl_in]['width'])
+                d_ctrl_i.i_addr = self._assign_i_addr()
+                self.digital_ctrl_inputs.append(d_ctrl_i)
+        else:
+            print(f'No Digital Ctrl Input provided.')
 
-            if probe:
-                try:
-                    probe = eval(probe)
-                    if (isinstance(probe, list) and len(probe) == 5):
-                        if probe[4] == 'd': # Digital Signal
-                            self.digital_probes.append(DigitalSignal(name=probe[0], abspath=probe[1], width=probe[2]))
-                        elif probe[4] == 'a': # Analog Signal
-                            self.analog_probes.append(AnalogProbe(name=probe[0], abspath=probe[1], range=probe[3]))
-                        else:
-                            raise Exception(f'Provided type information is not supported: {probe[4]}; Only supports "a" or "d"')
-                    else:
-                        raise Exception(f"Probe specified in line {k + 1} in probe file: {self._probe_file_path} has "
-                                        f"wrong format, expected is: ['name', 'abspath', 'width','exponent']")
-                except:
-                    raise Exception(f"Line {k+1} of probe.config file: {self._probe_file_path} could not be processed properely")
+        # Add digital ctrl outputs to structure config
+        if 'digital_ctrl_outputs' in sigs.keys() and sigs['digital_ctrl_outputs'] is not None:
+            print(f'Digital Ctrl Outputs: {[key for key in sigs["digital_ctrl_outputs"].keys()]}')
+            for d_ctrl_out in sigs['digital_ctrl_outputs'].keys():
+                d_ctrl_o = DigitalCtrlOutput(name=d_ctrl_out,
+                                             abspath=sigs['digital_ctrl_outputs'][d_ctrl_out]['abspath'],
+                                             width=sigs['digital_ctrl_outputs'][d_ctrl_out]['width'])
+                d_ctrl_o.o_addr = self._assign_o_addr()
+                self.digital_ctrl_outputs.append(d_ctrl_o)
+        else:
+            print(f'No Digital Ctrl Outputs provided.')
+
+        # Add analog ctrl inputs to structure config
+        if 'analog_ctrl_inputs' in sigs.keys() and sigs['analog_ctrl_inputs'] is not None:
+            print(f'Analog Ctrl Inputs: {[key for key in sigs["analog_ctrl_inputs"].keys()]}')
+            for a_ctrl_in in sigs['analog_ctrl_inputs'].keys():
+                if 'init_value' in sigs['digital_ctrl_inputs'][a_ctrl_in].keys():  # Set init_value if given
+                    a_ctrl_i = AnalogCtrlInput(name=a_ctrl_in,
+                                                abspath=sigs['analog_ctrl_inputs'][a_ctrl_in]['abspath'],
+                                                range=sigs['analog_ctrl_inputs'][a_ctrl_in]['range'],
+                                                init_value=sigs['analog_ctrl_inputs'][a_ctrl_in]['init_value'])
+                else:
+                    a_ctrl_i = AnalogCtrlInput(name=a_ctrl_in,
+                                                abspath=sigs['digital_ctrl_inputs'][a_ctrl_in]['abspath'],
+                                                range=sigs['digital_ctrl_inputs'][a_ctrl_in]['range'])
+                a_ctrl_i.i_addr = self._assign_i_addr()
+                self.analog_ctrl_inputs.append(a_ctrl_i)
+        else:
+            print(f'No Digital Ctrl Input provided.')
+
+        # Add analog ctrl outputs to structure config
+        if 'analog_ctrl_outputs' in sigs.keys() and sigs['analog_ctrl_outputs'] is not None:
+            print(f'Analog Ctrl Outputs: {[key for key in sigs["analog_ctrl_outputs"].keys()]}')
+            for a_ctrl_out in sigs['analog_ctrl_outputs'].keys():
+                a_ctrl_o = AnalogCtrlOutput(name=a_ctrl_out,
+                                             abspath=sigs['analog_ctrl_outputs'][a_ctrl_out]['abspath'],
+                                             range=sigs['analog_ctrl_outputs'][a_ctrl_out]['range'])
+                a_ctrl_o.o_addr = self._assign_o_addr()
+                self.analog_ctrl_outputs.append(a_ctrl_o)
+        else:
+            print(f'No Analog Ctrl Outputs provided.')
 
 class Config(BaseConfig):
     """

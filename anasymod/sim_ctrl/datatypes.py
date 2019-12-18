@@ -124,7 +124,7 @@ class AnalogProbe(AnalogSignal):
     :param width:       Number of bits, NOTE: This should be similar to default in SVREAL (LONG_WIDTH_REAL=25)
     """
 
-    def __init__(self, abspath, name, range, delimiter='.', width=25):
+    def __init__(self, abspath, name, range, width=25, delimiter='.'):
         super().__init__(abspath=abspath, name=name, delimiter=delimiter, range=range)
 
         # As of now, the number of bits for each analog signal shall not be changed without also changing the corresponding
