@@ -7,8 +7,7 @@ from anasymod.sim_ctrl.datatypes import DigitalSignal
 class ModuleTracePort(JinjaTempl):
     def __init__(self, scfg: StructureConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        # ToDo: This needs cleanup once probe class is conveniently implemented
-
+        probes = scfg.digital_probes + scfg.analog_probes + [scfg.time_probe]
 
         #####################################################
         # Define module ios
@@ -16,10 +15,8 @@ class ModuleTracePort(JinjaTempl):
 
         self.module_ifc = SVAPI()
         module = ModuleInst(api=self.module_ifc, name="trace_port_gen")
-        # Add port signals
-        for signal in scfg.probes:
-            inst_sig = DigitalSignal(name=signal.name, abspath=signal.abspath, width=signal.width)
-            module.add_input(inst_sig, connection=inst_sig)
+        # Add probe signals
+        module.add_inputs(probes)
 
         # Add master clk
         module.add_input(scfg.emu_clk)
@@ -33,9 +30,9 @@ class ModuleTracePort(JinjaTempl):
         self.ila_wiz_inst = SVAPI()
         ila_wiz = ModuleInst(api=self.ila_wiz_inst, name="ila_0")
 
-        for k, signal in enumerate(scfg.probes):
-            ila_wiz.add_input(DigitalSignal(name=f'probe{k}', abspath=None, width=signal.width),
-                              connection=DigitalSignal(name=signal.name, abspath=signal.abspath, width=signal.width))
+        # Add probe signals
+        for k, signal in enumerate(probes):
+            ila_wiz.add_input(DigitalSignal(name=f'probe{k}', abspath=None, width=signal.width), connection=signal)
 
         # Add master clk
         ila_wiz.add_input(DigitalSignal(name='clk', abspath=None, width=1), connection=scfg.emu_clk)

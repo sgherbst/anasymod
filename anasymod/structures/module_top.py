@@ -82,37 +82,38 @@ class ModuleTop(JinjaTempl):
 
         ## Assign custom ctrl signals via abs paths into design
         self.assign_custom_ctlsigs = SVAPI()
-        for ctrl_io in custom_ctrl_ios:
-            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io, exp=ctrl_io.abs_path)
+        for ctrl_input in scfg.digital_ctrl_inputs + scfg.analog_ctrl_inputs:
+            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_input.abs_path, exp=ctrl_input)
+
+        for ctrl_output in scfg.digital_ctrl_outputs + scfg.analog_ctrl_outputs:
+            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_output, exp=ctrl_output.abs_path)
+
+        #for ctrl_io in custom_ctrl_ios:
+        #    self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_io, exp=ctrl_io.abs_path)
 
         #####################################################
         # Instantiate trace port Module
         ######################################################
-        # ToDo: This needs cleanup once probe class is conveniently implemented
+
+        probes = scfg.digital_probes + scfg.analog_probes + [scfg.time_probe]
 
         ## Instantiate all probe signals
         self.inst_probesigs = SVAPI()
-        for signal in scfg.probes:
-            sig = DigitalSignal(name=signal.name, abspath=signal.abspath, width=signal.width)
-            self.inst_probesigs.gen_signal(sig)
+        for probe in probes:
+            self.inst_probesigs.gen_signal(probe)
 
         ## Instantiate traceport module
-        self.num_probes = len(scfg.probes)
+        self.num_probes = len(probes)
         self.trap_inst_ifc = SVAPI()
         trap_inst = ModuleInst(api=self.trap_inst_ifc, name='trace_port_gen')
-        for signal in scfg.probes:
-            inst_sig = DigitalSignal(name=signal.name, abspath=signal.abspath, width=signal.width)
-            trap_inst.add_input(inst_sig, connection=inst_sig)
-
-        #Add master clk to traceport module
+        trap_inst.add_inputs(probes, connections=probes)
         trap_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
         trap_inst.generate_instantiation()
 
         ## Assign probe signals via abs paths into design
         self.assign_probesigs = SVAPI()
-        for signal in scfg.probes:
-            sig = DigitalCtrlOutput(name=signal.name, abspath=signal.abspath, width=signal.width)
-            self.assign_probesigs.assign_to(io_obj=sig, exp=sig.abs_path)
+        for probe in probes:
+            self.assign_probesigs.assign_to(io_obj=probe, exp=probe.abs_path)
 
         #####################################################
         # Instantiate emu clk manager Module
@@ -248,12 +249,19 @@ time_manager  #(
     .emu_rst(emu_rst),
     .emu_time_probe(emu_time_probe)
 );
+{% else %}
+// make emu time probe
+//ToDo: Get rid of emu_time_probe, this is not necessary anymore
+`COPY_FORMAT_REAL(emu_time, emu_time_next);
+`COPY_FORMAT_REAL(emu_time, emu_time_dt);
+`ASSIGN_CONST_REAL(`DT_MSDSL, emu_time_dt);
+`ADD_INTO_REAL(emu_time, emu_time_dt, emu_time_next);
+`MEM_INTO_ANALOG(emu_time_next, emu_time, 1'b1, `CLK_MSDSL, `RST_MSDSL, 0);
+`PROBE_TIME(emu_time);
+{% endif %}
+// make reset and decimation probes
 `MAKE_RESET_PROBE;
 `MAKE_DEC_PROBE;
-{% else %}
-// make probes needed for emulation control
-`MAKE_EMU_CTRL_PROBES;
-{% endif %}
 
 {% if subst.num_o_clks != 0 %}
 // Assignment for output clks

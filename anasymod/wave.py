@@ -6,12 +6,12 @@ except:
     print('ERROR: Could not load pyvcd package!')
 
 import datetime
-
-from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class ConvertWaveform():
     def __init__(self, target: FPGATarget):
+        # defaults
+        scfg = target.str_cfg
 
         # read CSV file
         with open(target.cfg.csv_path, 'r') as f:
@@ -37,52 +37,34 @@ class ConvertWaveform():
         def get_csv_col(name):
             return np.genfromtxt(target.cfg.csv_path, delimiter=',', usecols=signal_lookup[name], skip_header=1)
 
-        # read probe signal information to find out what signals are analog, digital, reset, time, etc.
-        signals = target.str_cfg.probes
-        # signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
-
         # store data from FPGA in a dictionary
         probe_data = {}
         real_signals = set()
         reg_widths = {}
 
-        for signal in signals:
-            name = 'trace_port_gen_i/' + signal.name
-            exponent = signal.exponent
-            width = signal.width
-            # Add analog signals to probe_data
-            if signal.type == 'a':
-                if (name) not in signal_lookup:
-                    continue
-
+        for analog_signal in scfg.analog_probes + [scfg.time_probe]:
+            name = 'trace_port_gen_i/' + analog_signal.name
+            if (name) in signal_lookup:
                 # add to set of probes with "real" data type
                 real_signals.add(name)
 
                 # get unscaled data and apply scaling factor
-                probe_data[name] = (2**int(exponent)) * get_csv_col(name)
+                probe_data[name] = (2 ** int(analog_signal.exponent)) * get_csv_col(name)
 
-                # convert data to native Python float type (rather than numpy float)
-                # this is required for PyVCD
+                # convert data to native Python float type (rather than numpy float) this is required for PyVCD
                 probe_data[name] = [float(x) for x in probe_data[name]]
 
-            # Add digital signals to probe_data
-            if signal.type == 'd':
-                if name not in signal_lookup:
-                    continue
-
+        for digital_signal in scfg.digital_probes:
+            name = 'trace_port_gen_i/' + digital_signal.name
+            if name in signal_lookup:
                 # define width for this probe
-                reg_widths[name] = int(width)
+                reg_widths[name] = int(digital_signal.width)
 
                 # get unscaled data
                 probe_data[name] = get_csv_col(name)
 
-                # convert data to native Python float type (rather than numpy int)
-                # this is required for PyVCD
+                # convert data to native Python int type (rather than numpy int) this is required for PyVCD
                 probe_data[name] = [int(x) for x in probe_data[name]]
-
-        # Extract the time signal from the probe data since it is needed to produce a VCD file
-        #time_signal_name, _, _ = signals.time_signal[0]
-        time_signal = probe_data['trace_port_gen_i/emu_time']
 
         # Write data to VCD file
         with open(target.cfg.vcd_path, 'w') as vcd:
@@ -110,7 +92,7 @@ class ConvertWaveform():
                                                                 size=vcd_size)
 
                 # iterate over all timesteps
-                for k, timestamp in enumerate(time_signal):
+                for k, timestamp in enumerate(probe_data['trace_port_gen_i/' + scfg.time_probe.name]):
                     # break if timestamp is less than zero since it means that wrapping has occurred
                     if timestamp < 0:
                         break

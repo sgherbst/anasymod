@@ -3,9 +3,9 @@ from anasymod.enums import PortDir
 from typing import Union
 from anasymod.generators.codegen import CodeGenerator
 
-io_obj_types = DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal
-io_obj_types_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal]
-io_obj_types_str_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal, str]
+io_obj_types = DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal, AnalogProbe
+io_obj_types_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal, AnalogProbe]
+io_obj_types_str_union = Union[DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal, AnalogProbe, str]
 
 class GenAPI(CodeGenerator):
     """
@@ -88,9 +88,11 @@ class SVAPI(GenAPI):
         :param io_obj: io object
         """
 
-        if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogSignal)):
+        if isinstance(io_obj, AnalogProbe):
+            self.writeln(f"`MAKE_GENERIC_REAL({io_obj.name}, {io_obj.range}, {io_obj.width});")
+        elif isinstance(io_obj, AnalogSignal):
             self.writeln(f"`MAKE_REAL({io_obj.name}, {io_obj.range});")
-        elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
+        elif isinstance(io_obj, DigitalSignal):
             if io_obj.width > 1:
                 self.writeln(f'logic [{str(io_obj.width)}  - 1:0] {io_obj.name};')
             else:
@@ -104,25 +106,29 @@ class SVAPI(GenAPI):
         """
 
         if direction in [PortDir.IN]:
-            if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
                 return f"`INPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 if io_obj.width > 1:
-                    return f"input wire logic [{str(io_obj.width)}  - 1:0] {io_obj.name}"
+                    return f"input wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
                 else:
                     return f"input wire logic {io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"input `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
+            elif isinstance(io_obj, AnalogProbe):
+                return f"input wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
         elif direction in [PortDir.OUT]:
-            if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
                 return f"`OUTPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 if io_obj.width > 1:
-                    return f"output wire logic [{str(io_obj.width)}  - 1:0] {io_obj.name}"
+                    return f"output wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
                 else:
                     return f"output wire logic {io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"output `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
+            elif isinstance(io_obj, AnalogProbe):
+                return f"output wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
@@ -162,7 +168,7 @@ class SVAPI(GenAPI):
         :param exp: Expression to be assigned.
         """
 
-        if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+        if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
             if isinstance(exp, AnalogSignal):
                 self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")
             if isinstance(exp, str):
@@ -174,10 +180,12 @@ class SVAPI(GenAPI):
                 except:
                     raise Exception(f"The provided expression is not supported for Analog Signals, only assignment of another"
                                     f"AnalogSignal object or a constant value is supported; given: '{exp}'")
-        elif isinstance(io_obj, (DigitalCtrlOutput, AnalogCtrlOutput)):
+        elif isinstance(io_obj, (DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
             self.writeln(f"assign {io_obj.name} = {exp};")
-        elif isinstance(io_obj, (DigitalCtrlInput, AnalogCtrlInput)):
-            self.writeln(f"assign {exp} = {io_obj.name};")
+        #elif isinstance(io_obj, (DigitalCtrlOutput, AnalogCtrlOutput, AnalogProbe)):
+        #    self.writeln(f"assign {io_obj.name} = {exp};")
+        #elif isinstance(io_obj, (DigitalCtrlInput, AnalogCtrlInput)):
+        #    self.writeln(f"assign {exp} = {io_obj.name};")
         else:
             raise Exception(f'Not supported signal type provided:{type(io_obj)}')
 
@@ -292,10 +300,10 @@ class ModuleInst():
         # Allow connections only of both signals are of type AnalogSignal, or both are of type DigitalSignal,
         # or signal is of type DigitalSignal and connecting signal is of type AnalogCtrlOutput/AnalogCtrlOutput; this is needed for
         # streaming Analog signals, or strings to account for constant values
-        if (isinstance(io_obj, AnalogSignal) and isinstance(io_obj_con, AnalogSignal)) or (
-                isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, DigitalSignal)) or (
-                isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, (AnalogCtrlInput, AnalogCtrlOutput)) or (
-                isinstance(io_obj_con, str))):
+        if (isinstance(io_obj, AnalogSignal) and isinstance(io_obj_con, AnalogSignal)) or \
+                (isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, DigitalSignal)) or \
+                (isinstance(io_obj, DigitalSignal) and isinstance(io_obj_con, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe))) or \
+                (isinstance(io_obj_con, str)):
             self.connections.append([io_obj, io_obj_con])
         else:
             raise Exception(f"IO types of objects to be connected do not match:"
@@ -356,7 +364,7 @@ class ModuleInst():
         analog_connections = []
         for connection in self.connections:
             # Remove analog control signals as for those signals no parameters will be transmitted
-            if isinstance(connection[0], AnalogSignal) and not isinstance(connection[0], (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(connection[0], AnalogSignal) and not isinstance(connection[0], (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
                 analog_connections.append(connection)
 
         if (analog_connections or self.parameters):

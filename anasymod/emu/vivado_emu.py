@@ -27,6 +27,8 @@ class VivadoEmulation(VivadoTCLGenerator):
         super().__init__(target=target)
 
     def build(self):
+        scfg = self.target.str_cfg
+
         # create a new project
         self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
                               project_directory=self.target.project_root,
@@ -57,21 +59,21 @@ class VivadoEmulation(VivadoTCLGenerator):
             self.use_templ(TemplClkWiz(target=self.target))
 
             # Add IP cores necessary for control interface
-            ip_core_templates = self.target.ctrl.add_ip_cores(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir)
+            ip_core_templates = self.target.ctrl.add_ip_cores(scfg=scfg, ip_dir=self.target.ip_dir)
             for ip_core_template in ip_core_templates:
                 self.use_templ(ip_core_template)
 
             ## Add constraints for additional generated emu_clks
             # In case no timemanager is used, remove hierarchy from instantiated gen_emu_clks module
-            if len(self.target.str_cfg.clk_o) == 0:
+            if len(scfg.clk_o) == 0:
                 constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
             else:
                 constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
-            for k in range(len(self.target.str_cfg.clk_o)):
+            for k in range(len(scfg.clk_o)):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
             # Setup ILA for signal probing - only of at least one probe is defined
-            if len(self.target.str_cfg.probes) != 0:
+            if len(scfg.analog_probes + scfg.digital_probes + [scfg.time_probe]) != 0:
                 self.use_templ(TemplILA(target=self.target))
     
             # Setup Debug Hub

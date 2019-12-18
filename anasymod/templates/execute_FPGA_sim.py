@@ -9,21 +9,10 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         super().__init__(trim_blocks=False, lstrip_blocks=False)
         pcfg = target.prj_cfg
+        scfg = target.str_cfg
 
-        # read in probe signals from the probe config file
-        probe_signals = target.str_cfg.probes
-        """ : type : [ProbeSignal]"""
-
-        self.analog_probes = []
-        self.digital_probes = []
-        for probe in probe_signals:
-            if probe.type == 'a':
-                self.analog_probes.append(probe)
-            elif probe.type == 'd':
-                self.digital_probes.append(probe)
-            else:
-                raise Exception(f'Unsupported signal type was provided:{probe.type}!')
-        # NOT NEEDED AS EMU TIME WILL ALWAYS BE THERE self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
+        self.analog_probes = scfg.analog_probes
+        self.digital_probes = scfg.digital_probes
 
         # set server address
         self.server_addr = server_addr
@@ -64,31 +53,14 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # of "2" corresponds to a decimation ratio of "3", and so on.
         decimation_ratio_setting = int(round(decimation_ratio_float)) - 1
 
-        # extract the time signal
-        # note that time_signal is actually a list (should have exactly one value)
-        #if len(self.probe_signals.time_signal) == 0:
-        #    raise Exception('Time signal not found -- check the probe config file.')
-        #elif len(self.probe_signals.time_signal) > 1:
-        #    raise Exception('Multiple time signals not found  -- check the probe config file.')
-        #else:
-        #    time_signal = self.probe_signals.time_signal[0]
-
-        # extract properties from the time signal, which is a 3-tuple of strings
-        #time_name, time_width, time_exponent = time_signal
-        #time_width = int(time_width)
-        #time_exponent = int(time_exponent)
-
-        time_name = 'emu_time'
-        time_width = 39
-        time_exponent = -34 #ToDo: compute exponent properly
-
         # determine starting time as an integer value
-        start_time_int = int(round(start_time*(2**(-time_exponent))))
+        time = target.str_cfg.time_probe
+        start_time_int = int(round(start_time*(2**(int(-time.exponent)))))
 
         # export the decimation ratio, starting time, and time signal name to the template
-        self.time_name = time_name
+        self.time_name = time.name
         self.decimation_ratio_setting = str(decimation_ratio_setting)
-        self.start_time_int = f"{time_width}'u{start_time_int}"
+        self.start_time_int = f"{int(time.width)}'u{start_time_int}"
 
     TEMPLATE_TEXT = '''
 # Connect to hardware
@@ -149,6 +121,8 @@ commit_hw_vio [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
 {% for probe in subst.analog_probes %}
 catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{probe.name}}]{{'}'}}
 {% endfor %}
+
+catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{subst.time_name}}]{{'}'}}
 
 # Radix setup: unsigned digital values
 # TODO: handle both signed and unsigned digital values

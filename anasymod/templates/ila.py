@@ -5,6 +5,7 @@ from anasymod.targets import FPGATarget
 class TemplILA(TemplGenericIp):
     def __init__(self, target: FPGATarget, depth=4096):
         # set defaults
+        scfg = target.str_cfg
 
         # Sanity checking for ILA depth
         assert next_pow_2(depth) == depth, 'The ILA depth must be a power of 2.'
@@ -30,8 +31,7 @@ class TemplILA(TemplGenericIp):
         props['CONFIG.ALL_PROBE_SAME_MU_CNT'] = '2'
 
         # specify all signals to be probed
-        self.probes = {}
-        signals = target.str_cfg.probes
+        signals = scfg.digital_probes + scfg.analog_probes + [target.str_cfg.time_probe]
         print(f"Signals: {[f'{signal.name}' for signal in signals]}")
 
         # Set number of probes in total

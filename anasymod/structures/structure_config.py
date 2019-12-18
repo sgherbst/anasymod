@@ -3,9 +3,7 @@ import os
 from anasymod.enums import ConfigSections
 from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
-from anasymod.structures.port_base import PortIN, PortOUT, Port
-from anasymod.structures.signal_base import Signal
-from anasymod.sim_ctrl.datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, ProbeSignal
+from anasymod.sim_ctrl.datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe
 
 #ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
 
@@ -120,20 +118,15 @@ class StructureConfig():
         # Probe interfaces
         #########################################################
 
-        self.analog_probes = [] # use later
-        self.time_probes = [] # use later
-        self.reset_probes = [] # use later
-        self.digital_probes = [] # use later
-
-        #temporary
-        self.probes = []
-        """ : type: [ProbeSignal]"""
+        self.analog_probes = []
+        self.time_probe = None
+        self.digital_probes = []
 
         ## Add ctrl signals for the ila block
         # Time signal representing current simulated time
-        self.probes.append(ProbeSignal(name='emu_time', abspath='emu_time_probe', width=39, exponent=-34, type='a'))
+        self.time_probe = AnalogProbe(name='emu_time', abspath='emu_time_probe', range=10, width=39)
         # Decimation comparator signal, this controls enabling and disabling signal capturing via ila
-        self.probes.append(ProbeSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1, exponent=0, type='d'))
+        self.digital_probes.append(DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1))
 
         self._read_probefile()
 
@@ -295,32 +288,17 @@ class StructureConfig():
                 try:
                     probe = eval(probe)
                     if (isinstance(probe, list) and len(probe) == 5):
-                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=probe[2], exponent=probe[3], type=probe[4]))
+                        if probe[4] == 'd': # Digital Signal
+                            self.digital_probes.append(DigitalSignal(name=probe[0], abspath=probe[1], width=probe[2]))
+                        elif probe[4] == 'a': # Analog Signal
+                            self.analog_probes.append(AnalogProbe(name=probe[0], abspath=probe[1], range=probe[3]))
+                        else:
+                            raise Exception(f'Provided type information is not supported: {probe[4]}; Only supports "a" or "d"')
                     else:
                         raise Exception(f"Probe specified in line {k + 1} in probe file: {self._probe_file_path} has "
                                         f"wrong format, expected is: ['name', 'abspath', 'width','exponent']")
                 except:
                     raise Exception(f"Line {k+1} of probe.config file: {self._probe_file_path} could not be processed properely")
-
-        # ToDo: Once different probe types are supported, parser needs to differenciate properly
-        #self.analog_signals = []
-        #for name, width, exponent in zip(signals[0], signals[2], signals[1]):
-        #    self.analog_signals.append((name, width, exponent))
-
-        #self.time_signal = []
-        #for name,width, exponent in zip(signals[3], signals[5], signals[4]):
-        #    self.time_signal.append((name, width, exponent))
-
-        #self.reset_signal = []
-        #for name,width, exponent in zip(signals[6], [r"1"], [None]):
-        #    self.reset_signal.append((name, width, exponent))
-
-        #self.digital_signals = []
-        #for name in signals[7]:
-        #    self.digital_signals.append((name, r"1", None))
-
-        #for name, width in zip(signals[8], signals[9]):
-        #    self.digital_signals.append((name, width, None))
 
 class Config(BaseConfig):
     """
