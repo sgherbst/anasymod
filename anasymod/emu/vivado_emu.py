@@ -65,11 +65,11 @@ class VivadoEmulation(VivadoTCLGenerator):
 
             ## Add constraints for additional generated emu_clks
             # In case no timemanager is used, remove hierarchy from instantiated gen_emu_clks module
-            if len(scfg.clk_o) == 0:
+            if scfg.num_gated_clks >= 1:
                 constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
             else:
                 constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
-            for k in range(len(scfg.clk_o)):
+            for k in range(scfg.num_gated_clks):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
             # Setup ILA for signal probing - only of at least one probe is defined

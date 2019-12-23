@@ -22,7 +22,7 @@ class ModuleUARTSimCtrl(JinjaTempl):
         module.add_inputs(ctrl_outputs)
         module.add_outputs(crtl_inputs + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
         #ToDo: after revamp of clk in structure config, adding the master clk can be cleaned up as well
-        module.add_input(DigitalCtrlInput(name=scfg.clk_m[0].name, width=1, abspath=None))
+        module.add_input(DigitalCtrlInput(name=scfg.clk_independent[0].name, width=1, abspath=None))
 
         module.generate_header()
         #ToDo: currently clk will be treated as inputs to this wrapper, might be driven from PS at one point
