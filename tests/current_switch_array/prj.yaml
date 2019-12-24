@@ -1,0 +1,5 @@
+PROJECT:
+    dt:                 0.03333333333e-9
+TARGET:
+    sim:
+        tstop:          5e-9

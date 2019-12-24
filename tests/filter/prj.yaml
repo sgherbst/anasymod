@@ -1,0 +1,8 @@
+PROJECT:
+    dt:                 0.1e-6
+TARGET:
+    sim:
+        tstop:          10e-6
+    fpga:
+        fpga_sim_ctrl:  'vivado_vio'
+        tstop:          10e-6

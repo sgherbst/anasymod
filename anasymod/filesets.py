@@ -1,10 +1,10 @@
-import os
+import os, yaml
 from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile
 from anasymod.defines import Define
 
 class Filesets():
     def __init__(self, root, default_filesets=['default', 'sim', 'fpga']):
-        self._master_cfg_path = os.path.join(root, 'source.config')
+        self._master_cfg_path = os.path.join(root, 'source.yaml')
 
         self._verilog_sources = []
         """:type : List[VerilogSource]"""
@@ -41,8 +41,10 @@ class Filesets():
 
     def read_filesets(self, validate_paths=False):
         if os.path.isfile(self._master_cfg_path):
-            with open(self._master_cfg_path, "r") as f:
-                mcfg = f.readlines()
+            try:
+                mcfg = yaml.safe_load(open(self._master_cfg_path, "r"))
+            except yaml.YAMLError as exc:
+                raise Exception(exc)
 
             # Read source paths from master config
             self._parseconfig(cfg=mcfg, cfg_path=self._master_cfg_path)
@@ -53,8 +55,10 @@ class Filesets():
                     self._sub_config_paths.remove(config)
                     for file in config.files:
                         if os.path.isfile(file):
-                            with open(file, "r") as f:
-                                cfg = f.readlines()
+                            try:
+                                cfg = yaml.safe_load(open(file, "r"))
+                            except yaml.YAMLError as exc:
+                                raise Exception(exc)
                             self._parseconfig(cfg=cfg, cfg_path=file)
                         else:
                             print(f"WARNING: provided path:'{config}' does not exist, skipping config file")
@@ -68,64 +72,67 @@ class Filesets():
         else:
             print(f"No config file existing, skipping to read source files.")
 
-    def _parseconfig(self, cfg: list, cfg_path: str):
+    def _parseconfig(self, cfg: dict, cfg_path: str):
         """
-        Read all lines from config file, according to string infront of '=' sign, the proceeding arguments will either
-        be added to the according fileset or will be added to the list of additional config paths, which will be
-        investigated in the next iteration.
-        :param cfg:
-        :param cfg_path:
-        :return:
+        Store all entries from source.yaml to the according fileset or added to the list of additional config paths,
+        which will be read and stored in the next iteration.
+        :param cfg: source.yaml stored as dict
+        :param cfg_path: path to source.yaml file
         """
 
-        for k, line in enumerate(cfg):
-            line = line.strip()
-
-            if line.startswith('#'):
-                # skip comments
-                continue
-
-            if line:
-                try:
-                    line = eval(line)
-                    if isinstance(line, VerilogSource):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._verilog_sources.append(line)
-                    elif isinstance(line, VerilogHeader):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._verilog_headers.append(line)
-                    elif isinstance(line, VHDLSource):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._vhdl_sources.append(line)
-                    elif isinstance(line, XCIFile):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._xci_files.append(line)
-                    elif isinstance(line, XDCFile):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._xdc_files.append(line)
-                    elif isinstance(line, MEMFile):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._mem_files.append(line)
-                    elif isinstance(line, BDFile):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._bd_files.append(line)
-                    elif isinstance(line, SubConfig):
-                        line.config_path = cfg_path
-                        line.expand_paths()
-                        self._sub_config_paths.append(line)
-                    elif isinstance(line, Define):
-                        self._defines.append(line)
-                    else:
-                        raise Exception(f"Line {k+1} of config file: {cfg_path} does not fit do a specified source or config type")
-                except:
-                    raise Exception(f"Line {k+1} of config file: {cfg_path} could not be processed properely")
+        if 'verilog_sources' in cfg.keys(): # Add verilog sources to filesets
+            print(f'Verilog Sources: {[key for key in cfg["verilog_sources"].keys()]}')
+            for verilog_source in cfg['verilog_sources'].keys():
+                self._verilog_sources.append(VerilogSource(files=cfg['verilog_sources'][verilog_source]['files'],
+                                                           fileset=cfg['verilog_sources'][verilog_source]['fileset'] if 'fileset' in cfg['verilog_sources'][verilog_source].keys() else 'default',
+                                                           config_path=cfg_path,
+                                                           verilog_version=cfg['verilog_sources'][verilog_source]['verilog_version'] if 'verilog_version' in cfg['verilog_sources'][verilog_source].keys() else None))
+        if 'verilog_headers' in cfg.keys(): # Add verilog headers to filesets
+            print(f'Verilog Headers: {[key for key in cfg["verilog_headers"].keys()]}')
+            for verilog_header in cfg['verilog_headers'].keys():
+                self._verilog_headers.append(VerilogHeader(files=cfg['verilog_headers'][verilog_header]['files'],
+                                                           fileset=cfg['verilog_headers'][verilog_header]['fileset'] if 'fileset' in cfg['verilog_headers'][verilog_header].keys() else 'default',
+                                                           config_path=cfg_path))
+        if 'vhdl_sources' in cfg.keys(): # Add VHDL sources to filesets
+            print(f'VHDL Sources: {[key for key in cfg["vhdl_sources"].keys()]}')
+            for vhdl_source in cfg['vhdl_sources'].keys():
+                self._vhdl_sources.append(VHDLSource(files=cfg['vhdl_sources'][vhdl_source]['files'],
+                                                     fileset=cfg['vhdl_sources'][vhdl_source]['fileset'] if 'fileset' in cfg['vhdl_sources'][vhdl_source].keys() else 'default',
+                                                     config_path=cfg_path,
+                                                     library=cfg['vhdl_sources'][vhdl_source]['library'] if 'library' in cfg['vhdl_sources'][vhdl_source].keys() else None))
+        if 'xci_files' in cfg.keys(): # Add xci files to filesets
+            print(f'XCI Files: {[key for key in cfg["xci_files"].keys()]}')
+            for xci_file in cfg['xci_files'].keys():
+                self._xci_files.append(XCIFile(files=cfg['xci_files'][xci_file]['files'],
+                                               fileset=cfg['xci_files'][xci_file]['fileset'] if 'fileset' in cfg['xci_files'][xci_file].keys() else 'default',
+                                               config_path=cfg_path))
+        if 'xdc_files' in cfg.keys(): # Add constraint files to filesets
+            print(f'XDC Files: {[key for key in cfg["xdc_files"].keys()]}')
+            for xdc_file in cfg['xdc_files'].keys():
+                self._xdc_files.append(XDCFile(files=cfg['xdc_files'][xdc_file]['files'],
+                                               fileset=cfg['xdc_files'][xdc_file]['fileset'] if 'fileset' in cfg['xdc_files'][xdc_file].keys() else 'default',
+                                               config_path=cfg_path))
+        if 'mem_files' in cfg.keys():  # Add mem files to filesets
+            print(f'Mem Files: {[key for key in cfg["mem_files"].keys()]}')
+            for mem_file in cfg['mem_files'].keys():
+                self._mem_files.append(MEMFile(files=cfg['mem_files'][mem_file]['files'],
+                                               fileset=cfg['mem_files'][mem_file]['fileset'] if 'fileset' in cfg['mem_files'][mem_file].keys() else 'default',
+                                               config_path=cfg_path))
+        if 'bd_files' in cfg.keys():  # Add block diagram files to filesets
+            print(f'Block Diagram Files: {[key for key in cfg["bd_files"].keys()]}')
+            for bd_file in cfg['bd_files'].keys():
+                self._bd_files.append(BDFile(files=cfg['bd_files'][bd_file]['files'],
+                                             fileset=cfg['bd_files'][bd_file]['fileset'] if 'fileset' in cfg['bd_files'][bd_file].keys() else 'default',
+                                             config_path=cfg_path))
+        if 'sub_configs' in cfg.keys():  # Add sub config files to filesets
+            for sub_config in cfg['sub_configs'].keys():
+                self._sub_config_paths.append(SubConfig(files=cfg['sub_configs'][sub_config]['files'], config_path=cfg_path))
+        if 'defines' in cfg.keys():  # Add defines to filesets
+            print(f'Defines: {[key for key in cfg["defines"].keys()]}')
+            for define in cfg['defines'].keys():
+                self._defines.append(Define(name=cfg['defines'][define]['name'],
+                                            value=cfg['defines'][define]['value'] if 'value' in cfg['defines'][define].keys() else None,
+                                            fileset=cfg['defines'][define]['fileset'] if 'fileset' in cfg['defines'][define].keys() else 'default'))
 
     def populate_fileset_dict(self):
         """

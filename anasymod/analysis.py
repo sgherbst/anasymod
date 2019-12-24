@@ -1,6 +1,6 @@
 import os
 import os.path
-import json
+import yaml
 import numpy as np
 
 from argparse import ArgumentParser
@@ -58,11 +58,17 @@ class Analysis():
             self.default_sim_target = self.args.active_target
 
         # Load config file
-        try:
-            self.cfg_file = json.load(open(os.path.join(self.args.input, 'prj_config.json'), 'r'))
-        except:
+        cfgfile_path = os.path.join(self.args.input, 'prj.yaml')
+
+        if os.path.isfile(cfgfile_path):
+            try:
+                self.cfg_file = yaml.safe_load(open(cfgfile_path, "r"))
+            except yaml.YAMLError as exc:
+                raise Exception(exc)
+            #self.cfg_file = json.load(open(cfgfile_path, 'r'))
+        else:
             self.cfg_file = None
-            print(f"Warning: no config file was fround for the project, expected path is: {os.path.join(self.args.input, 'prj_config.json')}")
+            print(f"Warning: no config file was found for the project, expected path is: {cfgfile_path}")
 
         # Initialize project config
         self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
@@ -152,7 +158,7 @@ class Analysis():
         # Add custom source and define objects here e.g.:
         # self.filesets.add_source(source=VerilogSource())
         # self.filesets.add_define(define=Define())
-        config_path = os.path.join(self.args.input, 'source.config')
+        config_path = os.path.join(self.args.input, 'source.yaml')
 
         # Add some default files depending on whether there is a custom top level
         # TODO: clean this part up with generated top level
