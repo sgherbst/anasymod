@@ -5,11 +5,11 @@ from collections import OrderedDict
 
 from anasymod.sim.sim import Simulator
 from anasymod.util import call
-from anasymod.targets import SimulationTarget
+from anasymod.targets import CPUTarget
 from anasymod.config import EmuConfig
 
 class XceliumSimulator(Simulator):
-    def __init__(self, target: SimulationTarget):
+    def __init__(self, target: CPUTarget):
         super().__init__( target=target)
         self.unit = None
         self.id = None

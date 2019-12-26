@@ -1,5 +1,5 @@
 PROJECT:
     dt:                 50e-9
-TARGET:
+CPU_TARGET:
     sim:
         tstop:          310e-6

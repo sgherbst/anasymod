@@ -3,8 +3,9 @@ from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, 
 from anasymod.defines import Define
 
 class Filesets():
-    def __init__(self, root, default_filesets=['default', 'sim', 'fpga']):
+    def __init__(self, root, default_filesets):
         self._master_cfg_path = os.path.join(root, 'source.yaml')
+        self.default_filesets = default_filesets
 
         self._verilog_sources = []
         """:type : List[VerilogSource]"""
@@ -139,6 +140,12 @@ class Filesets():
         Creates fileset dictionary according to filesets that were provided reading in source and define objects.
         Previously created filesets will be overwritten.
         """
+
+        # Initialize all filesets
+        self.fileset_dict = {}
+        if not self.default_filesets:
+            for fileset in self.default_filesets:
+                self.fileset_dict[fileset] = {}
 
         # Read in verilog source objects to fileset dict
         self._add_to_fileset_dict(name='verilog_sources', container=self._verilog_sources)

@@ -12,12 +12,14 @@ from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
 class EmuConfig:
-    def __init__(self, root, cfg_file, build_root=None):
+    def __init__(self, root, cfg_file, active_target, build_root=None):
 
         self.root = root
 
         # define and create build root
-        self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
+        self.build_root_base = build_root if build_root is not None else os.path.join(root, 'build')
+
+        self.build_root = os.path.join(self.build_root_base, active_target)
         if not os.path.exists(self.build_root):
             mkdir_p(self.build_root)
 
@@ -63,6 +65,11 @@ class EmuConfig:
     @property
     def ila_depth(self):
         return 4096
+
+    def _update_build_root(self, active_target):
+        self.build_root = os.path.join(self.build_root_base, active_target)
+        if not os.path.exists(self.build_root):
+            mkdir_p(self.build_root)
 
     def _fetch_board(self):
         """

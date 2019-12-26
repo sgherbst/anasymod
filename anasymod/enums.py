@@ -3,6 +3,8 @@ class ConfigSections:
     Container including enums for sections that can be used in config file.
     """
     TARGET = "TARGET"
+    CPU_TARGET = "CPU_TARGET"
+    FPGA_TARGET = "FPGA_TARGET"
     PLUGIN = "PLUGIN"
     PROJECT = "PROJECT"
     STRUCTURE = "STRUCTURE"

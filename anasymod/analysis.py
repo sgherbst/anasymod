@@ -1,4 +1,4 @@
-import os
+import os, shutil
 import os.path
 import yaml
 import numpy as np
@@ -14,10 +14,11 @@ from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
 from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.sources import VerilogSource
+from anasymod.sources import *
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
-from anasymod.targets import SimulationTarget, FPGATarget, Target
+from anasymod.targets import CPUTarget, FPGATarget
+from anasymod.enums import ConfigSections
 from anasymod.utils import statpro
 from typing import Union
 from importlib import import_module
@@ -27,9 +28,6 @@ class Analysis():
     This is the top user Class that shall be used to exercise anasymod.
     """
     def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None, op_mode=None, active_target=None):
-
-        # Indicate that setup is not finished yet
-        self._setup_finished = False
 
         # Parse command line arguments
         self.args = None
@@ -49,14 +47,6 @@ class Analysis():
         self.args.preprocess_only = preprocess_only if preprocess_only is not None else self.args.preprocess_only
         self.args.active_target = active_target if active_target is not None else self.args.active_target
 
-        self.default_fpga_target = 'fpga'
-        self.default_sim_target = 'sim'
-
-        if self.args.active_target == 'fpga':
-            self.default_fpga_target = self.args.active_target
-        elif self.args.active_target == 'sim':
-            self.default_sim_target = self.args.active_target
-
         # Load config file
         cfgfile_path = os.path.join(self.args.input, 'prj.yaml')
 
@@ -65,13 +55,38 @@ class Analysis():
                 self.cfg_file = yaml.safe_load(open(cfgfile_path, "r"))
             except yaml.YAMLError as exc:
                 raise Exception(exc)
-            #self.cfg_file = json.load(open(cfgfile_path, 'r'))
         else:
             self.cfg_file = None
             print(f"Warning: no config file was found for the project, expected path is: {cfgfile_path}")
 
+        # Initialize Targets
+        self.act_fpga_target = 'fpga'
+        self.fpga_targets = [self.act_fpga_target]
+        try:
+            for custom_target in self.cfg_file[ConfigSections.FPGA_TARGET].keys():
+                if custom_target not in self.fpga_targets:
+                    self.fpga_targets.append(custom_target)
+        except:
+            pass
+
+        self.act_cpu_target = 'sim'
+        self.cpu_targets = [self.act_cpu_target]
+        try:
+            for custom_target in self.cfg_file[ConfigSections.CPU_TARGET].keys():
+                if custom_target not in self.cpu_targets:
+                    self.cpu_targets.append(custom_target)
+        except:
+            pass
+
+        # Initialize dict for tracking, which targets are already setup.
+        self._setup_finished = {}
+        for target in self.cpu_targets + self.fpga_targets:
+            self._setup_finished[target] = False
+
+        self.fileset_populated = False
+
         # Initialize project config
-        self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, build_root=build_root)
+        self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, active_target=self.args.active_target, build_root=build_root)
 
         # Initialize Plugins
         self._plugins = []
@@ -84,13 +99,16 @@ class Analysis():
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
 
-        # Check which mode is used to run, in case of commandline mode, besided setting up the class, also argument will be executed
+        #Set active target
+        self.set_target(self.args.active_target)
+
+        # Check which mode is used to run, in case of commandline mode, besides setting up the class, also argument will be processed and executed
         if op_mode in ['commandline']:
             print(f"Running in commandline mode.")
 
             # Finalize project setup, no more modifications of filesets and targets after that!!!
             self.setup_filesets()
-            self.finish_setup()
+            self._setup_targets()
 
             ###############################################################
             # Set options from to command line arguments
@@ -104,31 +122,31 @@ class Analysis():
 
             # generate bitstream
             if self.args.build:
-                self.args.active_target = self.default_fpga_target if self.args.active_target is None else self.args.active_target
+                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.build()
 
             # run FPGA if desired
             if self.args.emulate:
-                self.args.active_target = self.default_fpga_target if self.args.active_target is None else self.args.active_target
+                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.emulate()
 
             # launch FPGA if desired
             if self.args.launch:
-                self.args.active_target = self.default_fpga_target if self.args.active_target is None else self.args.active_target
+                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.launch()
 
             # run simulation if desired
             if self.args.sim or self.args.preprocess_only:
-                self.args.active_target = self.default_sim_target if self.args.active_target is None else self.args.active_target
+                self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
                 self.simulate(unit=self.args.unit, id=self.args.id)
 
             # view results if desired
             if self.args.view and (self.args.sim or self.args.preprocess_only):
-                self.args.active_target = self.default_sim_target if self.args.active_target is None else self.args.active_target
+                self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
                 self.view()
 
             if self.args.view and self.args.emulate:
-                self.args.active_target = self.default_fpga_target if self.args.active_target is None else self.args.active_target
+                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.view()
 
 ##### Functions exposed for user to exercise on Analysis Object
@@ -137,12 +155,12 @@ class Analysis():
         """
         Setup filesets for project.
         This may differ from one project to another and needs customization.
-        1. Read in source objects from source.config files and store those in a fileset object
+        1. Read in source objects from source.yaml files and store those in a fileset object
         2. Add additional source objects to fileset object
         """
 
-        # Read source.config files and store in fileset object
-        default_filesets = ['default', 'sim', 'fpga']
+        # Read source.yaml files and store in fileset object
+        default_filesets = ['default'] + self.cpu_targets + self.fpga_targets
         self.filesets = Filesets(root=self.args.input, default_filesets=default_filesets)
         self.filesets.read_filesets()
 
@@ -161,11 +179,9 @@ class Analysis():
         config_path = os.path.join(self.args.input, 'source.yaml')
 
         # Add some default files depending on whether there is a custom top level
-        # TODO: clean this part up with generated top level
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'vio_gen.sv'), config_path=config_path))
-        for fileset in ['sim', 'fpga']:
+        for fileset in self.cpu_targets + self.fpga_targets:
             try:
-                custom_top = self.cfg_file['TARGET'][fileset]['custom_top']
+                custom_top = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['custom_top'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['custom_top']
                 print(f'Using custom top for fileset {fileset}.')
             except:
                 custom_top = False
@@ -173,20 +189,15 @@ class Analysis():
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
-
-                #self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
-                #self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
-
                 get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
         self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
-        for fileset in ['sim', 'fpga']:
+        for fileset in self.cpu_targets + self.fpga_targets:
             try:
-                top_module = self.cfg_file['TARGET'][fileset]['top_module']
+                top_module = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['top_module'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['top_module']
             except:
                 top_module = 'top'
 
@@ -198,38 +209,66 @@ class Analysis():
             self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
             self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
 
-    def finish_setup(self):
+    def add_sources(self, sources: Union[Sources, Define, list]):
         """
-        Finalize filesets and setup targets. Both should not be modified anymore afterwards.
+        Function to add sources or defines to filesets. This will also retrigger fileset dict population
+
+        :param sources: Individual source or list of sources, that shall be added to filesets
         :return:
         """
 
-        # Initialize Targets
-        self._setup_targets()
+        if not isinstance(sources, list):
+            sources = [sources]
+        for source in sources:
+            if isinstance(source, VerilogSource):
+                self.filesets._verilog_sources.append(source)
+            elif isinstance(source, VerilogHeader):
+                self.filesets._verilog_headers.append(source)
+            elif isinstance(source, VHDLSource):
+                self.filesets._vhdl_sources.append(source)
+            elif isinstance(source, Define):
+                self.filesets._defines.append(source)
+            elif isinstance(source, XCIFile):
+                self.filesets._xci_files.append(source)
+            elif isinstance(source, XDCFile):
+                self.filesets._xdc_files.append(source)
+            elif isinstance(source, MEMFile):
+                self.filesets._mem_files.append(source)
+            elif isinstance(source, BDFile):
+                self.filesets._bd_files.append(source)
+            else:
+                print(f'WARNING: Provided source:{source} does not have a valid type, skipping this command!')
+
+        self.fileset_populated = False
 
     def set_target(self, target_name):
-        if self._setup_finished:
-            self.args.active_target = target_name
-            target = getattr(self, self.default_fpga_target)
-            if isinstance(target, FPGATarget):
-                self.default_fpga_target = target_name
-            elif isinstance(target, SimulationTarget):
-                self.default_sim_target = target_name
+        """
+        Changes the domainspecific active target to target_name, e.g. the active CPU target to target_name.
+
+        :param target_name: name of target, that shall be set as active for the respective domain.
+        :return:
+        """
+        self.args.active_target = target_name
+        if self.args.active_target in self.fpga_targets:
+            self.act_fpga_target = self.args.active_target
+        elif self.args.active_target in self.cpu_targets:
+            self.act_cpu_target = self.args.active_target
         else:
-            raise Exception(f'Setup is not finished yet. Please finalize setup before setting the active target.')
+            raise Exception(f'Active target:{self.args.active_target} is not available for project, please declare the target first in the project configuration.')
+
+        self._prj_cfg._update_build_root(active_target=target_name)
 
     def build(self):
         """
         Generate bitstream for FPGA target
         """
 
-        # Check if project setup was finished
-        self._check_setup()
+        shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
+        mkdir_p(self._prj_cfg.build_root)
+        self._setup_targets()
 
         # Check if active target is an FPGA target
-        target = getattr(self, self.default_fpga_target)
-        if not isinstance(target, FPGATarget):
-            raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
+        target = getattr(self, self.act_fpga_target)
 
         VivadoEmulation(target=target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
@@ -242,13 +281,10 @@ class Analysis():
         if server_addr is None:
             server_addr = self.args.server_addr
 
-        # Check if project setup was finished
-        self._check_setup()
-
-        # Check if active target is an FPGA target
-        target = getattr(self, self.default_fpga_target)
-        if not isinstance(target, FPGATarget):
-            raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
 
         # create sim result folders
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
@@ -275,13 +311,10 @@ class Analysis():
         if server_addr is None:
             server_addr = self.args.server_addr
 
-        # Check if project setup was finished
-        self._check_setup()
-
-        # Check if active target is an FPGA target
-        target = getattr(self, self.default_fpga_target)
-        if not isinstance(target, FPGATarget):
-            raise Exception(f'Active Target is of wrong type, only FPGATarget is supported for this action')
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
 
         # create sim result folders
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
@@ -305,14 +338,11 @@ class Analysis():
         Run simulation on a pc target.
         """
 
-        # check if setup is already finished, if not do so
-        if not self._setup_finished:
-            self.finish_setup()
+        shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
+        mkdir_p(self._prj_cfg.build_root)
+        self._setup_targets()
 
-        # Check if active target is a SimulationTarget
-        target = getattr(self, self.default_sim_target)
-        if not isinstance(target, SimulationTarget):
-            raise Exception(f'Active Target is of wrong type, only SimulationTarget is supported for this action')
+        target = getattr(self, self.act_cpu_target)
 
         # create sim result folder
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
@@ -341,13 +371,7 @@ class Analysis():
         Probe specified signal. Signal will be stored in a numpy array.
         """
 
-        # Check if project setup was finished
-        self._check_setup()
-
-        target = getattr(self, self.args.active_target)
-
-        probeobj = self._setup_probeobj(target=target)
-
+        probeobj = self._setup_probeobj(target=getattr(self, self.args.active_target))
         return probeobj._probe(name=name, emu_time=emu_time)
 
     def probes(self):
@@ -356,13 +380,7 @@ class Analysis():
         :return: list of signal names
         """
 
-        # Check if project setup was finished
-        self._check_setup()
-
-        target = getattr(self, self.args.active_target)
-
-        probeobj = self._setup_probeobj(target=target)
-
+        probeobj = self._setup_probeobj(target=getattr(self, self.args.active_target))
         return probeobj._probes()
 
     def preserve(self, wave):
@@ -391,9 +409,6 @@ class Analysis():
         View results from selected target run.
         """
 
-        # Check if project setup was finished
-        self._check_setup()
-
         target = getattr(self, self.args.active_target)
 
         # pick viewer
@@ -407,7 +422,7 @@ class Analysis():
         # TODO: clean this up; it's a bit messy...
         if isinstance(target, FPGATarget):
             gtkw_search_order = ['view_fpga.gtkw', 'view.gtkw']
-        elif isinstance(target, SimulationTarget):
+        elif isinstance(target, CPUTarget):
             gtkw_search_order = ['view_sim.gtkw', 'view.gtkw']
         else:
             gtkw_search_order = ['view.gtkw']
@@ -494,7 +509,7 @@ class Analysis():
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
-        parser.add_argument('--active_target', type=str, default=None)
+        parser.add_argument('--active_target', type=str, default='sim')
         parser.add_argument('--unit', type=str, default=None)
         parser.add_argument('--id', type=str, default=None)
         parser.add_argument('--sim', action='store_true')
@@ -518,54 +533,65 @@ class Analysis():
         """
 
         # Populate the fileset dict which will be used to copy data to target object and store in filesets variable
-        self.filesets.populate_fileset_dict()
+        if not self.fileset_populated:
+            self.filesets.populate_fileset_dict()
+            self.fileset_populated = True
+
         filesets = self.filesets.fileset_dict
 
-        #######################################################
-        # Create and setup simulation target
-        #######################################################
+        if self.args.active_target in self.cpu_targets:
+            #######################################################
+            # Create and setup simulation target
+            #######################################################
+            self.__setattr__(self.args.active_target, CPUTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=self.args.active_target))
+            getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets['default'])
+            if self.args.active_target in filesets:
+                getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets[self.args.active_target])
 
-        self.sim = SimulationTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=r"sim")
-        self.sim.assign_fileset(fileset=filesets['default'])
-        if 'sim' in filesets:
-            self.sim.assign_fileset(fileset=filesets['sim'])
+            # Update simulation target specific configuration
+            getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'update_config')(subsection=self.args.active_target)
+            getattr(getattr(self, self.args.active_target), 'update_structure_config')()
+            if not getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'custom_top'):
+                getattr(getattr(self, self.args.active_target), 'gen_structure')()
+            getattr(getattr(self, self.args.active_target), 'set_tstop')()
+            getattr(getattr(self, self.args.active_target), 'setup_vcd')()
 
+        elif self.args.active_target in self.fpga_targets:
+            #######################################################
+            # Create and setup FPGA target
+            #######################################################
+            self.__setattr__(self.args.active_target, FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=self.args.active_target))
+            getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets['default'])
+            if self.args.active_target in filesets:
+                getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets[self.args.active_target])
 
+            # Update fpga target specific configuration
+            getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'update_config')(subsection=self.args.active_target)
+            getattr(getattr(self, self.args.active_target), 'update_structure_config')()
+            if not getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'custom_top'):
+                getattr(getattr(self, self.args.active_target), 'setup_ctrl_ifc')()
+                getattr(getattr(self, self.args.active_target), 'gen_structure')()
+            getattr(getattr(self, self.args.active_target), 'set_tstop')()
 
-        # Update simulation target specific configuration
-        self.sim.cfg.update_config(subsection=r"sim")
-        self.sim.update_structure_config()
-        #ToDo: currently structure generation is only necessary for FPGA simulation, in future at least signals selected in probing file should automatically be included in vcd file
-        if not self.sim.cfg.custom_top:
-            print('!!! gen_structure for simulation target')
-            #self.sim.setup_ctrl_ifc()
-            self.sim.gen_structure()
-        self.sim.set_tstop()
-        self.sim.setup_vcd()
+            #self.fpga = FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=r"fpga")
+            #self.fpga.assign_fileset(fileset=filesets['default'])
+            #if 'fpga' in filesets:
+            #    self.fpga.assign_fileset(fileset=filesets['fpga'])
 
-        #######################################################
-        # Create and setup FPGA target
-        #######################################################
-        self.fpga = FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=r"fpga")
-        self.fpga.assign_fileset(fileset=filesets['default'])
-        if 'fpga' in filesets:
-            self.fpga.assign_fileset(fileset=filesets['fpga'])
+            # Update simulation target specific configuration
+            #self.fpga.cfg.update_config(subsection=r"fpga")
+            #self.fpga.update_structure_config()
+            # Instantiate Simulation ControlInfrastructure Interface
+            #if not self.fpga.cfg.custom_top:
+            #    print('!!! gen_structure for FPGA target')
+            #    self.fpga.setup_ctrl_ifc()
+            #    self.fpga.gen_structure()
+            #self.fpga.set_tstop()
 
-        # Update simulation target specific configuration
-        self.fpga.cfg.update_config(subsection=r"fpga")
-        self.fpga.update_structure_config()
-        # Instantiate Simulation ControlInfrastructure Interface
-        # ToDo: This should only be executed for FPGA simulation!
-        if not self.fpga.cfg.custom_top:
-            print('!!! gen_structure for FPGA target')
-            self.fpga.setup_ctrl_ifc()
-            self.fpga.gen_structure()
-        self.fpga.set_tstop()
+        # Set indication that project setup for active target is complete
+        self._setup_finished[self.args.active_target] = True
 
-        # Set indication that project setup is complete
-        self._setup_finished = True
-
-    def _setup_probeobj(self, target: Union[FPGATarget, SimulationTarget]):
+    def _setup_probeobj(self, target: Union[FPGATarget, CPUTarget]):
         """
         Check if the requested probe obj in the target object already exists, in not create one.
         Return the probe object.
@@ -577,7 +603,7 @@ class Analysis():
         # specify probe obj name, specific to selected simulator/synthesizer
         if isinstance(target, FPGATarget):
             target_name = f"prb_{self.args.synthesizer_name}"
-        elif isinstance(target, SimulationTarget):
+        elif isinstance(target, CPUTarget):
             target_name = f"prb_{self.args.simulator_name}"
         else:
             raise ValueError(f"Provided target type:{target} is not supported")
@@ -590,16 +616,6 @@ class Analysis():
             target.probes[target_name] = ProbeVCD(target=target)
 
         return target.probes[target_name]
-
-    def _check_setup(self):
-        """
-        Check if the targets were already created for the project. If not, throw an error.
-
-        :return:
-        """
-
-        if not self._setup_finished:
-            raise ValueError("The project setup changed after data aquisition; Data might be out of sync!")
 
 def main():
     Analysis(op_mode='commandline')
