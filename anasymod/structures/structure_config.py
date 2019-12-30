@@ -74,10 +74,7 @@ class StructureConfig():
         # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
         # Add time signal representing current simulated time
-        self.time_probe = AnalogProbe(name='emu_time', abspath='emu_time_probe', range=10, width=39)
-
-        # Add decimation comparator signal, this controls enabling and disabling signal capturing via ila
-        self.digital_probes.append(DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1))
+        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=10, width=prj_cfg.cfg.time_width)
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
@@ -86,6 +83,9 @@ class StructureConfig():
         # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
         self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
         self.dec_thr_ctrl.i_addr = self._assign_i_addr()
+
+        # Add DigitalCtrlInput for control signal 'emu_dec_cmp' to trigger samplöing for the ila depending on 'emu_dec_thr'
+        self.dec_cmp = DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1)
 
         self._read_simctrlfile()
 

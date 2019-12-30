@@ -194,7 +194,7 @@ class Analysis():
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
-        self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
+        #self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
         for fileset in self.cpu_targets + self.fpga_targets:
             try:
                 top_module = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['top_module'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['top_module']
@@ -204,10 +204,11 @@ class Analysis():
             print(f'Using top module {top_module} for fileset {fileset}.')
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
+            #self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
+            #self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
 
     def add_sources(self, sources: Union[Sources, Define, list]):
         """
@@ -573,22 +574,7 @@ class Analysis():
                 getattr(getattr(self, self.args.active_target), 'gen_structure')()
             getattr(getattr(self, self.args.active_target), 'set_tstop')()
 
-            #self.fpga = FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=r"fpga")
-            #self.fpga.assign_fileset(fileset=filesets['default'])
-            #if 'fpga' in filesets:
-            #    self.fpga.assign_fileset(fileset=filesets['fpga'])
-
-            # Update simulation target specific configuration
-            #self.fpga.cfg.update_config(subsection=r"fpga")
-            #self.fpga.update_structure_config()
-            # Instantiate Simulation ControlInfrastructure Interface
-            #if not self.fpga.cfg.custom_top:
-            #    print('!!! gen_structure for FPGA target')
-            #    self.fpga.setup_ctrl_ifc()
-            #    self.fpga.gen_structure()
-            #self.fpga.set_tstop()
-
-        # Set indication that project setup for active target is complete
+        # Indication that project setup for active target is complete
         self._setup_finished[self.args.active_target] = True
 
     def _setup_probeobj(self, target: Union[FPGATarget, CPUTarget]):

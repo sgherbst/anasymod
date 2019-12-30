@@ -7,14 +7,10 @@ from anasymod.util import back2fwd
 from anasymod.templates.dbg_hub import TemplDbgHub
 from anasymod.templates.ext_clk import TemplExtClk
 from anasymod.templates.clk_wiz import TemplClkWiz
-from anasymod.templates.vio_wiz import TemplVIO
 from anasymod.templates.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
-from anasymod.templates.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
-from anasymod.templates.probe_extract import TemplPROBE_EXTRACT
 from anasymod.templates.ila import TemplILA
 from anasymod.targets import FPGATarget
-from anasymod.enums import FPGASimCtrl
-from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
+from anasymod.structures.structure_config import StructureConfig
 
 
 class VivadoEmulation(VivadoTCLGenerator):
@@ -28,6 +24,7 @@ class VivadoEmulation(VivadoTCLGenerator):
 
     def build(self):
         scfg = self.target.str_cfg
+        """ type : StructureConfig """
 
         # create a new project
         self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
@@ -53,7 +50,6 @@ class VivadoEmulation(VivadoTCLGenerator):
         constrs = CodeGenerator()
         constrs.use_templ(TemplExtClk(target=self.target))
 
-        # TODO: allow tracing for custom_top
         if not self.target.cfg.custom_top:
             # generate clock wizard IP core
             self.use_templ(TemplClkWiz(target=self.target))
@@ -66,9 +62,9 @@ class VivadoEmulation(VivadoTCLGenerator):
             ## Add constraints for additional generated emu_clks
             # In case no timemanager is used, remove hierarchy from instantiated gen_emu_clks module
             if scfg.num_gated_clks >= 1:
-                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
-            else:
                 constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
+            else:
+                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
             for k in range(scfg.num_gated_clks):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 

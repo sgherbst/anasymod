@@ -15,6 +15,7 @@ from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
+from anasymod.files import get_from_module
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -100,6 +101,12 @@ class Target():
             trap_file.write(ModuleTracePort(scfg=self.str_cfg).render())
 
         self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
+
+        # Add time manager module, or calc_emu_time module to project sources
+        if self.str_cfg.num_gated_clks > 0:
+            self.content.verilog_sources += [VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'))]
+        else:
+            self.content.verilog_sources += [VerilogSource(files=get_from_module('anasymod', 'verilog', 'calc_emu_time.sv'))]
 
     @property
     def project_root(self):

@@ -56,7 +56,6 @@ class ModuleTop(JinjaTempl):
         # Absolute path assignments for derived clks
         dt_req_cnt = 0
         gated_clks_cnt = 0
-        # ToDo: HIER WEITER: abspath assigns anpassen, passend zu werten in ClkDerived klasse, auch für rst, clk, emu_dt
         self.derived_clk_assigns = SVAPI()
         for k, clk in enumerate(scfg.clk_derived):
             self.derived_clk_assigns.writeln(f'// derived clock: {clk.name}')
@@ -80,6 +79,12 @@ class ModuleTop(JinjaTempl):
         #####################################################
         # Manage Ctrl Module
         #####################################################
+
+        # Set decimation bits, and decimation threshold, and time signal width for template substitution
+        self.dec_bits = target.prj_cfg.cfg.dec_bits
+        self.dec_thr = target.str_cfg.dec_thr_ctrl.name
+        self.time_width = target.prj_cfg.cfg.time_width
+        self.tstop = target.cfg.tstop
 
         custom_ctrl_ios = scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_inputs + \
                           scfg.digital_ctrl_outputs
@@ -115,7 +120,7 @@ class ModuleTop(JinjaTempl):
         # Manage trace port Module
         ######################################################
 
-        probes = scfg.digital_probes + scfg.analog_probes + [scfg.time_probe]
+        probes = scfg.digital_probes + scfg.analog_probes + [scfg.time_probe] + [scfg.dec_cmp]
 
         ## Instantiate all probe signals
         self.inst_probesigs = SVAPI()
@@ -130,9 +135,9 @@ class ModuleTop(JinjaTempl):
         trap_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
         trap_inst.generate_instantiation()
 
-        ## Assign probe signals via abs paths into design
+        ## Assign probe signals via abs paths into design except for time probe
         self.assign_probesigs = SVAPI()
-        for probe in probes:
+        for probe in scfg.digital_probes + scfg.analog_probes:
             self.assign_probesigs.assign_to(io_obj=probe, exp=probe.abs_path)
 
         #####################################################
@@ -182,7 +187,7 @@ logic emu_clk, emu_clk_2x;
 localparam integer n_dt = {{subst.num_dt_reqs}};
 logic signed [((`DT_WIDTH)-1):0] dt_req [n_dt];
 logic signed [((`DT_WIDTH)-1):0] emu_dt;
-logic signed [((`TIME_WIDTH)-1):0] emu_time;
+logic signed [({{subst.time_width-1}}):0] emu_time;
 {% endif %}
 
 {% if subst.num_gated_clks != 0 %}
@@ -232,27 +237,40 @@ end
 time_manager  #(
     .n(n_dt),
     .width(`DT_WIDTH),
-    .time_width(`TIME_WIDTH)
+    .time_width({{subst.time_width}})
 ) time_manager_i (
     .dt_req(dt_req),
     .emu_dt(emu_dt),
     .emu_clk(emu_clk),
     .emu_rst(emu_rst),
-    .emu_time_probe(emu_time_probe)
+    .emu_time(emu_time)
 );
 {% else %}
-// make emu time probe
-//ToDo: Get rid of emu_time_probe, this is not necessary anymore
-`COPY_FORMAT_REAL(emu_time, emu_time_next);
-`COPY_FORMAT_REAL(emu_time, emu_time_dt);
-`ASSIGN_CONST_REAL(`DT_MSDSL, emu_time_dt);
-`ADD_INTO_REAL(emu_time, emu_time_dt, emu_time_next);
-`MEM_INTO_ANALOG(emu_time_next, emu_time, 1'b1, `CLK_MSDSL, `RST_MSDSL, 0);
-`PROBE_TIME(emu_time);
+// Calculate emu time
+calc_emu_time  #(
+    .width(`DT_WIDTH),
+    .time_width({{subst.time_width}}),
+    .tstop({{subst.tstop}})
+) calc_emu_time_i (
+    .emu_clk(emu_clk),
+    .emu_rst(emu_rst),
+    .emu_time(emu_time)
+);
 {% endif %}
-// make reset and decimation probes
-`MAKE_RESET_PROBE;
-`MAKE_DEC_PROBE;
+// calculate decimation ctrl signal for trace port
+logic [{{subst.dec_bits|int-1}}:0] emu_dec_cnt, emu_dec_nxt;
+assign emu_dec_cmp = (emu_dec_cnt == {{subst.dec_thr}}) ? 1'b1 : 0;
+assign emu_dec_nxt = (emu_dec_cmp == 1'b1) ? 'd0 : (emu_dec_cnt + 'd1);
+mem_digital #(
+    .init('d0),
+    .width({{subst.dec_bits|int}})
+) mem_digital_emu_dec_cnt_i (
+    .in(emu_dec_nxt),
+    .out(emu_dec_cnt),
+    .clk(`CLK_MSDSL),
+    .rst(`RST_MSDSL),
+    .cke(1'b1)
+);
 
 // Assignment for derived clks
 {{subst.derived_clk_assigns.text}}

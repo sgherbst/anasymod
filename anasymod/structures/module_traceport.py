@@ -7,7 +7,7 @@ from anasymod.sim_ctrl.datatypes import DigitalSignal
 class ModuleTracePort(JinjaTempl):
     def __init__(self, scfg: StructureConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
-        probes = scfg.digital_probes + scfg.analog_probes + [scfg.time_probe]
+        probes = scfg.digital_probes + scfg.analog_probes + [scfg.time_probe] + [scfg.dec_cmp]
 
         #####################################################
         # Define module ios
