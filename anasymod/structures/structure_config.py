@@ -57,6 +57,9 @@ class StructureConfig():
         # Number of gated clks
         self.num_gated_clks = 0
 
+        # Number of dt requests
+        self.num_dt_reqs = 0
+
         self._read_clksfile()
 
         #########################################################
@@ -117,48 +120,50 @@ class StructureConfig():
             except yaml.YAMLError as exc:
                 raise Exception(exc)
 
-            # Add independent clks to structure config
-            if 'independent_clks' in clks.keys():
-                print(f'Independent Clks: {[key for key in clks["independent_clks"].keys()]}')
-                for independent_clk in clks['independent_clks'].keys():
-                    self.clk_independent.append(ClkIndependent(name=independent_clk,
-                                                               freq=clks['independent_clks'][independent_clk]['freq']))
-            else:
-                print(f'No Independent Clks provided.')
+            if clks is not None:
+                # Add independent clks to structure config
+                if 'independent_clks' in clks.keys():
+                    print(f'Independent Clks: {[key for key in clks["independent_clks"].keys()]}')
+                    for independent_clk in clks['independent_clks'].keys():
+                        self.clk_independent.append(ClkIndependent(name=independent_clk,
+                                                                   freq=clks['independent_clks'][independent_clk]['freq']))
+                else:
+                    print(f'No Independent Clks provided.')
 
-            # Add derived clks to structure config
-            if 'derived_clks' in clks.keys():
-                print(f'Derived Clks: {[key for key in clks["derived_clks"].keys()]}')
-                for derived_clk in clks['derived_clks'].keys():
-                    abspath_default = None
-                    abspath_emu_dt = None
-                    abspath_emu_clk = None
-                    abspath_emu_rst = None
-                    abspath_dt_req = None
-                    abspath_gated_clk = None
-                    abspath_gated_clk_req = None
-                    if 'abspath' in clks['derived_clks'][derived_clk].keys():  # default abspath is provided
-                        abspath_default = clks['derived_clks'][derived_clk]['abspath']
-                    else:
-                        raise Exception(f'No abspath provided for clk: {derived_clk}')
+                # Add derived clks to structure config
+                if 'derived_clks' in clks.keys():
+                    print(f'Derived Clks: {[key for key in clks["derived_clks"].keys()]}')
+                    for derived_clk in clks['derived_clks'].keys():
+                        abspath_default = None
+                        abspath_emu_dt = None
+                        abspath_emu_clk = None
+                        abspath_emu_rst = None
+                        abspath_dt_req = None
+                        abspath_gated_clk = None
+                        abspath_gated_clk_req = None
+                        if 'abspath' in clks['derived_clks'][derived_clk].keys():  # default abspath is provided
+                            abspath_default = clks['derived_clks'][derived_clk]['abspath']
+                        else:
+                            raise Exception(f'No abspath provided for clk: {derived_clk}')
 
-                    if 'emu_dt' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
-                        abspath_emu_dt = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_dt'] if clks['derived_clks'][derived_clk]['emu_dt'] is not "" else '__emu_dt'
-                    if 'emu_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
-                        abspath_emu_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_clk'] if clks['derived_clks'][derived_clk]['emu_clk'] is not "" else '__emu_clk'
-                    if 'emu_rst' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
-                        abspath_emu_rst = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_rst'] if clks['derived_clks'][derived_clk]['emu_rst'] is not "" else '__emu_rst'
-                    if 'dt_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['variable_timestep', 'oscillator']):
-                        abspath_dt_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['dt_req'] if clks['derived_clks'][derived_clk]['dt_req'] is not "" else '__emu_dt_req'
-                    if 'gated_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
-                        abspath_gated_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_i'
-                        self.num_gated_clks += 1
-                    if 'gated_clk_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
-                        abspath_gated_clk_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_val'
+                        if 'emu_dt' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
+                            abspath_emu_dt = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_dt'] if clks['derived_clks'][derived_clk]['emu_dt'] is not "" else '__emu_dt'
+                        if 'emu_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
+                            abspath_emu_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_clk'] if clks['derived_clks'][derived_clk]['emu_clk'] is not "" else '__emu_clk'
+                        if 'emu_rst' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
+                            abspath_emu_rst = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_rst'] if clks['derived_clks'][derived_clk]['emu_rst'] is not "" else '__emu_rst'
+                        if 'dt_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['variable_timestep', 'oscillator']):
+                            abspath_dt_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['dt_req'] if clks['derived_clks'][derived_clk]['dt_req'] is not "" else '__emu_dt_req'
+                            self.num_dt_reqs += 1
+                        if 'gated_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
+                            abspath_gated_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_i'
+                            self.num_gated_clks += 1
+                        if 'gated_clk_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
+                            abspath_gated_clk_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_val'
 
-                    self.clk_derived.append(ClkDerived(name=derived_clk, abspath_emu_dt=abspath_emu_dt, abspath_emu_clk=abspath_emu_clk, abspath_emu_rst=abspath_emu_rst, abspath_dt_req=abspath_dt_req, abspath_gated_clk=abspath_gated_clk, abspath_gated_clk_req=abspath_gated_clk_req))
-            else:
-                print(f'No Derived Clks provided.')
+                        self.clk_derived.append(ClkDerived(name=derived_clk, abspath_emu_dt=abspath_emu_dt, abspath_emu_clk=abspath_emu_clk, abspath_emu_rst=abspath_emu_rst, abspath_dt_req=abspath_dt_req, abspath_gated_clk=abspath_gated_clk, abspath_gated_clk_req=abspath_gated_clk_req))
+                else:
+                    print(f'No Derived Clks provided.')
         else:
             print(f"No clks.config file existing, no additional clks will be added for this design.")
 
@@ -172,76 +177,77 @@ class StructureConfig():
             except yaml.YAMLError as exc:
                 raise Exception(exc)
 
-            # Add analog probes to structure config
-            if 'analog_probes' in sigs.keys():
-                print(f'Analog Probes: {[key for key in sigs["analog_probes"].keys()]}')
-                for analog_probe in sigs['analog_probes'].keys():
-                    self.analog_probes.append(AnalogProbe(name=analog_probe,
-                                                          abspath=sigs['analog_probes'][analog_probe]['abspath'],
-                                                          range=sigs['analog_probes'][analog_probe]['range'],
-                                                          width=sigs['analog_probes'][analog_probe]['width'] if 'width' in sigs['analog_probes'][analog_probe].keys() else 25))
-            else:
-                print(f'No Analog Probes provided.')
+            if sigs is not None:
+                # Add analog probes to structure config
+                if 'analog_probes' in sigs.keys():
+                    print(f'Analog Probes: {[key for key in sigs["analog_probes"].keys()]}')
+                    for analog_probe in sigs['analog_probes'].keys():
+                        self.analog_probes.append(AnalogProbe(name=analog_probe,
+                                                              abspath=sigs['analog_probes'][analog_probe]['abspath'],
+                                                              range=sigs['analog_probes'][analog_probe]['range'],
+                                                              width=sigs['analog_probes'][analog_probe]['width'] if 'width' in sigs['analog_probes'][analog_probe].keys() else 25))
+                else:
+                    print(f'No Analog Probes provided.')
 
-            # Add digital probes to structure config
-            if 'digital_probes' in sigs.keys():
-                print(f'Digital Probes: {[key for key in sigs["digital_probes"].keys()]}')
-                for digital_probe in sigs['digital_probes'].keys():
-                    self.digital_probes.append(DigitalSignal(name=digital_probe,
-                                                            abspath=sigs['digital_probes'][digital_probe]['abspath'],
-                                                            width=sigs['digital_probes'][digital_probe]['width']))
-            else:
-                print(f'No Digital Probes provided.')
+                # Add digital probes to structure config
+                if 'digital_probes' in sigs.keys():
+                    print(f'Digital Probes: {[key for key in sigs["digital_probes"].keys()]}')
+                    for digital_probe in sigs['digital_probes'].keys():
+                        self.digital_probes.append(DigitalSignal(name=digital_probe,
+                                                                abspath=sigs['digital_probes'][digital_probe]['abspath'],
+                                                                width=sigs['digital_probes'][digital_probe]['width']))
+                else:
+                    print(f'No Digital Probes provided.')
 
-            # Add digital ctrl inputs to structure config
-            if 'digital_ctrl_inputs' in sigs.keys() and sigs['digital_ctrl_inputs'] is not None:
-                print(f'Digital Ctrl Inputs: {[key for key in sigs["digital_ctrl_inputs"].keys()]}')
-                for d_ctrl_in in sigs['digital_ctrl_inputs'].keys():
-                    d_ctrl_i = DigitalCtrlInput(name=d_ctrl_in,
-                                                abspath=sigs['digital_ctrl_inputs'][d_ctrl_in]['abspath'],
-                                                width=sigs['digital_ctrl_inputs'][d_ctrl_in]['width'],
-                                                init_value=sigs['digital_ctrl_inputs'][d_ctrl_in]['init_value'] if 'init_value' in sigs['digital_ctrl_inputs'][d_ctrl_in].keys() else 0)
-                    d_ctrl_i.i_addr = self._assign_i_addr()
-                    self.digital_ctrl_inputs.append(d_ctrl_i)
-            else:
-                print(f'No Digital Ctrl Input provided.')
+                # Add digital ctrl inputs to structure config
+                if 'digital_ctrl_inputs' in sigs.keys() and sigs['digital_ctrl_inputs'] is not None:
+                    print(f'Digital Ctrl Inputs: {[key for key in sigs["digital_ctrl_inputs"].keys()]}')
+                    for d_ctrl_in in sigs['digital_ctrl_inputs'].keys():
+                        d_ctrl_i = DigitalCtrlInput(name=d_ctrl_in,
+                                                    abspath=sigs['digital_ctrl_inputs'][d_ctrl_in]['abspath'],
+                                                    width=sigs['digital_ctrl_inputs'][d_ctrl_in]['width'],
+                                                    init_value=sigs['digital_ctrl_inputs'][d_ctrl_in]['init_value'] if 'init_value' in sigs['digital_ctrl_inputs'][d_ctrl_in].keys() else 0)
+                        d_ctrl_i.i_addr = self._assign_i_addr()
+                        self.digital_ctrl_inputs.append(d_ctrl_i)
+                else:
+                    print(f'No Digital Ctrl Input provided.')
 
-            # Add digital ctrl outputs to structure config
-            if 'digital_ctrl_outputs' in sigs.keys() and sigs['digital_ctrl_outputs'] is not None:
-                print(f'Digital Ctrl Outputs: {[key for key in sigs["digital_ctrl_outputs"].keys()]}')
-                for d_ctrl_out in sigs['digital_ctrl_outputs'].keys():
-                    d_ctrl_o = DigitalCtrlOutput(name=d_ctrl_out,
-                                                 abspath=sigs['digital_ctrl_outputs'][d_ctrl_out]['abspath'],
-                                                 width=sigs['digital_ctrl_outputs'][d_ctrl_out]['width'])
-                    d_ctrl_o.o_addr = self._assign_o_addr()
-                    self.digital_ctrl_outputs.append(d_ctrl_o)
-            else:
-                print(f'No Digital Ctrl Outputs provided.')
+                # Add digital ctrl outputs to structure config
+                if 'digital_ctrl_outputs' in sigs.keys() and sigs['digital_ctrl_outputs'] is not None:
+                    print(f'Digital Ctrl Outputs: {[key for key in sigs["digital_ctrl_outputs"].keys()]}')
+                    for d_ctrl_out in sigs['digital_ctrl_outputs'].keys():
+                        d_ctrl_o = DigitalCtrlOutput(name=d_ctrl_out,
+                                                     abspath=sigs['digital_ctrl_outputs'][d_ctrl_out]['abspath'],
+                                                     width=sigs['digital_ctrl_outputs'][d_ctrl_out]['width'])
+                        d_ctrl_o.o_addr = self._assign_o_addr()
+                        self.digital_ctrl_outputs.append(d_ctrl_o)
+                else:
+                    print(f'No Digital Ctrl Outputs provided.')
 
-            # Add analog ctrl inputs to structure config
-            if 'analog_ctrl_inputs' in sigs.keys() and sigs['analog_ctrl_inputs'] is not None:
-                print(f'Analog Ctrl Inputs: {[key for key in sigs["analog_ctrl_inputs"].keys()]}')
-                for a_ctrl_in in sigs['analog_ctrl_inputs'].keys():
-                    a_ctrl_i = AnalogCtrlInput(name=a_ctrl_in,
-                                                abspath=sigs['analog_ctrl_inputs'][a_ctrl_in]['abspath'],
-                                                range=sigs['analog_ctrl_inputs'][a_ctrl_in]['range'],
-                                                init_value=sigs['analog_ctrl_inputs'][a_ctrl_in]['init_value'] if 'init_value' in sigs['analog_ctrl_inputs'][a_ctrl_in].keys() else 0.0)
-                    a_ctrl_i.i_addr = self._assign_i_addr()
-                    self.analog_ctrl_inputs.append(a_ctrl_i)
-            else:
-                print(f'No Analog Ctrl Input provided.')
+                # Add analog ctrl inputs to structure config
+                if 'analog_ctrl_inputs' in sigs.keys() and sigs['analog_ctrl_inputs'] is not None:
+                    print(f'Analog Ctrl Inputs: {[key for key in sigs["analog_ctrl_inputs"].keys()]}')
+                    for a_ctrl_in in sigs['analog_ctrl_inputs'].keys():
+                        a_ctrl_i = AnalogCtrlInput(name=a_ctrl_in,
+                                                    abspath=sigs['analog_ctrl_inputs'][a_ctrl_in]['abspath'],
+                                                    range=sigs['analog_ctrl_inputs'][a_ctrl_in]['range'],
+                                                    init_value=sigs['analog_ctrl_inputs'][a_ctrl_in]['init_value'] if 'init_value' in sigs['analog_ctrl_inputs'][a_ctrl_in].keys() else 0.0)
+                        a_ctrl_i.i_addr = self._assign_i_addr()
+                        self.analog_ctrl_inputs.append(a_ctrl_i)
+                else:
+                    print(f'No Analog Ctrl Input provided.')
 
-            # Add analog ctrl outputs to structure config
-            if 'analog_ctrl_outputs' in sigs.keys() and sigs['analog_ctrl_outputs'] is not None:
-                print(f'Analog Ctrl Outputs: {[key for key in sigs["analog_ctrl_outputs"].keys()]}')
-                for a_ctrl_out in sigs['analog_ctrl_outputs'].keys():
-                    a_ctrl_o = AnalogCtrlOutput(name=a_ctrl_out,
-                                                 abspath=sigs['analog_ctrl_outputs'][a_ctrl_out]['abspath'],
-                                                 range=sigs['analog_ctrl_outputs'][a_ctrl_out]['range'])
-                    a_ctrl_o.o_addr = self._assign_o_addr()
-                    self.analog_ctrl_outputs.append(a_ctrl_o)
-            else:
-                print(f'No Analog Ctrl Outputs provided.')
+                # Add analog ctrl outputs to structure config
+                if 'analog_ctrl_outputs' in sigs.keys() and sigs['analog_ctrl_outputs'] is not None:
+                    print(f'Analog Ctrl Outputs: {[key for key in sigs["analog_ctrl_outputs"].keys()]}')
+                    for a_ctrl_out in sigs['analog_ctrl_outputs'].keys():
+                        a_ctrl_o = AnalogCtrlOutput(name=a_ctrl_out,
+                                                     abspath=sigs['analog_ctrl_outputs'][a_ctrl_out]['abspath'],
+                                                     range=sigs['analog_ctrl_outputs'][a_ctrl_out]['range'])
+                        a_ctrl_o.o_addr = self._assign_o_addr()
+                        self.analog_ctrl_outputs.append(a_ctrl_o)
+                else:
+                    print(f'No Analog Ctrl Outputs provided.')
         else:
             print(f"No simctrl.yaml file existing, no additional probes will be available for this simulation.")
 

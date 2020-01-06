@@ -25,11 +25,13 @@ class DigitalSignal(_Signal):
     :param delimiter:   Delimiter to separate the signal's abs path
     :param name:        Port name
     :param width:       Number of bits
+    _param signed:      If true, signal is of type signed
     """
 
-    def __init__(self, abspath, name, width, delimiter='.'):
+    def __init__(self, abspath, name, width, delimiter='.', signed=False):
         super().__init__(abspath=abspath, name=name, delimiter=delimiter)
         self.width = width
+        self.signed = signed
 
 class DigitalCtrlInput(DigitalSignal):
     """

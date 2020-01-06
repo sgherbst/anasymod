@@ -1,4 +1,4 @@
-import os, shutil
+import shutil, zipfile, filecmp
 import os.path
 import yaml
 import numpy as np
@@ -48,16 +48,16 @@ class Analysis():
         self.args.active_target = active_target if active_target is not None else self.args.active_target
 
         # Load config file
-        cfgfile_path = os.path.join(self.args.input, 'prj.yaml')
+        self.cfgfile_path = os.path.join(self.args.input, 'prj.yaml')
 
-        if os.path.isfile(cfgfile_path):
+        if os.path.isfile(self.cfgfile_path):
             try:
-                self.cfg_file = yaml.safe_load(open(cfgfile_path, "r"))
+                self.cfg_file = yaml.safe_load(open(self.cfgfile_path, "r"))
             except yaml.YAMLError as exc:
                 raise Exception(exc)
         else:
             self.cfg_file = None
-            print(f"Warning: no config file was found for the project, expected path is: {cfgfile_path}")
+            print(f"Warning: no config file was found for the project, expected path is: {self.cfgfile_path}")
 
         # Initialize Targets
         self.act_fpga_target = 'fpga'
@@ -442,6 +442,97 @@ class Analysis():
         # run viewer
         viewer = viewer_cls(target=target)
         viewer.view()
+
+    def pack_results(self, target=None):
+        """
+        Pack target-specific build folder into a zip and store it in project root directory. All project related .yaml
+        config files will also be stored in the bundle.
+
+        :param target: Specify target, that shall be stored, by default the currently active target will be used.
+        """
+
+        # Specify target-specific paths
+        if target is None:
+            build_target_root = self._prj_cfg.build_root
+            clks_file_path = getattr(getattr(getattr(self, self.args.active_target), 'str_cfg'), '_clks_file_path')
+            simctrl_file_path = getattr(getattr(getattr(self, self.args.active_target), 'str_cfg'), '_simctrl_file_path')
+        elif target in self.fpga_targets + self.cpu_targets:
+            self._prj_cfg._update_build_root(active_target=target)
+            build_target_root = self._prj_cfg.build_root
+            clks_file_path = getattr(getattr(getattr(self, target), 'str_cfg'), '_clks_file_path')
+            simctrl_file_path = getattr(getattr(getattr(self, target), 'str_cfg'), '_simctrl_file_path')
+            self._prj_cfg._update_build_root(active_target=self.args.active_target)
+        else:
+            raise Exception(f'ERROR: Provided target:{target} does not exist in current project!')
+
+        # Copy any .yaml config files from project to target-specific build root.
+        config_files = [self.cfgfile_path, clks_file_path, simctrl_file_path]
+        config_files.append(config for config in self.filesets._config_paths)
+
+        for config_file in config_files:
+            if os.path.isfile(config_file):
+                dst = os.path.join(build_target_root, 'configs', os.path.relpath(config_file, self.args.input))
+                try:
+                    shutil.copyfile(config_file, dst)
+                except:
+                    raise Exception(f'ERROR: File:{config_file} could not be copied to:{dst}!')
+
+        # Zip target-specific build folder and copy to project root
+        shutil.make_archive(base_name=os.path.basename(self.args.input) + '_!_' + str(target if target is not None else self.args.active_target) + '_!_bundle',
+                            base_dir=build_target_root,
+                            format='zip',
+                            root_dir=self.args.input)
+
+    def unpack_results(self, bundle_path, force=False):
+        """
+        Unpack target-specific result bundle to build root, in order to view results or do further post-processing
+        without having to run simulations again. In case force attribute is set to true, all .yaml config files stored
+        in bundle will copied to project root and overwrite existing ones.
+
+        :param bundle_path: Path to result bundle
+        :param force: Set this attribute to True to make sure .yaml configs in bundle will replace currently existing ones.
+        """
+
+        # Unpack zip to target-specific root directory, deleting folder in case it already existed
+        target = os.path.basename(bundle_path).split('_!_')[1]
+        build_target_root = os.path.join(self.args.input, 'build', target)
+
+        if os.path.exists(build_target_root):
+            shutil.rmtree(build_target_root)
+
+        with zipfile.ZipFile(bundle_path, "r") as zip_ref:
+            zip_ref.extractall(path=build_target_root)
+
+        # Compare if config .yaml files are different in bundle and current project
+        bundle_config_files = []
+        [bundle_config_files.append(config_file) for config_file in os.path.join(build_target_root, 'configs')]
+
+        if target in self.fpga_targets + self.cpu_targets:
+            self._prj_cfg._update_build_root(active_target=target)
+            clks_file_path = getattr(getattr(getattr(self, str(target)), 'str_cfg'), '_clks_file_path')
+            simctrl_file_path = getattr(getattr(getattr(self, str(target)), 'str_cfg'), '_simctrl_file_path')
+            self._prj_cfg._update_build_root(active_target=self.args.active_target)
+        else:
+            raise Exception(f'ERROR: Provided target:{target} does not exist in current project!')
+
+        orig_config_files = [self.cfgfile_path, clks_file_path, simctrl_file_path]
+        orig_config_files.append(config for config in self.filesets._config_paths)
+
+        for orig_config_file in orig_config_files:
+            exists = False
+            for bundle_config_file in bundle_config_files:
+                if os.path.basename(orig_config_file) == os.path.basename(bundle_config_file):
+                    exists = True
+                    if not filecmp.cmp(orig_config_file, bundle_config_file):
+                        print(f'WARNING: Config:{os.path.basename(orig_config_file)} does not match with config in bundle, project setup changed!')
+                    if force:  # Depending on force flag overwrite config .yaml files in case they differ from the ones in current project
+                        shutil.rmtree(orig_config_file)
+                        try:
+                            shutil.copyfile(bundle_config_file, orig_config_file)
+                        except:
+                            raise Exception(f'ERROR: File:{bundle_config_file} could not be copied to:{orig_config_file}!')
+            if not exists:
+                    print(f'WARNING: Config file:{os.path.basename(orig_config_file)} does not exist in bundle, project setup changed!')
 
 ##### Utility Functions
 

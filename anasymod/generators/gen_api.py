@@ -109,10 +109,8 @@ class SVAPI(GenAPI):
             if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
                 return f"`INPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
-                if io_obj.width > 1:
-                    return f"input wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
-                else:
-                    return f"input wire logic {io_obj.name}"
+                width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
+                return f"input wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"input `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
             elif isinstance(io_obj, AnalogProbe):
@@ -121,10 +119,8 @@ class SVAPI(GenAPI):
             if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
                 return f"`OUTPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
-                if io_obj.width > 1:
-                    return f"output wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
-                else:
-                    return f"output wire logic {io_obj.name}"
+                width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
+                return f"output wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"output `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
             elif isinstance(io_obj, AnalogProbe):

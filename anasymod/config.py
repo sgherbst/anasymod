@@ -232,7 +232,7 @@ class Config(BaseConfig):
         self.dt = 0.1e-6
         self.dt_exponent = -46
         self.dt_width = 27
-        self.time_width = 39
+        self.time_width = 39 # Any value above 39 does not work with the current vivado ILA core version
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

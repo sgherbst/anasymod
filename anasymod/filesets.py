@@ -7,6 +7,9 @@ class Filesets():
         self._master_cfg_path = os.path.join(root, 'source.yaml')
         self.default_filesets = default_filesets
 
+        # Store all config file paths in list for packing purposes
+        self._config_paths = [self._master_cfg_path]
+
         self._verilog_sources = []
         """:type : List[VerilogSource]"""
 
@@ -61,6 +64,7 @@ class Filesets():
                             except yaml.YAMLError as exc:
                                 raise Exception(exc)
                             self._parseconfig(cfg=cfg, cfg_path=file)
+                            self._config_paths.append(config)  #Store processed config path
                         else:
                             print(f"WARNING: provided path:'{config}' does not exist, skipping config file")
 
