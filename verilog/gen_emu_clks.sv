@@ -20,8 +20,9 @@ module gen_emu_clks #(
 
     // generate other clocks
     logic clk_unbufs [n];
+    genvar k;
     generate
-        for (genvar k=0; k<n; k=k+1) begin : gen_other
+        for (k=0; k<n; k=k+1) begin : gen_other
             always @(posedge emu_clk_2x) begin
                 if (emu_clk_unbuf == 1'b0) begin
                     clk_unbufs[k] <= clk_vals[k];

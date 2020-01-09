@@ -92,14 +92,14 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
         # intermediate variables for generic Xilinx path
-        if 'win' in platform.lower():
+        if platform in {'win32', 'cygwin'}:
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
             xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
 
-        if platform == 'linux' or platform == 'linux2':
+        if platform in {'linux', 'linux2'}:
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
 
