@@ -24,6 +24,19 @@ class ARTY_A7():
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
+class ARTY_200T_CUSTOM_LIDAR():
+    """
+    Container to store ARTY_200T_CUSTOM_LIDAR FPGA board specific properties; this is a custom board specifically for
+    the Lidar Project.
+    """
+    clk_pin = ['H4', 'G4']
+    clk_io = 'DIFF_SSTL15'
+    clk_freq = 50e6
+    full_part_name = 'xc7a200tfbg484-2L'
+    short_part_name = 'xc7a200'
+    dbg_hub_clk_freq = 100e6
+    fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
+
 class TE0720():
     """
     Container to store PYNQ_Z1 FPGA board specific properties.

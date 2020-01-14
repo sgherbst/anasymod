@@ -5,10 +5,13 @@ from anasymod.structures.structure_config import StructureConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
 
 class ModuleTimeManager(JinjaTempl):
-    def __init__(self, scfg: StructureConfig, pcfg: EmuConfig):
+    def __init__(self, scfg: StructureConfig, pcfg: EmuConfig, tstop):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
 
         self.num_dt_reqs = scfg.num_dt_reqs
+        self.tstop = tstop
+        self.dt_value = pcfg.cfg.dt
+        self.time_width = pcfg.cfg.time_width
 
         #####################################################
         # Create module interface
@@ -57,11 +60,11 @@ class ModuleTimeManager(JinjaTempl):
 {{subst.module_ifc.text}}
 
 {% if subst.num_dt_reqs == 0 %}
-    `MAKE_GENERIC_REAL(emu_time_int, 1.1*tstop, time_width);
+    `MAKE_GENERIC_REAL(emu_time_int, 1.1*{{subst.tstop}}, {{subst.time_width}});
     `COPY_FORMAT_REAL(emu_time_int, emu_time_next);
     `COPY_FORMAT_REAL(emu_time_int, emu_dt);
 
-    `ASSIGN_CONST_REAL(0.0000001, emu_dt);
+    `ASSIGN_CONST_REAL({{subst.dt_value}}, emu_dt);
     `ADD_INTO_REAL(emu_time_int, emu_dt, emu_time_next);
     `MEM_INTO_ANALOG(emu_time_next, emu_time_int, 1'b1, `CLK_MSDSL, `RST_MSDSL, 0);
     assign emu_time = emu_time_int;

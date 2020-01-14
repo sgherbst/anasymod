@@ -132,7 +132,10 @@ class AnalogProbe(AnalogSignal):
         # As of now, the number of bits for each analog signal shall not be changed without also changing the corresponding
         # value in SVREAL (LONG_WIDTH_REAL=25); in future, it shall be possible to change width for each signal
         self.width = width
-        self.exponent = ceil(log2((self.range) / (2 ** (self.width - 1) - 1)))
+
+    @property
+    def exponent(self):
+        return ceil(log2((self.range) / (2 ** (self.width - 1) - 1)))
 
 
 

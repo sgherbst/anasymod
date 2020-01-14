@@ -35,7 +35,10 @@ class ParseVCD:
                 if line[0] in ('r', 'R', 'b', 'B'):
                     (value, code) = line[1:].split()
                     try:
-                        value = float(value)
+                        if line[0] in ('b', 'B'):
+                            value = int(value, 2)
+                        else:
+                            value = float(value)
                     except:
                         # This is a quick fix that sets X,Z, ... to 0
                         value = float(0)

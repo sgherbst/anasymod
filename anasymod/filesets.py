@@ -91,7 +91,7 @@ class Filesets():
                 self._verilog_sources.append(VerilogSource(files=cfg['verilog_sources'][verilog_source]['files'],
                                                            fileset=cfg['verilog_sources'][verilog_source]['fileset'] if 'fileset' in cfg['verilog_sources'][verilog_source].keys() else 'default',
                                                            config_path=cfg_path,
-                                                           verilog_version=cfg['verilog_sources'][verilog_source]['verilog_version'] if 'verilog_version' in cfg['verilog_sources'][verilog_source].keys() else None))
+                                                           version=cfg['verilog_sources'][verilog_source]['version'] if 'verilog_version' in cfg['verilog_sources'][verilog_source].keys() else None))
         if 'verilog_headers' in cfg.keys(): # Add verilog headers to filesets
             print(f'Verilog Headers: {[key for key in cfg["verilog_headers"].keys()]}')
             for verilog_header in cfg['verilog_headers'].keys():
@@ -104,7 +104,8 @@ class Filesets():
                 self._vhdl_sources.append(VHDLSource(files=cfg['vhdl_sources'][vhdl_source]['files'],
                                                      fileset=cfg['vhdl_sources'][vhdl_source]['fileset'] if 'fileset' in cfg['vhdl_sources'][vhdl_source].keys() else 'default',
                                                      config_path=cfg_path,
-                                                     library=cfg['vhdl_sources'][vhdl_source]['library'] if 'library' in cfg['vhdl_sources'][vhdl_source].keys() else None))
+                                                     library=cfg['vhdl_sources'][vhdl_source]['library'] if 'library' in cfg['vhdl_sources'][vhdl_source].keys() else None,
+                                                     version = cfg['vhdl_sources'][vhdl_source]['version'] if 'version' in cfg['vhdl_sources'][vhdl_source].keys() else None))
         if 'xci_files' in cfg.keys(): # Add xci files to filesets
             print(f'XCI Files: {[key for key in cfg["xci_files"].keys()]}')
             for xci_file in cfg['xci_files'].keys():

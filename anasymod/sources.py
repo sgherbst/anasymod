@@ -63,9 +63,9 @@ class Sources(ConfigFileObj):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
 class VerilogSource(Sources):
-    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None, verilog_version=None):
+    def __init__(self, files: Union[list, str], fileset=r"default", config_path=None, version=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
-        self.verilog_version = verilog_version
+        self.version = version
 
     def generate(self):
         self.text = self.files
@@ -83,13 +83,10 @@ class VerilogHeader(Sources):
         self.dump()
 
 class VHDLSource(Sources):
-    def __init__(self, files: Union[list, str], library=None, fileset=r"default", config_path=None):
+    def __init__(self, files: Union[list, str], library=None, fileset=r"default", config_path=None, version=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
         self.library = library
-
-    def set_vhdl_library(self):
-        file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in self.files) + ' }'
-        self.set_property('library', value=self.library, objects=f'[get_files {file_list}]')
+        self.version = version
 
     def generate(self):
         self.dump()

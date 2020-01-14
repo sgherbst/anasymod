@@ -105,6 +105,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule
+
 `default_nettype wire
 '''
 

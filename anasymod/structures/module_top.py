@@ -3,6 +3,7 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
 from anasymod.structures.structure_config import StructureConfig
+from anasymod.util import back2fwd
 
 class ModuleTop(JinjaTempl):
     """
@@ -15,6 +16,8 @@ class ModuleTop(JinjaTempl):
 
         pcfg = target.prj_cfg
         """ :type: EmuConfig """
+
+        self.result_path_raw = back2fwd(target.result_path_raw)
 
         #####################################################
         # Add plugin specific includes
@@ -163,12 +166,14 @@ class ModuleTop(JinjaTempl):
         self.emu_clks_inst_ifc = SVAPI()
 
         emu_clks_inst = ModuleInst(api=self.emu_clks_inst_ifc, name="gen_emu_clks")
-        emu_clks_inst.add_input(scfg.emu_clk_2x)
-        emu_clks_inst.add_output(scfg.emu_clk)
+        emu_clks_inst.add_input(scfg.emu_clk_2x, connection=scfg.emu_clk_2x)
+        emu_clks_inst.add_output(scfg.emu_clk, connection=scfg.emu_clk)
 
         for gated_clk_sig_name in gated_clk_sig_names:
-            emu_clks_inst.add_input(DigitalSignal(name=f'clk_val_{gated_clk_sig_name}', width=1, abspath=''))
-            emu_clks_inst.add_output(DigitalSignal(name=f'clk_{gated_clk_sig_name}', width=1, abspath=''))
+            clk_val = DigitalSignal(name=f'clk_val_{gated_clk_sig_name}', width=1, abspath='')
+            clk = DigitalSignal(name=f'clk_{gated_clk_sig_name}', width=1, abspath='')
+            emu_clks_inst.add_input(clk_val, connection=clk_val)
+            emu_clks_inst.add_output(clk, connection=clk)
 
         emu_clks_inst.generate_instantiation()
 
@@ -191,14 +196,14 @@ class ModuleTop(JinjaTempl):
             self.inst_timemanager_sigs.gen_signal(DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
 
         ## Instantiate time manager module
-        self.num_probes = len(probes)
         self.time_manager_inst_ifc = SVAPI()
         time_manager_inst = ModuleInst(api=self.time_manager_inst_ifc, name='gen_time_manager')
-        time_manager_inst.add_input(scfg.emu_clk)
-        time_manager_inst.add_input(scfg.reset_ctrl)
-        time_manager_inst.add_output(scfg.time_probe)
+        time_manager_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
+        time_manager_inst.add_input(scfg.reset_ctrl, connection=scfg.reset_ctrl)
+        time_manager_inst.add_output(scfg.time_probe, scfg.time_probe)
         for dt_req_sig_name in dt_req_sig_names:
-            time_manager_inst.add_input(DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
+            dt_req_sig = DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True)
+            time_manager_inst.add_input(dt_req_sig, connection=dt_req_sig)
 
         time_manager_inst.generate_instantiation()
 
@@ -264,7 +269,6 @@ logic emu_clk, emu_clk_2x;
 // Clock generator
 {{subst.clk_gen_ifc.text}}
 
-{% if subst.num_gated_clks != 0 %}
 // Emulation Clks Generator
 {{subst.emu_clks_inst_ifc.text}}
 
@@ -308,7 +312,7 @@ mem_digital #(
     // dump waveforms to a specified VCD file
     `define ADD_QUOTES_TO_MACRO(macro) `"macro`"
     initial begin
-        $dumpfile(`ADD_QUOTES_TO_MACRO(`VCD_FILE_MSDSL));
+        $dumpfile(`ADD_QUOTES_TO_MACRO({{subst.result_path_raw}}));
     end
 `endif // `ifdef SIMULATION_MODE_MSDSL
 

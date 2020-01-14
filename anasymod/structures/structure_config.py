@@ -13,7 +13,7 @@ class StructureConfig():
     There is also a specific interface to flow plugins that allows modification due to some needs
     from the plugin side, e.g. additional clks, resets, ios to the host application or resources on the FPGA board.
     """
-    def __init__(self, prj_cfg: EmuConfig):
+    def __init__(self, prj_cfg: EmuConfig, tstop):
         # Internal variables
         self.i_addr_counter = 0
         self.o_addr_counter = 0
@@ -30,9 +30,9 @@ class StructureConfig():
         # Manage clks
         #########################################################
 
-        self.emu_clk = ClkIndependent(name='emu_clk', freq=prj_cfg.cfg.emu_clk_freq)
-        self.emu_clk_2x = ClkIndependent(name='emu_clk_2x', freq=prj_cfg.cfg.emu_clk_freq * 2) # multiplied by two, as emu_clk_2x is twice as fast as emu_clk
-        self.dbg_clk = ClkIndependent(name='dbg_hub_clk', freq=prj_cfg.board.dbg_hub_clk_freq)
+        self.emu_clk = ClkIndependent(name='emu_clk', freq=float(prj_cfg.cfg.emu_clk_freq))
+        self.emu_clk_2x = ClkIndependent(name='emu_clk_2x', freq=float(prj_cfg.cfg.emu_clk_freq * 2)) # multiplied by two, as emu_clk_2x is twice as fast as emu_clk
+        self.dbg_clk = ClkIndependent(name='dbg_hub_clk', freq=float(prj_cfg.board.dbg_hub_clk_freq))
 
         # add clk_in
         self.clk_i_num = len(prj_cfg.board.clk_pin)
@@ -77,7 +77,7 @@ class StructureConfig():
         # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
         # Add time signal representing current simulated time
-        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=10, width=prj_cfg.cfg.time_width)
+        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=(1.1 * tstop), width=prj_cfg.cfg.time_width)
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
@@ -126,7 +126,7 @@ class StructureConfig():
                     print(f'Independent Clks: {[key for key in clks["independent_clks"].keys()]}')
                     for independent_clk in clks['independent_clks'].keys():
                         self.clk_independent.append(ClkIndependent(name=independent_clk,
-                                                                   freq=clks['independent_clks'][independent_clk]['freq']))
+                                                                   freq=float(clks['independent_clks'][independent_clk]['freq'])))
                 else:
                     print(f'No Independent Clks provided.')
 
@@ -134,7 +134,6 @@ class StructureConfig():
                 if 'derived_clks' in clks.keys():
                     print(f'Derived Clks: {[key for key in clks["derived_clks"].keys()]}')
                     for derived_clk in clks['derived_clks'].keys():
-                        abspath_default = None
                         abspath_emu_dt = None
                         abspath_emu_clk = None
                         abspath_emu_rst = None

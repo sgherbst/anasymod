@@ -28,6 +28,7 @@ class BoardNames:
     ZC702 = 'ZC702'
     ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
+    ARTY_200T_CUSTOM_LIDAR = 'ARTY_200T_CUSTOM_LIDAR'
 
 class PortDir:
     """
@@ -50,3 +51,10 @@ class FPGASimCtrl:
     """
     UART_ZYNQ = 'uart_zynq'
     VIVADO_VIO = 'vivado_vio'
+
+class ResultFileTypes:
+    """
+    Container including enums for all supported data formats to store simulation/emulation results.
+    """
+    VCD = 'vcd'
+    CSV = 'csv'

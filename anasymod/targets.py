@@ -1,10 +1,9 @@
 import os
 
 from anasymod.defines import Define
-from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
 from anasymod.base_config import BaseConfig
-from anasymod.enums import ConfigSections, FPGASimCtrl
+from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
@@ -13,6 +12,8 @@ from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
+from anasymod.structures.module_emu_clks import ModuleEmuClks
+from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
 from anasymod.files import get_from_module
@@ -26,9 +27,6 @@ class Target():
     def __init__(self, prj_cfg: EmuConfig, plugins: list, name, target_type):
         self.prj_cfg = prj_cfg
         self.plugins = plugins
-
-        # Initialize structure configuration
-        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
 
         # Instantiate Simulation ControlInfrastructure Interface
         self.ctrl = None
@@ -46,11 +44,15 @@ class Target():
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name, target_type=target_type)
 
+        # Initialize structure configuration
+        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop)
+
     def set_tstop(self):
         """
         Add define statement to specify tstop
         """
         self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
+        self.str_cfg.time_probe.range = 1.1 * float(self.cfg.tstop)
 
     def assign_fileset(self, fileset: dict):
         """
@@ -75,7 +77,6 @@ class Target():
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
             top_file.write(ModuleTop(target=self).render())
-
         self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
 
         # Build control structure and add all sources to project
@@ -85,45 +86,57 @@ class Target():
             #ToDO: needs to be cleaned up, should have individual module for pc simulation control
             with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
                 ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
-
             self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'))]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
         with (open(clkmanagerwrapper_path, 'w')) as clkm_file:
             clkm_file.write(ModuleClkManager(scfg=self.str_cfg).render())
-
         self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path)]
 
         # Generate traceport wrapper and add to target sources
         trapwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_traceport_wrap.sv')
         with (open(trapwrapper_path, 'w')) as trap_file:
             trap_file.write(ModuleTracePort(scfg=self.str_cfg).render())
-
         self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
 
-        # Add time manager module, or calc_emu_time module to project sources
-        if self.str_cfg.num_gated_clks > 0:
-            self.content.verilog_sources += [VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'))]
-        else:
-            self.content.verilog_sources += [VerilogSource(files=get_from_module('anasymod', 'verilog', 'calc_emu_time.sv'))]
+        # Generate emulation clk gen module and add to target sources
+        gen_emu_clks_path = os.path.join(self.prj_cfg.build_root, 'gen_emu_clks.sv')
+        with (open(gen_emu_clks_path, 'w')) as emu_clks_file:
+            emu_clks_file.write(ModuleEmuClks(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
+        self.content.verilog_sources += [VerilogSource(files=gen_emu_clks_path)]
+
+        # Generate time manager and add to target sources
+        timemanager_path = os.path.join(self.prj_cfg.build_root, 'gen_time_manager.sv')
+        with (open(timemanager_path, 'w')) as timemanager_file:
+            timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg, tstop=self.cfg.tstop).render())
+        self.content.verilog_sources += [VerilogSource(files=timemanager_path)]
 
     @property
     def project_root(self):
         return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
+
+    @property
+    def result_name_raw(self):
+        return f"{self.cfg.top_module}_{self._name}.{self.cfg.result_type_raw}"
+
+    @property
+    def result_path_raw(self):
+        return os.path.join(self.prj_cfg.build_root, r"raw_results", self.result_name_raw)
 
 class CPUTarget(Target):
     def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"sim"):
         target_type = ConfigSections.CPU_TARGET
         super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type)
 
-    def setup_vcd(self):
-        self.content.defines.append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
+        self.cfg.result_type_raw = ResultFileTypes.VCD
 
 class FPGATarget(Target):
     def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"fpga"):
-        target_type = ConfigSections.CPU_TARGET
+        target_type = ConfigSections.FPGA_TARGET
         super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type)
+
+        self.cfg.result_type_raw = ResultFileTypes.CSV
 
         # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
         # emulation time for most purposes.
@@ -188,8 +201,7 @@ class Config(BaseConfig):
         self.vcd_name = f"{self.top_module}_{name}.vcd"
         self.vcd_path = os.path.join(prj_cfg.build_root, r"vcd", self.vcd_name)
         # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
-        self.csv_name = f"{self.top_module}_{name}.csv"
-        self.csv_path = os.path.join(prj_cfg.build_root, r"csv", self.csv_name)
+        self.result_type_raw = None
         self.fpga_sim_ctrl = FPGASimCtrl.VIVADO_VIO
 
 class Content():

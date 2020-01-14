@@ -1,4 +1,4 @@
-import shutil, zipfile, filecmp
+import shutil, zipfile, filecmp, errno
 import os.path
 import yaml
 import numpy as np
@@ -20,6 +20,7 @@ from anasymod.defines import Define
 from anasymod.targets import CPUTarget, FPGATarget
 from anasymod.enums import ConfigSections
 from anasymod.utils import statpro
+from anasymod.wave import ConvertWaveform
 from typing import Union
 from importlib import import_module
 
@@ -108,7 +109,7 @@ class Analysis():
 
             # Finalize project setup, no more modifications of filesets and targets after that!!!
             self.setup_filesets()
-            self._setup_targets()
+            #self._setup_targets()
 
             ###############################################################
             # Set options from to command line arguments
@@ -122,31 +123,37 @@ class Analysis():
 
             # generate bitstream
             if self.args.build:
-                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
+                self.set_target(self.act_fpga_target)
+                #self.args.active_target = self.act_fpga_target if self.args.active_target not in self.fpga_targets else self.args.active_target
                 self.build()
 
             # run FPGA if desired
             if self.args.emulate:
-                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
+                self.set_target(self.act_fpga_target)
+                #self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.emulate()
 
             # launch FPGA if desired
             if self.args.launch:
-                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
+                self.set_target(self.act_fpga_target)
+                #self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.launch()
 
             # run simulation if desired
             if self.args.sim or self.args.preprocess_only:
-                self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
+                self.set_target(self.act_cpu_target)
+                #self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
                 self.simulate(unit=self.args.unit, id=self.args.id)
 
             # view results if desired
             if self.args.view and (self.args.sim or self.args.preprocess_only):
-                self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
+                self.set_target(self.act_cpu_target)
+                #self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
                 self.view()
 
             if self.args.view and self.args.emulate:
-                self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
+                self.set_target(self.act_fpga_target)
+                #self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.view()
 
 ##### Functions exposed for user to exercise on Analysis Object
@@ -189,7 +196,7 @@ class Analysis():
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
+                #self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
                 get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
@@ -204,10 +211,8 @@ class Analysis():
             print(f'Using top module {top_module} for fileset {fileset}.')
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
-            #self.filesets.add_define(define=Define(name='DEC_THR_MSDSL', value=f'{top_module}.emu_dec_thr', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
-            #self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
 
     def add_sources(self, sources: Union[Sources, Define, list]):
@@ -266,7 +271,7 @@ class Analysis():
 
         shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
         mkdir_p(self._prj_cfg.build_root)
-        self._setup_targets()
+        self._setup_targets(target=self.act_fpga_target)
 
         # Check if active target is an FPGA target
         target = getattr(self, self.act_fpga_target)
@@ -291,15 +296,14 @@ class Analysis():
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
             mkdir_p(os.path.dirname(target.cfg.vcd_path))
 
-        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
-            mkdir_p(os.path.dirname(target.cfg.csv_path))
+        if not os.path.exists(os.path.dirname(target.result_path_raw)):
+            mkdir_p(os.path.dirname(target.result_path_raw))
 
         # run the emulation
         VivadoEmulation(target=target).run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-        from anasymod.wave import ConvertWaveform
         ConvertWaveform(target=target)
 
     def launch(self, server_addr=None):
@@ -341,13 +345,16 @@ class Analysis():
 
         shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
         mkdir_p(self._prj_cfg.build_root)
-        self._setup_targets()
+        self._setup_targets(target=self.act_cpu_target)
 
         target = getattr(self, self.act_cpu_target)
 
         # create sim result folder
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
             mkdir_p(os.path.dirname(target.cfg.vcd_path))
+
+        if not os.path.exists(os.path.dirname(target.result_path_raw)):
+            mkdir_p(os.path.dirname(target.result_path_raw))
 
         # pick simulator
         sim_cls = {
@@ -366,6 +373,9 @@ class Analysis():
 
         sim.simulate()
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
+
+        # post-process results
+        ConvertWaveform(target=target)
 
     def probe(self, name, emu_time=False):
         """
@@ -616,7 +626,7 @@ class Analysis():
 
         self.args, _ = parser.parse_known_args()
 
-    def _setup_targets(self):
+    def _setup_targets(self, target):
         """
         Setup targets for project.
         This may differ from one project to another and needs customization.
@@ -631,42 +641,54 @@ class Analysis():
 
         filesets = self.filesets.fileset_dict
 
-        if self.args.active_target in self.cpu_targets:
+        if target in self.cpu_targets:
             #######################################################
             # Create and setup simulation target
             #######################################################
-            self.__setattr__(self.args.active_target, CPUTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=self.args.active_target))
-            getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets['default'])
-            if self.args.active_target in filesets:
-                getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets[self.args.active_target])
+            self.__setattr__(target, CPUTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=target))
+            getattr(getattr(self, target), 'assign_fileset')(fileset=filesets['default'])
+            if target in filesets:
+                getattr(getattr(self, target), 'assign_fileset')(fileset=filesets[target])
 
             # Update simulation target specific configuration
-            getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'update_config')(subsection=self.args.active_target)
-            getattr(getattr(self, self.args.active_target), 'update_structure_config')()
-            if not getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'custom_top'):
-                getattr(getattr(self, self.args.active_target), 'gen_structure')()
-            getattr(getattr(self, self.args.active_target), 'set_tstop')()
-            getattr(getattr(self, self.args.active_target), 'setup_vcd')()
+            getattr(getattr(getattr(self, target), 'cfg'), 'update_config')(subsection=target)
+            getattr(getattr(self, target), 'set_tstop')()
+            getattr(getattr(self, target), 'update_structure_config')()
+            if not getattr(getattr(getattr(self, target), 'cfg'), 'custom_top'):
+                getattr(getattr(self, target), 'gen_structure')()
 
-        elif self.args.active_target in self.fpga_targets:
+        elif target in self.fpga_targets:
             #######################################################
             # Create and setup FPGA target
             #######################################################
-            self.__setattr__(self.args.active_target, FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=self.args.active_target))
-            getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets['default'])
-            if self.args.active_target in filesets:
-                getattr(getattr(self, self.args.active_target), 'assign_fileset')(fileset=filesets[self.args.active_target])
+            self.__setattr__(target, FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=target))
+            getattr(getattr(self, target), 'assign_fileset')(fileset=filesets['default'])
+            if target in filesets:
+                getattr(getattr(self, target), 'assign_fileset')(fileset=filesets[target])
 
             # Update fpga target specific configuration
-            getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'update_config')(subsection=self.args.active_target)
-            getattr(getattr(self, self.args.active_target), 'update_structure_config')()
-            if not getattr(getattr(getattr(self, self.args.active_target), 'cfg'), 'custom_top'):
-                getattr(getattr(self, self.args.active_target), 'setup_ctrl_ifc')()
-                getattr(getattr(self, self.args.active_target), 'gen_structure')()
-            getattr(getattr(self, self.args.active_target), 'set_tstop')()
+            getattr(getattr(getattr(self, target), 'cfg'), 'update_config')(subsection=target)
+            getattr(getattr(self, target), 'set_tstop')()
+            getattr(getattr(self, target), 'update_structure_config')()
+            if not getattr(getattr(getattr(self, target), 'cfg'), 'custom_top'):
+                getattr(getattr(self, target), 'setup_ctrl_ifc')()
+                getattr(getattr(self, target), 'gen_structure')()
+
+        # Copy generated sources by plugin from plugin build_root to target-specific build_root
+        for plugin in self._plugins:
+            try:
+                dst = os.path.join(self._prj_cfg.build_root, os.path.relpath(plugin._build_root, self._prj_cfg.build_root_base))
+                if os.path.exists(dst):
+                    shutil.rmtree(dst)
+                shutil.copytree(plugin._build_root, dst)
+            except OSError as exc:
+                if exc.errno == errno.ENOTDIR:
+                    shutil.copy(plugin._build_root, self._prj_cfg.build_root)
+                else:
+                    raise Exception(f'ERROR: Could not copy from root:{plugin._build_root} to {self._prj_cfg.build_root}')
 
         # Indication that project setup for active target is complete
-        self._setup_finished[self.args.active_target] = True
+        self._setup_finished[target] = True
 
     def _setup_probeobj(self, target: Union[FPGATarget, CPUTarget]):
         """

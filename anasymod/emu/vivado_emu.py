@@ -46,11 +46,11 @@ class VivadoEmulation(VivadoTCLGenerator):
             for file in xdc_file.files:
                 self.writeln(f'read_xdc "{back2fwd(file)}"')
 
-        # write constraints to file
-        constrs = CodeGenerator()
-        constrs.use_templ(TemplExtClk(target=self.target))
-
         if not self.target.cfg.custom_top:
+            # write constraints to file
+            constrs = CodeGenerator()
+            # generate constraints for external clk
+            constrs.use_templ(TemplExtClk(target=self.target))
             # generate clock wizard IP core
             self.use_templ(TemplClkWiz(target=self.target))
 
@@ -75,10 +75,10 @@ class VivadoEmulation(VivadoTCLGenerator):
             # Setup Debug Hub
             constrs.use_templ(TemplDbgHub(target=self.target))
 
-        # write master constraints to file and add to project
-        master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
-        constrs.write_to_file(master_constr_path)
-        self.add_files([master_constr_path], fileset='constrs_1')
+            # write master constraints to file and add to project
+            master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
+            constrs.write_to_file(master_constr_path)
+            self.add_files([master_constr_path], fileset='constrs_1')
 
         # read user-provided IPs
         self.writeln('# Custom user-provided IP cores')

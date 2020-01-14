@@ -143,7 +143,7 @@ class ProbeCSV(Probe):
         self._data_valid = True
 
     def path_for_sim_result_file(self):
-        return os.path.join(self.target.cfg['csv_path'])
+        return os.path.join(self.target.cfg['result_path_raw'])
 
     def _probe(self, name, emu_time, cache=True):
         """

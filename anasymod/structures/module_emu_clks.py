@@ -28,38 +28,41 @@ class ModuleEmuClks(JinjaTempl):
             module.add_input(DigitalSignal(name=f'clk_val_{gated_clk_sig_name}', width=1, abspath=''))
             module.add_output(DigitalSignal(name=f'clk_{gated_clk_sig_name}', width=1, abspath=''))
 
+        module.generate_header()
+
         #####################################################
         # Generate other clks
         #####################################################
         self.generated_clks = SVAPI()
 
-        for gated_clk_sig_name in gated_clk_sig_names:
-            self.generated_clks.gen_signal(DigitalSignal(name=f'clk_unbuf_{gated_clk_sig_name}', width=1, abspath=''))
-        self.generated_clks.writeln(f'always @(posedge emu_clk_2x) begin')
-        self.generated_clks.indent()
-        self.generated_clks.writeln(r"if (emu_clk_unbuf == 1'b0) begin")
-        self.generated_clks.indent()
-        for gated_clk_sig_name in gated_clk_sig_names:
-            self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_val_{gated_clk_sig_name};')
-        self.generated_clks.dedent()
-        self.generated_clks.writeln(f'end else begin')
-        self.generated_clks.indent()
-        for gated_clk_sig_name in gated_clk_sig_names:
-            self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_unbuf_{gated_clk_sig_name};')
-        self.generated_clks.dedent()
-        self.generated_clks.writeln(f'end')
-        self.generated_clks.dedent()
-        self.generated_clks.writeln(f'`ifndef SIMULATION_MODE_MSDSL')
-        self.generated_clks.indent()
-        for gated_clk_sig_name in gated_clk_sig_names:
-            self.generated_clks.writeln(f'BUFG buf_i (.I(clk_unbuf_{gated_clk_sig_name}), .O(clk_{gated_clk_sig_name}));')
-        self.generated_clks.dedent()
-        self.generated_clks.writeln(f'`else')
-        self.generated_clks.indent()
-        for gated_clk_sig_name in gated_clk_sig_names:
-            self.generated_clks.writeln(f'assign clk_{gated_clk_sig_name} = clk_unbuf_{gated_clk_sig_name};')
-        self.generated_clks.dedent()
-        self.generated_clks.writeln(f'`endif')
+        if gated_clk_sig_names:
+            for gated_clk_sig_name in gated_clk_sig_names:
+                self.generated_clks.gen_signal(DigitalSignal(name=f'clk_unbuf_{gated_clk_sig_name}', width=1, abspath=''))
+            self.generated_clks.writeln(f'always @(posedge emu_clk_2x) begin')
+            self.generated_clks.indent()
+            self.generated_clks.writeln(r"if (emu_clk_unbuf == 1'b0) begin")
+            self.generated_clks.indent()
+            for gated_clk_sig_name in gated_clk_sig_names:
+                self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_val_{gated_clk_sig_name};')
+            self.generated_clks.dedent()
+            self.generated_clks.writeln(f'end else begin')
+            self.generated_clks.indent()
+            for gated_clk_sig_name in gated_clk_sig_names:
+                self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_unbuf_{gated_clk_sig_name};')
+            self.generated_clks.dedent()
+            self.generated_clks.writeln(f'end')
+            self.generated_clks.dedent()
+            self.generated_clks.writeln(f'`ifndef SIMULATION_MODE_MSDSL')
+            self.generated_clks.indent()
+            for gated_clk_sig_name in gated_clk_sig_names:
+                self.generated_clks.writeln(f'BUFG buf_i (.I(clk_unbuf_{gated_clk_sig_name}), .O(clk_{gated_clk_sig_name}));')
+            self.generated_clks.dedent()
+            self.generated_clks.writeln(f'`else')
+            self.generated_clks.indent()
+            for gated_clk_sig_name in gated_clk_sig_names:
+                self.generated_clks.writeln(f'assign clk_{gated_clk_sig_name} = clk_unbuf_{gated_clk_sig_name};')
+            self.generated_clks.dedent()
+            self.generated_clks.writeln(f'`endif')
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
