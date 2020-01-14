@@ -1,3 +1,5 @@
+NOTE: please check out the **v1** branch for the latest work.  These updates will be merged into the master branch soon, coinciding with a release on PyPI.
+
 # Introduction
 
 **anasymod** is a Python package for running FPGA emulations of mixed-signal systems.  It supports digital blocks described with Verilog or VHDL and synthesizable analog models created using [msdsl](https://github.com/sgherbst/msdsl) and [svreal](https://github.com/sgherbst/svreal).
