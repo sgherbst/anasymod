@@ -1,4 +1,6 @@
-NOTE: please check out the **v1** branch for the latest work.  These updates will be merged into the master branch soon, coinciding with a release on PyPI.
+**NOTE**: Please check out the **v1** branch for the latest work.  These updates will be merged into the master branch soon, coinciding with a release on PyPI.
+
+---
 
 # Introduction
 
