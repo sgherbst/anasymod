@@ -11,7 +11,7 @@ from anasymod.targets import Target
 from anasymod.enums import ResultFileTypes
 
 class ConvertWaveform():
-    def __init__(self, target: Target):
+    def __init__(self, target: Target, float_type=True):
         # defaults
         scfg = target.str_cfg
         self.target = target
@@ -119,8 +119,21 @@ class ConvertWaveform():
                     probe_data[analog_signal.name] = {}
                     probe_data[analog_signal.name]['index'] = 0
 
-                    # get unscaled data and apply scaling factor, values are extracted from signal_dict and converted to darray
-                    probe_data[analog_signal.name]['data'] = np.asarray([(c, 2 ** int(analog_signal.exponent) * v) for c,v in signal_dict[signal_names[[y[0] for y in signal_names].index(analog_signal.name)][1]]['cv']])
+                    # get the signal identifier from analog_signal used in VCD file
+                    signal_identifier = signal_names[[y[0] for y in signal_names].index(analog_signal.name)][1]
+                    data = []
+                    for c,v in signal_dict[signal_identifier]['cv']:
+                        if not isinstance(v, float):
+                            for k in range(analog_signal.width - len(v)): # extend binary to full width, some simulators don't do that by default and remove leading zeros in VCD file
+                                v = '0' + v
+                            if v[0] == '1': # check if number is negative and if so calculate the two's complement
+                                v = -1 * (int((''.join('1' if x == '0' else '0' for x in v)), 2) + 1)
+                            else:
+                                v = int(v, 2)
+                        if not float_type:
+                            v = 2 ** int(analog_signal.exponent) * v
+                        data.append((c, v))
+                    probe_data[analog_signal.name]['data'] = np.asarray(data)
 
                     # convert data to native Python float type (rather than numpy float) this is required for PyVCD
                     probe_data[analog_signal.name]['data'] = [(int(c), float(v)) for c, v in probe_data[analog_signal.name]['data']]

@@ -54,8 +54,8 @@ class VivadoTCLGenerator(CodeGenerator):
 
     def add_verilog_headers(self, ver_hdr):
         for src in ver_hdr:
-            self.add_files(src)
-            file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src) + ' }'
+            self.add_files(src.files)
+            file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
             self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
 
     def add_vhdl_sources(self, vhdl_src):

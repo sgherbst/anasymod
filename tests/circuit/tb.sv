@@ -25,8 +25,6 @@ module tb;
         .v_out(v_out)
     );
 
-    // emulation output
-    `PROBE_ANALOG(v_out);
 endmodule
 
 `default_nettype wire

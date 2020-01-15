@@ -35,8 +35,9 @@ class ParseVCD:
                 if line[0] in ('r', 'R', 'b', 'B'):
                     (value, code) = line[1:].split()
                     try:
+                        #convert all x and z to 0
                         if line[0] in ('b', 'B'):
-                            value = int(value, 2)
+                            value = value.replace('x', '0').replace('z', '0')
                         else:
                             value = float(value)
                     except:

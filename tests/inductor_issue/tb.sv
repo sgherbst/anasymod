@@ -33,9 +33,6 @@ module tb;
         .sw2(gate)
     );
 
-    // emulation output
-    `PROBE_ANALOG(v_out);
-    `PROBE_DIGITAL(gate, 1);
 endmodule
 
 `default_nettype wire

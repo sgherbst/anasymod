@@ -1,7 +1,7 @@
 analog_probes:
     v_out_probe:
         abspath:    'tb_i.v_out'
-        range:      100
+        range:      15
     v_in_probe:
         abspath:    'tb_i.v_in'
-        range:      10
+        range:      1.01

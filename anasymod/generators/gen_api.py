@@ -106,25 +106,21 @@ class SVAPI(GenAPI):
         """
 
         if direction in [PortDir.IN]:
-            if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
+            if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"`INPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
                 return f"input wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"input `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
-            elif isinstance(io_obj, AnalogProbe):
-                return f"input wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
         elif direction in [PortDir.OUT]:
-            if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
+            if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"`OUTPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
                 return f"output wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
             elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
                 return f"output `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
-            elif isinstance(io_obj, AnalogProbe):
-                return f"output wire logic [{str(io_obj.width - 1)}:0] {io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
@@ -178,10 +174,6 @@ class SVAPI(GenAPI):
                                     f"AnalogSignal object or a constant value is supported; given: '{exp}'")
         elif isinstance(io_obj, (DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
             self.writeln(f"assign {io_obj.name} = {exp};")
-        #elif isinstance(io_obj, (DigitalCtrlOutput, AnalogCtrlOutput, AnalogProbe)):
-        #    self.writeln(f"assign {io_obj.name} = {exp};")
-        #elif isinstance(io_obj, (DigitalCtrlInput, AnalogCtrlInput)):
-        #    self.writeln(f"assign {exp} = {io_obj.name};")
         else:
             raise Exception(f'Not supported signal type provided:{type(io_obj)}')
 
@@ -248,7 +240,7 @@ class ModuleInst():
                 raise Exception(f"Unsupported connection type was provided, supported types are. {io_obj_types_str_union}, "
                                 f"provided: {type(connection)}")
 
-        if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+        if isinstance(io_obj, (AnalogSignal)):
             self.analog_inputs.append(io_obj)
         else:
             self.digital_inputs.append(io_obj)
@@ -272,7 +264,7 @@ class ModuleInst():
                 raise Exception(f"Unsupported connection type was provided, supported types "
                                 f"are. {io_obj_types_union}, provided: {type(connection)}")
 
-        if isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+        if isinstance(io_obj, (AnalogSignal)):
             self.analog_outputs.append(io_obj)
         else:
             self.digital_outputs.append(io_obj)
@@ -360,7 +352,7 @@ class ModuleInst():
         analog_connections = []
         for connection in self.connections:
             # Remove analog control signals as for those signals no parameters will be transmitted
-            if isinstance(connection[0], AnalogSignal) and not isinstance(connection[0], (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
+            if isinstance(connection[0], AnalogSignal) and not isinstance(connection[0], (AnalogCtrlInput, AnalogCtrlOutput)):
                 analog_connections.append(connection)
 
         if (analog_connections or self.parameters):
@@ -383,7 +375,6 @@ class ModuleInst():
         else:
             self.api.indent()
             self.api.writeln(f"{self.name} {self.inst_name} (")
-
 
         ## Add port section
         self.api.indent()

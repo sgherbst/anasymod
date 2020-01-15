@@ -31,11 +31,6 @@ module tb;
         .v_out(v_out)
     );
 
-    // emulation output
-    `PROBE_ANALOG(v_in);
-    `PROBE_ANALOG(v_out);
-    `PROBE_DIGITAL(ctrl, n_array);
-
     // main stimulus logic
     integer i, j;
     initial begin

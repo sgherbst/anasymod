@@ -109,7 +109,7 @@ class Target():
         # Generate time manager and add to target sources
         timemanager_path = os.path.join(self.prj_cfg.build_root, 'gen_time_manager.sv')
         with (open(timemanager_path, 'w')) as timemanager_file:
-            timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg, tstop=self.cfg.tstop).render())
+            timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
         self.content.verilog_sources += [VerilogSource(files=timemanager_path)]
 
     @property

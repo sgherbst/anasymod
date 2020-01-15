@@ -31,11 +31,6 @@ module tb;
         .out(out)
     );
 
-    // emulation output
-    `PROBE_ANALOG(in_p);
-    `PROBE_ANALOG(in_n);
-    `PROBE_DIGITAL(out, 1);
-
     // main stimulus
     real stim;
     initial begin

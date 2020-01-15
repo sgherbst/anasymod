@@ -16,8 +16,6 @@ module tb;
     // output has range range +/- 1.5
     `MAKE_REAL(v_out, 1.5);
 
-    logic [24:0] v_out_test;
-
     // filter instantiation
     filter #(
         `PASS_REAL(v_in, v_in),
@@ -27,8 +25,6 @@ module tb;
         .v_out(v_out)
     );
 
-    // emulation output
-    //`PROBE_ANALOG(v_out);
 endmodule
 
 `default_nettype wire

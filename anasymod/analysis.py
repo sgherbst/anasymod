@@ -91,14 +91,23 @@ class Analysis():
 
         # Initialize Plugins
         self._plugins = []
+        self._plugin_args = []
         for plugin in self._prj_cfg.cfg.plugins:
             try:
                 i = import_module(f"plugin.{plugin}")
                 inst = i.CustomPlugin(prj_cfg=self._prj_cfg, cfg_file=self.cfg_file, prj_root=self.args.input)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
+                self._plugin_args.append(inst._return_args())
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
+
+        for args in self._plugin_args:
+            if 'float' in args.__dict__.keys():
+                self.float_type = args.float
+            else:
+                self.float_type = True
+
 
         #Set active target
         self.set_target(self.args.active_target)
@@ -304,7 +313,8 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-        ConvertWaveform(target=target)
+
+        ConvertWaveform(target=target, float_type=self.float_type)
 
     def launch(self, server_addr=None):
         """
@@ -375,7 +385,7 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
         # post-process results
-        ConvertWaveform(target=target)
+        ConvertWaveform(target=target, float_type=self.float_type)
 
     def probe(self, name, emu_time=False):
         """
