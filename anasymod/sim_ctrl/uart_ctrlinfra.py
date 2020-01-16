@@ -1,12 +1,12 @@
 import serial
 import io, os
 import serial.tools.list_ports as ports
-from anasymod.enums import CtrlOps, FPGASimCtrl
+from anasymod.enums import CtrlOps
 from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
 from anasymod.structures.module_uartsimctrl import ModuleUARTSimCtrl
 from anasymod.structures.module_regmapsimctrl import ModuleRegMapSimCtrl
 from anasymod.sources import VerilogSource, BDFile
-from anasymod.files import mkdir_p, rm_rf, get_from_module, which
+from anasymod.files import get_from_anasymod
 from anasymod.structures.structure_config import StructureConfig
 
 class UARTControlInfrastructure(ControlInfrastructure):
@@ -109,7 +109,7 @@ class UARTControlInfrastructure(ControlInfrastructure):
         content['verilog_sources'] += [VerilogSource(files=self._simctrlregmap_path)]
 
         # Add ZYNQ CPU subsystem to target sources for UART IO as a blockdiagram
-        zynq_bd = BDFile(files=get_from_module('anasymod', 'verilog', 'zynq_uart.bd'))
+        zynq_bd = BDFile(files=get_from_anasymod('verilog', 'zynq_uart.bd'))
         content['bd_files'].append(zynq_bd)
 
         #ToDo: Add firmware part here -> generate FW if needed and add it to target sources

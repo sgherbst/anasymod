@@ -4,13 +4,14 @@ import shutil
 
 from sys import platform
 from glob import glob
-from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.util import back2fwd, vivado_search_key
+from anasymod.files import get_full_path, mkdir_p
+from anasymod.util import vivado_search_key
 from os import environ as env
 from anasymod.enums import BoardNames
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
+
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
 

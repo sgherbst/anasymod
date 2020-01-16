@@ -13,7 +13,7 @@ from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
-from anasymod.files import get_full_path, get_from_module, mkdir_p
+from anasymod.files import get_full_path, get_from_anasymod, mkdir_p
 from anasymod.sources import VerilogSource
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
@@ -169,10 +169,10 @@ class Analysis():
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_vio_wrap.sv'), config_path=config_path, fileset=fileset))
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
-                self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_anasymod('verilog', 'gen_emu_clks.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=get_from_anasymod('verilog', 'time_manager.sv'), config_path=config_path, fileset=fileset))
 
-                get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
+                get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -483,7 +483,7 @@ class Analysis():
             pass
 
 
-        parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
+        parser.add_argument('-i', '--input', type=str, default=None)
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
