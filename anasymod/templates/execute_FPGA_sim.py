@@ -1,13 +1,13 @@
-from anasymod.templ import JinjaTempl
+from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, dt: float, server_addr: str):
+    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         super().__init__(trim_blocks=False, lstrip_blocks=False)
-        cfg = target.prj_cfg
+        pcfg = target.prj_cfg
 
         # read in probe signals from the probe config file
         self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
@@ -21,10 +21,10 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 
         # set the JTAG frequency.  sometimes it is useful to try a slower frequency than default if there
         # are problems with the debug hub clock
-        self.jtag_freq = str(int(cfg.cfg.jtag_freq))
+        self.jtag_freq = str(int(pcfg.cfg.jtag_freq))
 
         # set the "short" device name which is used to distinguish the FPGA part from other USB devices
-        self.device_name = cfg.board.short_part_name
+        self.device_name = pcfg.board.short_part_name
 
         # set the path where the CSV file of results from the ILA should be written
         self.output = back2fwd(target.cfg.csv_path)
@@ -35,13 +35,13 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # set the window count to half the ILA depth.  this is required because the window depth will be "2"
         # unfortunately a window depth of "1" is not allowed in "BASIC" capture mode, which needed to allow
         # decimation of the sampling rate.
-        self.window_count = str(cfg.ila_depth//2)
+        self.window_count = str(pcfg.ila_depth/2)
 
         # calculate decimation ratio
         if stop_time is None:
             decimation_ratio_float = 2.0
         else:
-            decimation_ratio_float = ((stop_time-start_time)/dt)/(cfg.ila_depth/2)
+            decimation_ratio_float = ((stop_time-start_time)/pcfg.cfg.dt)/(pcfg.ila_depth/2)
 
         # enforce a minimum decimation ratio of 2x since the window depth is 2
         decimation_ratio_float = max(decimation_ratio_float, 2.0)
@@ -87,22 +87,25 @@ open_hw_target
 
 # Configure files to be programmed
 set my_hw_device [get_hw_devices {{subst.device_name}}*]
+current_hw_device $my_hw_device
+refresh_hw_device $my_hw_device
 set_property PROGRAM.FILE "{{subst.bit_file}}" $my_hw_device
 set_property PROBES.FILE "{{subst.ltx_file}}" $my_hw_device
 set_property FULL_PROBES.FILE "{{subst.ltx_file}}" $my_hw_device
 
 # Program the device
-current_hw_device $my_hw_device
 program_hw_devices $my_hw_device
 refresh_hw_device $my_hw_device
+
+# VIO setup
+set vio_0_i [get_hw_vios -of_objects $hw_device -filter {CELL_NAME=~"sim_ctrl_gen_i/vio_0_i"}]
+set rst_hw_probe [get_hw_probes *rst* -of_objects $vio_0_i]
+
+# Code related to non-interactive mode starts here 
 
 # ILA setup
 set my_hw_ila [get_hw_ilas]
 display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $my_hw_ila]
-
-# VIO setup
-set my_hw_vio [get_hw_vios]
-set rst_hw_probe [get_hw_probes *rst* -of_objects $my_hw_vio]
 
 # Trigger setup
 # TODO: use starting time as trigger condition
@@ -121,9 +124,9 @@ set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes emu_dec_cmp_probe -of_o
 
 # VIO: decimation ratio
 # TODO: use variable for emu_dec_thr
-set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
-set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
-commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $my_hw_vio]
+set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $vio_0_i]
+set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $vio_0_i]
+commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $vio_0_i]
 
 # Radix setup: real numbers
 {% for probename, _, _ in subst.probe_signals.analog_signals + subst.probe_signals.time_signal %}

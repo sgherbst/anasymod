@@ -1,7 +1,7 @@
 import os
 
 from glob import glob
-from anasymod.codegen import CodeGenerator
+from anasymod.generators.codegen import CodeGenerator
 from anasymod.util import back2fwd
 from typing import Union
 
@@ -60,7 +60,7 @@ class Sources(ConfigFileObj):
         pass
 
     def set_property(self, name, value, objects):
-        self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
+        self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
 class VerilogSource(Sources):
     def __init__(self, files: Union[list, str], fileset=r"default", config_path=None, verilog_version=None):
@@ -103,5 +103,9 @@ class XDCFile(Sources):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
 
 class MEMFile(Sources):
+    def __init__(self, files: str, fileset=r"default", config_path=None):
+        super().__init__(files=[files], fileset=fileset, config_path=config_path)
+
+class BDFile(Sources):
     def __init__(self, files: str, fileset=r"default", config_path=None):
         super().__init__(files=[files], fileset=fileset, config_path=config_path)

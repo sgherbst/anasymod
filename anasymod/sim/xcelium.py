@@ -14,7 +14,10 @@ class XceliumSimulator(Simulator):
         self.unit = None
         self.id = None
 
-    def simulate(self, licqueue=True, smartorder=True):
+    def simulate(self, licqueue=True, smartorder=True, timescale='1ns/1ps'):
+        # prepare ifxxcelium makefile by adding inicio target
+        self.prepare()
+
         # build up the simulation command
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
@@ -37,6 +40,10 @@ class XceliumSimulator(Simulator):
         if licqueue:
             cmd += ['-licqueue']
 
+        # specify the default timescale
+        if timescale is not None:
+            cmd += ['-timescale', f'{timescale}']
+
         # 64-bit or 32-bit mode
         # TODO: is this actually necessary?  the problem is that sometimes xrun is submitted through a bsub command,
         # so the remote machine architecture isn't necessarily the same as that of the local machine that submits
@@ -45,7 +52,7 @@ class XceliumSimulator(Simulator):
             cmd += ['-64bit']
 
         # add defines
-        for define in self.target.content['defines']:
+        for define in self.target.content.defines:
             for k, v in define.define.items():
                 if v is not None:
                     cmd.append(f"+define+{k}={v}")
@@ -54,7 +61,7 @@ class XceliumSimulator(Simulator):
 
         # add include directories, remove filename from paths and create a list of inc dirs removing duplicates
         inc_dirs = set()
-        for sources in self.target.content['verilog_headers']:
+        for sources in self.target.content.verilog_headers:
             for src in sources.files:
                 inc_dirs.add(os.path.dirname(src))
 
@@ -62,7 +69,7 @@ class XceliumSimulator(Simulator):
             cmd.extend(['-incdir', inc_dir])
 
         # add Verilog source files
-        for sources in self.target.content['verilog_sources']:
+        for sources in self.target.content.verilog_sources:
             for src in sources.files:
                 cmd.append(src)
 
@@ -71,7 +78,7 @@ class XceliumSimulator(Simulator):
         # append rather than replace files, then it should be OK (and simpler) to have a separate makelib for
         # each file in each library.
         libraries = OrderedDict()
-        for sources in self.target.content['vhdl_sources']:
+        for sources in self.target.content.vhdl_sources:
             library = sources.library
 
             if library not in libraries:

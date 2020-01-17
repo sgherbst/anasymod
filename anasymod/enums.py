@@ -3,14 +3,12 @@ class ConfigSections:
     Container including enums for sections that can be used in config file.
     """
     TARGET = "TARGET"
-    CLK = "CLK"
-    ILA = "ILA"
-    VIO = "VIO"
     FPGA_BOARD = "FPGA_BOARD"
     TOOL = "TOOL"
     PLUGIN = "PLUGIN"
     PROJECT = "PROJECT"
     STRUCTURE = "STRUCTURE"
+    FPGASIM = "FPGASIM"
 
 class BoardNames:
     """
@@ -18,12 +16,16 @@ class BoardNames:
 
     Currently supported boards are:
     PYNQ_Z1
+    ARTY_A7
     VC707
+    ZC702
     ULTRA96
     TE0720
     """
     PYNQ_Z1 = 'PYNQ_Z1'
+    ARTY_A7 = 'ARTY_A7'
     VC707 = 'VC707'
+    ZC702 = 'ZC702'
     ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
 
@@ -31,8 +33,9 @@ class PortDir:
     """
     Container including enums for all supported port directions.
     """
-    IN = "IN"
-    OUT = "OUT"
+    IN = "input"
+    OUT = "output"
+    INOUT = "inout"
 
 class CtrlOps:
     """

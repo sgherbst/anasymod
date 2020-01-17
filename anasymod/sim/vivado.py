@@ -1,10 +1,10 @@
 from anasymod.sim.sim import Simulator
-from anasymod.vivado import VivadoControl
+from anasymod.generators.vivado import VivadoTCLGenerator
 
 class VivadoSimulator(Simulator):
     def simulate(self):
         # set up the simulation commands
-        v = VivadoControl()
+        v = VivadoTCLGenerator(target=self.target)
 
         # create a new project
         v.create_project(project_name=self.cfg.vivado_config.project_name,
@@ -22,7 +22,7 @@ class VivadoSimulator(Simulator):
 
         # launch the simulation
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')
-        v.println('launch_simulation')
+        v.writeln('launch_simulation')
 
         # run the simulation
-        v.run(vivado=self.cfg.vivado_config.vivado, build_dir=self.cfg.build_root, filename='vivado_sim.tcl')
+        v.run(filename='vivado_sim.tcl')

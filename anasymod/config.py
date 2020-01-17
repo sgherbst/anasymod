@@ -4,18 +4,18 @@ import shutil
 
 from sys import platform
 from glob import glob
-from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.util import back2fwd, vivado_search_key
-from anasymod.filesets import Filesets
+from anasymod.files import get_full_path, mkdir_p
+from anasymod.util import vivado_search_key
 from os import environ as env
-from anasymod.enums import BoardNames, FPGASimCtrl
+from anasymod.enums import BoardNames
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
-from inicio import config_dict
 
 class EmuConfig:
     def __init__(self, root, cfg_file, build_root=None):
+
+        self.root = root
 
         # define and create build root
         self.build_root = build_root if build_root is not None else os.path.join(root, 'build')
@@ -30,11 +30,21 @@ class EmuConfig:
         # Update config options by reading from config file
         self.cfg.update_config()
 
-        # Initialize Inicio config_dict
-        self.cfg_dict = config_dict()
+        # Try to initialize Inicio config_dict
+        # TODO: add more reasonable defaults
+        try:
+            from inicio import config_dict
+            self.cfg_dict = config_dict()
+        except:
+            self.cfg_dict = {
+                'TOOLS_xilinx': '',
+                'INICIO_TOOLS': '',
+                'TOOLS_iverilog': '',
+                'TOOLS_gtkwave': ''
+            }
 
         # FPGA board configuration
-        self.board = self.fetch_board()
+        self.board = self._fetch_board()
 
         # Vivado configuration
         self.vivado_config = VivadoConfig(parent=self)
@@ -55,19 +65,23 @@ class EmuConfig:
     def ila_depth(self):
         return 4096
 
-    def fetch_board(self):
+    def _fetch_board(self):
         """
         Fetch FPGA board info.
         """
 
         if self.cfg.board_name == BoardNames.PYNQ_Z1:
             return PYNQ_Z1()
+        elif self.cfg.board_name == BoardNames.ARTY_A7:
+            return ARTY_A7()
         elif self.cfg.board_name == BoardNames.VC707:
             return VC707()
         elif self.cfg.board_name == BoardNames.ULTRA96:
             return ULTRA96()
         elif self.cfg.board_name == BoardNames.TE0720:
             return TE0720()
+        elif self.cfg.board_name == BoardNames.ZC702:
+            return ZC702()
         else:
             raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
 
@@ -79,14 +93,14 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
         # intermediate variables for generic Xilinx path
-        if 'win' in platform.lower():
+        if platform in {'win32', 'cygwin'}:
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
             xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
 
-        if platform == 'linux' or platform == 'linux2':
+        if platform in {'linux', 'linux2'}:
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
 
@@ -209,8 +223,10 @@ class Config(BaseConfig):
         self.fpga_sim_crtl = FPGASimCtrl.VIVADO_VIO
         self.plugins = []
         self.plugins.append('msdsl')
-        #self.plugins.append('netexplorer')
-        #self.plugins.append('stargazer')
+        self.dt = 0.1e-6
+        self.dt_exponent = -46
+        self.dt_width = 27
+        self.time_width = 64
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

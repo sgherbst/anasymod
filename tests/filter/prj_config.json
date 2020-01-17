@@ -7,6 +7,9 @@
   "TARGET": {
     "sim": {
       "tstop": 10e-6
+    },
+    "fpga": {
+      "fpga_sim_ctrl": "vivado_vio"
     }
   }
 }

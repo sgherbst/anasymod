@@ -1,5 +1,5 @@
 import os
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile
 from anasymod.defines import Define
 
 class Filesets():
@@ -26,6 +26,9 @@ class Filesets():
 
         self._mem_files = []
         """:type : List[MEMFile]"""
+
+        self._bd_files = []
+        """:type : List[BDFile]"""
 
         # init fileset_dict
         self.fileset_dict = {}
@@ -67,7 +70,7 @@ class Filesets():
 
     def _parseconfig(self, cfg: list, cfg_path: str):
         """
-        Read all line from config file, according to string infront of '=' sign, the proceeding arguments will either
+        Read all lines from config file, according to string infront of '=' sign, the proceeding arguments will either
         be added to the according fileset or will be added to the list of additional config paths, which will be
         investigated in the next iteration.
         :param cfg:
@@ -109,6 +112,10 @@ class Filesets():
                         line.config_path = cfg_path
                         line.expand_paths()
                         self._mem_files.append(line)
+                    elif isinstance(line, BDFile):
+                        line.config_path = cfg_path
+                        line.expand_paths()
+                        self._bd_files.append(line)
                     elif isinstance(line, SubConfig):
                         line.config_path = cfg_path
                         line.expand_paths()
@@ -147,6 +154,9 @@ class Filesets():
         # Read in mem_files objects to fileset dict
         self._add_to_fileset_dict(name='mem_files', container=self._mem_files)
 
+        # Read in bd_files objects to fileset dict
+        self._add_to_fileset_dict(name='bd_files', container=self._bd_files)
+
     def _add_to_fileset_dict(self, name, container):
         """
         Adds a specified attribute to the fileset_dict, e.g. add the verilog sources or defines.
@@ -182,6 +192,9 @@ class Filesets():
 
     def add_mem_file(self, mem_file: MEMFile):
         self._mem_files.append(mem_file)
+
+    def add_bd_file(self, bd_file: BDFile):
+        self._bd_files.append(bd_file)
 
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")

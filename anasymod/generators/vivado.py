@@ -1,10 +1,18 @@
 import os
 
 from anasymod.util import call, back2fwd
-from anasymod.codegen import CodeGenerator
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, MEMFile
+from anasymod.generators.codegen import CodeGenerator
+from anasymod.sources import VerilogSource, MEMFile, BDFile
+from anasymod.targets import FPGATarget
 
-class VivadoControl(CodeGenerator):
+class VivadoTCLGenerator(CodeGenerator):
+    """
+    Class for generating a TCL control file to setup Vivado Projects, launch Vivado and execute the generated TCL file.
+    """
+
+    def __init__(self, target: FPGATarget):
+        super().__init__()
+        self.target = target
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):
         cmd = ['create_project']
@@ -14,7 +22,7 @@ class VivadoControl(CodeGenerator):
         cmd.append('"'+back2fwd(project_directory)+'"')
         if full_part_name is not None:
             cmd.extend(['-part', full_part_name])
-        self.println(' '.join(cmd))
+        self.writeln(' '.join(cmd))
 
     def add_project_sources(self, content):
         """
@@ -23,16 +31,19 @@ class VivadoControl(CodeGenerator):
         """
 
         # add verilog sources
-        self.add_verilog_sources(ver_src=content['verilog_sources'])
+        self.add_verilog_sources(ver_src=content.verilog_sources)
 
         # add verilog headers
-        self.add_verilog_headers(ver_hdr=content['verilog_headers'])
+        self.add_verilog_headers(ver_hdr=content.verilog_headers)
 
         # add vhdl sources
-        self.add_vhdl_sources(vhdl_src=content['vhdl_sources'])
+        self.add_vhdl_sources(vhdl_src=content.vhdl_sources)
 
         # add mem file
-        self.add_mem_file(mem_files=content['mem_files'])
+        self.add_mem_file(mem_files=content.mem_files)
+
+        # add bd file
+        self.add_bd_file(bd_files=content.bd_files)
 
     def add_verilog_sources(self, ver_src: [VerilogSource]):
         f_list = []
@@ -59,13 +70,20 @@ class VivadoControl(CodeGenerator):
         for mem_file in mem_files:
             self.add_files(mem_file.files)
 
+    def add_bd_file(self, bd_files: [BDFile]):
+        for bd_file in bd_files:
+            cmd = ['read_bd']
+            cmd.append('{ ' + ' '.join('"' + back2fwd(file) + '"' for file in bd_file.files) + ' }')
+            self.writeln(' '.join(cmd))
+
+
     def add_project_defines(self, content, fileset):
         """
         Add defines to project.
         :param content: List of dicts that store all target specific source and define objects.
         """
         define_list = []
-        for define in content['defines']:
+        for define in content.defines:
             for k, v in define.define.items():
                 if v is not None:
                     define_list.append(f"{k}={v}")
@@ -81,22 +99,22 @@ class VivadoControl(CodeGenerator):
         if norecurse:
             cmd.append('-norecurse')
         cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
-        self.println(' '.join(cmd))
+        self.writeln(' '.join(cmd))
 
     def set_property(self, name, value, objects):
-        self.println(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
+        self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
-    def run(self, vivado, build_dir, filename=r"run.tcl", nolog=True, nojournal=True):
+    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False):
         # write the TCL script
-        tcl_script = os.path.join(build_dir, filename)
+        tcl_script = os.path.join(self.target.prj_cfg.build_root, filename)
         self.write_to_file(tcl_script)
 
         # assemble the command
-        cmd = [vivado, '-mode', 'batch', '-source', tcl_script]
+        cmd = [self.target.prj_cfg.vivado_config.vivado, '-mode', 'tcl' if interactive else 'batch', '-source', tcl_script]
         if nolog:
             cmd.append('-nolog')
         if nojournal:
             cmd.append('-nojournal')
 
         # run the script
-        call(args=cmd, cwd=build_dir)
+        call(args=cmd, cwd=self.target.prj_cfg.build_root)

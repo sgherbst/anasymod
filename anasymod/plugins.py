@@ -22,7 +22,10 @@ class Plugin():
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
 
+        # List of includes that need to be added to source files generated via ANASYMOD
         self.cfg = Config(cfg_file=self._cfg_file)
+
+        self.include_statements = []
 
     def _dump_defines(self):
         return self._defines

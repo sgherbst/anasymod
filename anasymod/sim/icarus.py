@@ -14,7 +14,7 @@ class IcarusSimulator(Simulator):
             cmd.append('-E')
 
         # add defines
-        for define in self.target.content['defines']:
+        for define in self.target.content.defines:
             for k, v in define.define.items():
                 if v is not None:
                     cmd.extend(['-D', f"{k}={v}"])
@@ -23,7 +23,7 @@ class IcarusSimulator(Simulator):
 
         # add include directories, remove filename from paths and create a list of inc dirs removing duplicates
         inc_dirs = set()
-        for sources in self.target.content['verilog_headers']:
+        for sources in self.target.content.verilog_headers:
             for src in sources.files:
                 inc_dirs.add(os.path.dirname(src))
 
@@ -31,7 +31,7 @@ class IcarusSimulator(Simulator):
             cmd.extend(['-I', inc_dir])
 
         # add verilog source files
-        for sources in self.target.content['verilog_sources']:
+        for sources in self.target.content.verilog_sources:
             for src in sources.files:
                 cmd.append(src)
 
