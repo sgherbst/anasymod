@@ -156,7 +156,7 @@ class Analysis():
 
         # Add some default files depending on whether there is a custom top level
         # TODO: clean this part up with generated top level
-        self.filesets.add_source(source=VerilogSource(files=get_from_module('anasymod', 'verilog', 'vio_gen.sv'), config_path=config_path))
+        self.filesets.add_source(source=VerilogSource(files=get_from_anasymod('verilog', 'vio_gen.sv'), config_path=config_path))
         for fileset in ['sim', 'fpga']:
             try:
                 custom_top = self.cfg_file['TARGET'][fileset]['custom_top']
@@ -428,7 +428,7 @@ class Analysis():
         python analysis.py -i filter --models --sim --view
 
         -i, --input: Path to project root directory of the project that shall be opened and worked with.
-            default=get_from_module('anasymod', 'tests', 'filter'))
+            default=None
 
         --simulator_name: Simulator that shall be used for logic simulation.
             default=icarus for windows, xrun for linux
