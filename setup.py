@@ -45,7 +45,7 @@ setup(
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: BSD License',
         f'Programming Language :: Python :: 3.7'
     ],
     include_package_data=True,
