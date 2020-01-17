@@ -1,7 +1,7 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 name = 'anasymod'
-version = '0.1.3'
+version = '0.1.4'
 
 DESCRIPTION = '''\
 Tool for running mixed-signal emulations on FPGAs\
@@ -20,9 +20,7 @@ setup(
                 'xcelium', 'iverilog', 'icarus-verilog', 'icarus verilog',
                 'generator', 'verilog', 'system-verilog', 'system verilog',
                 'emulation', 'fpga'],
-    packages=[
-        f'{name}'
-    ],
+    packages=find_packages(),
     entry_points = {
         'console_scripts': [
             'anasymod=anasymod.analysis:main'
