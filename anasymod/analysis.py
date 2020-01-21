@@ -71,7 +71,7 @@ class Analysis():
         self._plugins = []
         for plugin in self._prj_cfg.cfg.plugins:
             try:
-                i = import_module(f"plugin.{plugin}")
+                i = import_module(f"{plugin}.plugin")
                 inst = i.CustomPlugin(prj_cfg=self._prj_cfg, cfg_file=self.cfg_file, prj_root=self.args.input)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
