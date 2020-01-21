@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 name = 'anasymod'
-version = '0.1.5'
+version = '0.1.6'
 
 DESCRIPTION = '''\
 Tool for running mixed-signal emulations on FPGAs\
@@ -27,8 +27,8 @@ setup(
         ]
     },
     install_requires=[
-        'svreal',
-        'msdsl',
+        'svreal>=0.1.9',
+        'msdsl>=0.1.4',
         'jinja2',
         'pyvcd',
         'pyserial'
