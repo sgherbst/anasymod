@@ -31,7 +31,8 @@ setup(
         'msdsl>=0.1.6',
         'jinja2',
         'pyvcd',
-        'pyserial'
+        'pyserial',
+        'pexpect'
     ],
     license='BSD 3-Clause "New" or "Revised" License',
     url=f'https://github.com/sgherbst/{name}',

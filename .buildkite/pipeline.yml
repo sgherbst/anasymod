@@ -8,10 +8,14 @@ steps:
       python3.7 -m venv venv
       source venv/bin/activate
 
-      # install various python dependencies
-      pip install pytest pytest-cov
+      # upgrade pip
+      pip install -U pip
 
-      # install svreal
+      # install various python dependencies
+      pip install wheel
+      pip pytest pytest-cov
+
+      # install anasymod
       pip install -e .
 
       # run rc test
