@@ -1,6 +1,3 @@
-import sys
-print(sys.executable)
-
 from pathlib import Path
 from argparse import ArgumentParser
 from msdsl import (MixedSignalModel, VerilogGenerator, Deriv)
