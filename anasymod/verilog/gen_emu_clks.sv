@@ -1,10 +1,10 @@
 module gen_emu_clks #(
     parameter integer n=2
 ) (
-    input wire logic emu_clk_2x,
-    output wire logic emu_clk,
-    input wire logic clk_vals [n],
-    output wire logic clks [n]
+    (* dont_touch="true" *) input wire logic emu_clk_2x,
+    (* dont_touch="true" *) output wire logic emu_clk,
+    (* dont_touch="true" *) input wire logic clk_vals [n],
+    (* dont_touch="true" *) output wire logic clks [n]
 );
 
     // generate emu_clk

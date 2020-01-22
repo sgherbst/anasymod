@@ -1,4 +1,6 @@
 # anasymod
+[![BuildKite Status](https://badge.buildkite.com/7f10348afca3b631bbbb2175919b9039101c2a5e55c3371460.svg)](https://buildkite.com/stanford-aha/anasymod)
+[![Code Coverage](https://codecov.io/gh/sgherbst/anasymod/branch/master/graph/badge.svg)](https://codecov.io/gh/sgherbst/anasymod)
 [![License:BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 **anasymod** is a tool for running FPGA emulations of mixed-signal systems.  It supports digital blocks described with Verilog or VHDL and synthesizable analog models created using [msdsl](https://github.com/sgherbst/msdsl) and [svreal](https://github.com/sgherbst/svreal).

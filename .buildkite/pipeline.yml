@@ -1,0 +1,29 @@
+steps:
+  - command: |
+      # set up environment
+      source /etc/environment
+      echo $$PATH
+
+      # create virtual environment
+      python3.7 -m venv venv
+      source venv/bin/activate
+
+      # install various python dependencies
+      pip install pytest pytest-cov
+
+      # install svreal
+      pip install -e .
+
+      # run rc test
+      cd tests/rc
+      anasymod -i . --models
+      anasymod -i . --sim --simulator_name vivado
+      anasymod -i . --build
+      pytest test_rc.py -v -r s
+
+      # deactivate virtual environment
+      deactivate
+    label: "test_emu"
+    timeout_in_minutes: 60
+    agents:
+      fpga_verif: "true"
