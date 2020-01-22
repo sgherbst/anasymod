@@ -20,6 +20,7 @@ steps:
 
       # specify python location (needed for msdsl)
       export PYTHON_MSDSL=`realpath venv/bin/python`
+      echo $$PYTHON_MSDSL
 
       # run rc test
       cd tests/rc
