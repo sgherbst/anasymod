@@ -13,7 +13,7 @@ steps:
 
       # install various python dependencies
       pip install wheel
-      pip pytest pytest-cov
+      pip install pytest pytest-cov
 
       # install anasymod
       pip install -e .
