@@ -18,8 +18,12 @@ steps:
       # install anasymod
       pip install -e .
 
+      # specify python location (needed for msdsl)
+      export PYTHON_MSDSL=`realpath venv/bin/python`
+
       # run rc test
       cd tests/rc
+      echo
       anasymod -i . --models
       anasymod -i . --sim --simulator_name vivado
       anasymod -i . --build
