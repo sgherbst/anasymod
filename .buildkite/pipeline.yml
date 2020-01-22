@@ -19,6 +19,8 @@ steps:
       pip install -e .
 
       # specify python location (needed for msdsl)
+      which pip
+      which python
       export PYTHON_MSDSL=`realpath venv/bin/python`
       echo $$PYTHON_MSDSL
 
