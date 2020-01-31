@@ -165,19 +165,31 @@ class Config(BaseConfig):
     """
     def __init__(self, cfg_file):
         super().__init__(cfg_file=cfg_file, section=ConfigSections.FPGASIM)
+
         self.comport = None
+        """ type(str) : Name of the COM port, that is attached to FPGA """
+
         self.baud_rate = 115200
+        """ type(int): Baudrate used for communication with UART on FPGA """
+
         self.timeout = None
+        """ type(int): Timeout in seconds used when waiting for a response during data transmission """
+
         self.parity = serial.PARITY_NONE
+        """ type(str): Parity mode used for UART communication """
+
         self.stopbits=1
+        """ type(int): Number of stop bits used when transmitting a package """
+
         self.bytesize=serial.EIGHTBITS
+        """ type(int): Number of bits per transmitted package """
 
 def main():
-    ctrl = UARTCtrlApi(prj_cfg=EmuConfig(root='',cfg_file=''))
-    ctrl.set_param(name=0, value=3)
-    ctrl.set_param(name=1, value=4)
-    print(ctrl.get_param(name=0))
-    print(ctrl.get_param(name=1))
+   ctrl = UARTCtrlApi(prj_cfg=EmuConfig(root='',cfg_file=''))
+   ctrl.set_param(name=0, value=3)
+   ctrl.set_param(name=1, value=4)
+   print(ctrl.get_param(name=0))
+   print(ctrl.get_param(name=1))
 
 if __name__ == "__main__":
-    main()
+   main()

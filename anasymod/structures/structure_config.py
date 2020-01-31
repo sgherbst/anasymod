@@ -158,7 +158,7 @@ class StructureConfig():
                             abspath_gated_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_i'
                             self.num_gated_clks += 1
                         if 'gated_clk_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
-                            abspath_gated_clk_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_val'
+                            abspath_gated_clk_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk_req'] if clks['derived_clks'][derived_clk]['gated_clk_req'] is not "" else '__emu_clk_val'
 
                         self.clk_derived.append(ClkDerived(name=derived_clk, abspath_emu_dt=abspath_emu_dt, abspath_emu_clk=abspath_emu_clk, abspath_emu_rst=abspath_emu_rst, abspath_dt_req=abspath_dt_req, abspath_gated_clk=abspath_gated_clk, abspath_gated_clk_req=abspath_gated_clk_req))
                 else:
@@ -282,3 +282,4 @@ class Config(BaseConfig):
         super().__init__(cfg_file=prj_cfg.cfg_file, section=ConfigSections.STRUCTURE)
 
         self.rst_clkcycles = 1
+        """ type(int) : number of clk cycles, the initial emu_rst signal shall be active. """

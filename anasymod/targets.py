@@ -195,14 +195,29 @@ class Config(BaseConfig):
     def __init__(self, cfg_file, prj_cfg, name, target_type):
         super().__init__(cfg_file=cfg_file, section=target_type)
         self.tstop = 10.0
+        """ type(float) : simulation duration for target in seconds. """
+
         self.emu_clk_freq =25e6
+        """ type(float) : emulation frequency in Hz, that is used as main independent clk in the design. """
+
         self.top_module = 'top'
+        """ type(str) : name ot the top-level module, that is used for this target. """
+
         self.custom_top = False
+        """ type(bool) : indicates, whether or not a custom top is used. """
+
         self.vcd_name = f"{self.top_module}_{name}.vcd"
+        """ type(str) : name of the converted vcd simulation result file. """
+
         self.vcd_path = os.path.join(prj_cfg.build_root, r"vcd", self.vcd_name)
+        """ type(str) : path used to store converted vcd simulation result file. """
         # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
+
         self.result_type_raw = None
+        """ type(float) : simulation result format used for the selected target. """
+
         self.fpga_sim_ctrl = FPGASimCtrl.VIVADO_VIO
+        """ type(float) : FPGA simulation control interface used for this target. """
 
 class Content():
     """

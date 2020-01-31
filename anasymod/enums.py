@@ -2,11 +2,10 @@ class ConfigSections:
     """
     Container including enums for sections that can be used in config file.
     """
-    TARGET = "TARGET"
+    PROJECT = "PROJECT"
     CPU_TARGET = "CPU_TARGET"
     FPGA_TARGET = "FPGA_TARGET"
     PLUGIN = "PLUGIN"
-    PROJECT = "PROJECT"
     STRUCTURE = "STRUCTURE"
     FPGASIM = "FPGASIM"
 
@@ -49,8 +48,8 @@ class FPGASimCtrl:
     """
     Container including enums for all supported FPGA control interfaces.
     """
-    UART_ZYNQ = 'uart_zynq'
-    VIVADO_VIO = 'vivado_vio'
+    UART_ZYNQ = 'UART_ZYNQ'
+    VIVADO_VIO = 'VIVADO_VIO'
 
 class ResultFileTypes:
     """

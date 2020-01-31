@@ -8,6 +8,10 @@ from typing import Union
 class ConfigFileObj(CodeGenerator):
     def __init__(self, files, config_path):
         super().__init__()
+        self.files = None
+        """ type(str) : mandatory setting; defines the path to sources. The path can be relative, absolute and 
+            contain wildcards. """
+
         if isinstance(files, list):
             self.files = files
         elif isinstance(files, str):
@@ -55,6 +59,8 @@ class Sources(ConfigFileObj):
     def __init__(self, files: list, fileset, config_path):
         super().__init__(files=files, config_path=config_path)
         self.fileset = fileset
+        """ type(str) : Fileset, the source shall be associsted with. """
+
 
     def generate(self):
         pass
@@ -63,9 +69,17 @@ class Sources(ConfigFileObj):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
 class VerilogSource(Sources):
+    """
+    Container for source of type Verilog/SystemVerilog.
+
+    :param files: Path to source file, could be relative/absolute and contain wildcards
+    :type files: str
+
+    """
     def __init__(self, files: Union[list, str], fileset=r"default", config_path=None, version=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
         self.version = version
+        """ type(str) : Verilog version, that shall be used when compiling sources. """
 
     def generate(self):
         self.text = self.files
@@ -86,7 +100,11 @@ class VHDLSource(Sources):
     def __init__(self, files: Union[list, str], library=None, fileset=r"default", config_path=None, version=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path)
         self.library = library
+        """ type(str) : Library, the source shall be associated with when compiling. """
+
         self.version = version
+        """ type(str) : VHDL version, that shall be used when compiling sources. """
+
 
     def generate(self):
         self.dump()

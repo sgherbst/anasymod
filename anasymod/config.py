@@ -222,19 +222,40 @@ class Config(BaseConfig):
     """
     def __init__(self, cfg_file):
         super().__init__(cfg_file=cfg_file, section=ConfigSections.PROJECT)
+
         self.dec_bits = 24
+        """ type(int) : number of bits used for decimation threshold value, which controls the ila capture feature """
+
         self.board_name = BoardNames.PYNQ_Z1
-        #self.board_name = BoardNames.VC707
+        """ type(str) : name of FPGA board, that shall be used for this project. """
+
         self.emu_clk_freq = 25e6
+        """ type(float) : emulation frequency in Hz, that is used as main independent clk in the design. """
+
         self.preprocess_only = False
+        """ type(bool) : indicate, whether or not only conduct elaboration and compile during simulation run. This will
+            show all Macros expanded and currently only works for icarus verilog. """
+
         self.jtag_freq = 15e6
-        self.fpga_sim_crtl = FPGASimCtrl.VIVADO_VIO
-        self.plugins = []
-        self.plugins.append('msdsl')
+        """ type(float) : jtag communication frequency in Hz. This impacts the frequency used for programming the 
+            bitstream onto the FPGA, a value that is set too high might cause stability issues. """
+
+        self.plugins = ['msdsl']
+        """ type(list(str)) : list of plugins that shall be used in the scope of this project. """
+
         self.dt = 0.1e-6
+        """ type(float) : globally used dt value for projects, that strictly use fixed-timestep-based models. """
+
         self.dt_exponent = -46
+        """ type(int) : currently not is use, as exponent for dt is calculated using macros in time_manager. """
+
         self.dt_width = 27
-        self.time_width = 39 # Any value above 39 does not work with the current vivado ILA core version
+        """ type(int) : number of bits used for dt signal; this signal is used to transport the global dt signal through
+            the design. """
+
+        self.time_width = 39
+        """ type(int) : number of bits used for emulation time signal.
+            Any value above 39 does not work with the current vivado ILA core version. """
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

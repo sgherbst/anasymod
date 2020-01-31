@@ -169,10 +169,11 @@ class Analysis():
 
     def setup_filesets(self):
         """
-        Setup filesets for project.
-        This may differ from one project to another and needs customization.
-        1. Read in source objects from source.yaml files and store those in a fileset object
-        2. Add additional source objects to fileset object
+        Finalize filesets for the project. Before this function is called, all sources should have been added to the
+        project, either via source.yaml files/plugin-specific includes, or interactively via the add_sources function.
+
+        Note: Do not add more sources to the project after this function has been run; They will only be considered,
+        if this function is executed again afterwards.
         """
 
         # Read source.yaml files and store in fileset object
@@ -190,8 +191,6 @@ class Analysis():
             self.filesets._vhdl_sources += plugin._dump_vhdl_sources()
 
         # Add custom source and define objects here e.g.:
-        # self.filesets.add_source(source=VerilogSource())
-        # self.filesets.add_define(define=Define())
         config_path = os.path.join(self.args.input, 'source.yaml')
 
         # Add some default files depending on whether there is a custom top level
@@ -205,12 +204,10 @@ class Analysis():
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                #self.filesets.add_source(source=VerilogSource(files=os.path.join(self._prj_cfg.build_root, 'gen_ctrlwrap.sv'), config_path=config_path, fileset=fileset))
                 get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
-        #self.filesets.add_define(define=Define(name='DEC_BITS_MSDSL', value=self._prj_cfg.cfg.dec_bits))
         for fileset in self.cpu_targets + self.fpga_targets:
             try:
                 top_module = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['top_module'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['top_module']
@@ -229,7 +226,6 @@ class Analysis():
         Function to add sources or defines to filesets. This will also retrigger fileset dict population
 
         :param sources: Individual source or list of sources, that shall be added to filesets
-        :return:
         """
 
         if not isinstance(sources, list):
@@ -261,7 +257,6 @@ class Analysis():
         Changes the domainspecific active target to target_name, e.g. the active CPU target to target_name.
 
         :param target_name: name of target, that shall be set as active for the respective domain.
-        :return:
         """
         self.args.active_target = target_name
         if self.args.active_target in self.fpga_targets:
@@ -291,6 +286,8 @@ class Analysis():
     def emulate(self, server_addr=None):
         """
         Program bitstream to FPGA and run simulation/emulation on FPGA
+
+        :param server_addr: Address of Vivado hardware server used for communication to FPGA board
         """
 
         if server_addr is None:
@@ -319,8 +316,8 @@ class Analysis():
     def launch(self, server_addr=None):
         """
         Program bitstream to FPGA, setup control infrastructure and wait for interactive commands.
+
         :param server_addr: Address of Vivado hardware server used for communication to FPGA board
-        :return:
         """
 
         if server_addr is None:
@@ -406,8 +403,11 @@ class Analysis():
 
     def preserve(self, wave):
         """
-        This function preserve the stepping of the waveform wave
+        This function preserve the stepping of the waveform 'wave'. This is necessary, if limit checks should be
+        conducted on the waveform later on.
+
         :param wave: 2d numpy.ndarray
+
         :return: 2d numpy.ndarray
         """
         temp_data = None
