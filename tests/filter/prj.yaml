@@ -5,5 +5,5 @@ CPU_TARGET:
         tstop:          10e-6
 FPGA_TARGET:
     fpga:
-        fpga_sim_ctrl:  'vivado_vio'
+        fpga_sim_ctrl:  'VIVADO_VIO'
         tstop:          10e-6

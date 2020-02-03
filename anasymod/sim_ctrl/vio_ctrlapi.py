@@ -127,16 +127,26 @@ class VIOCtrlApi(CtrlApi):
         :return:
         """
 
-        # This only works under linux
-        if os.name != 'posix':
-            raise Exception(f'Interactive VIO-based control is only available under linux')
+        # Use pexpect under linux for interactive vivado ctrl
+        if os.name == 'posix':
+            from pexpect import spawn
+        elif os.name == 'nt':
+            from wexpect import spawn
+        else:
+            raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
 
         # start the interpreter
-        from pexpect import spawnu
         print('Starting Vivado TCL interpreter.')
         sys.stdout.flush()
         cmd = 'vivado -nolog -nojournal -notrace -mode tcl'
-        self.proc = spawnu(command=cmd, cwd=self.cwd)
+
+        # Add vivado to PATH variable, in case of an inicio installation
+        path = os.environ['PATH']
+        #path = path + f';{self.pcfg.vivado_config.hints}'
+        path = path + r';C:\Inicio\tools\64\Xilinx-18.2.0.3\Vivado\2018.2\bin'
+        os.environ['PATH'] = path
+
+        self.proc = spawn(command=cmd, cwd=self.cwd, env=os.environ)
 
         # wait for the prompt
         self._expect_prompt(timeout=300)
