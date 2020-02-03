@@ -88,7 +88,10 @@ class XceliumSimulator(Simulator):
             libraries[library] += files
 
         for library, sources in libraries.items():
-            cmd += ['-makelib', library]
+            if library is not None:
+                cmd += ['-makelib', library]
+            else:
+                cmd += ['-makelib']
             cmd += sources
             cmd += ['-endlib']
 
@@ -110,6 +113,8 @@ class XceliumSimulator(Simulator):
                 cmd += ["-unit", self.unit ]
             if self.id:
                 cmd += ["-id", self.id ]
+            else:
+                self.id = "xcelium"
 
             print(cmd)
             call(cmd, cwd=self.cfg.build_root)

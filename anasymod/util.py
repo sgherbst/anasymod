@@ -24,10 +24,11 @@ def call(args, cwd=None, wait=True):
     os.chdir(cwd)
 
     # run the command
-    kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
+    kwargs = dict(args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if wait:
-        ret = subprocess.call(**kwargs)
-        assert ret == 0
+        print(f"Checking return code of subprocess call: {args}")
+        result = subprocess.run(**kwargs)
+        assert result.returncode == 0, f"Exited with error code: {result.returncode}"
     else:
         subprocess.Popen(**kwargs)
 
