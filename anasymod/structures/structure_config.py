@@ -87,7 +87,7 @@ class StructureConfig():
         self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
         self.dec_thr_ctrl.i_addr = self._assign_i_addr()
 
-        # Add DigitalCtrlInput for control signal 'emu_dec_cmp' to trigger samplöing for the ila depending on 'emu_dec_thr'
+        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling for the ila depending on 'emu_dec_thr'
         self.dec_cmp = DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1)
 
         self._read_simctrlfile()
