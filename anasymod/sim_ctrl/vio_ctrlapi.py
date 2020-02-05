@@ -258,7 +258,7 @@ class VIOCtrlApi(CtrlApi):
         :param server_addr: Address of remote hardware server
         :return:
         """
-        launch_script = r"launch_FPGA.tcl"
+        launch_script = os.path.join(os.path.dirname(os.path.dirname(self.result_path_raw)), r"launch_FPGA.tcl")
         codegen = CodeGenerator()
         codegen.use_templ(TemplLAUNCH_FPGA_SIM(pcfg=self.pcfg, scfg=self.scfg, bitfile_path=self.bitfile_path,
                                                ltxfile_path=self.ltxfile_path, server_addr=server_addr))

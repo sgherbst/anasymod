@@ -326,6 +326,7 @@ class Analysis():
         Program bitstream to FPGA, setup control infrastructure and wait for interactive commands.
 
         :param server_addr: Address of Vivado hardware server used for communication to FPGA board
+        :param debug: Enable or disable debug mode when running an interactive simulation
         """
 
         if server_addr is None:
