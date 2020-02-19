@@ -29,7 +29,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         self.device_name = pcfg.board.short_part_name
 
         # set the path where the CSV file of results from the ILA should be written
-        self.output = back2fwd(target.cfg.csv_path)
+        self.output = back2fwd(target.result_path_raw)
         self.ila_reset = target.prj_cfg.vivado_config.ila_reset
         #tbd remove vio_reset
         self.vio_reset = target.prj_cfg.vivado_config.vio_reset
