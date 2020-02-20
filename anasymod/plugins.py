@@ -7,6 +7,8 @@ from anasymod.base_config import BaseConfig
 
 class Plugin():
     def __init__(self, cfg_file, prj_root, build_root, name):
+        self.args = None
+
         self._cfg_file = cfg_file
         self._prj_root = prj_root
         self._build_root = build_root
@@ -22,7 +24,10 @@ class Plugin():
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
 
+        # List of includes that need to be added to source files generated via ANASYMOD
         self.cfg = Config(cfg_file=self._cfg_file)
+
+        self.include_statements = []
 
     def _dump_defines(self):
         return self._defines
@@ -66,11 +71,8 @@ class Plugin():
         """
         pass
 
-    #def _update_config(self, cfg, config_section):
-    #    return self.cfg.update_config(cfg=cfg, config_section=config_section)
-
-    #def _read_config(self, cfg_file, section, subsection=None):
-    #    return read_config(cfg_file=cfg_file, section=section, subsection=subsection)
+    def _return_args(self):
+        return self.args
 
 class Config(BaseConfig):
     """

@@ -1,0 +1,5 @@
+PROJECT:
+    dt:                 0.1e-6
+CPU_TARGET:
+    sim:
+        tstop:          10e-6

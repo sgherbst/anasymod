@@ -7,13 +7,13 @@ import time
 from anasymod.utils.VCD_parser import ParseVCD
 from typing import Union
 
-from anasymod.targets import SimulationTarget, FPGATarget
+from anasymod.targets import CPUTarget, FPGATarget
 
 class Probe():
     """
     Base class for simulation data access API
     """
-    def __init__(self, target: Union[SimulationTarget, FPGATarget]):
+    def __init__(self, target: Union[CPUTarget, FPGATarget]):
         """
         Constructor
         """
@@ -121,7 +121,7 @@ class ProbeCSV(Probe):
     API for CSV remote data access
     """
 
-    def __init__(self, target: Union[SimulationTarget, FPGATarget]):
+    def __init__(self, target: Union[CPUTarget, FPGATarget]):
         """
         Constructor
         """
@@ -143,7 +143,7 @@ class ProbeCSV(Probe):
         self._data_valid = True
 
     def path_for_sim_result_file(self):
-        return os.path.join(self.target.cfg['csv_path'])
+        return os.path.join(self.target.cfg['result_path_raw'])
 
     def _probe(self, name, emu_time, cache=True):
         """
@@ -238,7 +238,7 @@ class ProbeCSV(Probe):
         return self.probe_caches[run_num].keys()
 
 class ProbeVCD(Probe):
-    def __init__(self, target: Union[SimulationTarget, FPGATarget]):
+    def __init__(self, target: Union[CPUTarget, FPGATarget]):
         """
         Constructor for VCD reader.
         """
@@ -334,9 +334,11 @@ class ProbeVCD(Probe):
             self.probe_caches[run_num] = run_cache
 
         #check complete name of emu_time_probe
-        matching = [s for s in self._probes() if 'emu_time_probe' in s]
+        matching = [s for s in self._probes() if 'emu_time' in s]
         if len(matching) == 1:
             emu_time_probe = matching[0]
+        else:
+            raise Exception(f'No Time probe was found in vcd file')
 
         if emu_time_probe not in run_cache:
             data = self.fetch_simdata(vcd_handle, name=emu_time_probe, update_data=True)
@@ -415,7 +417,10 @@ class ProbeVCD(Probe):
 
     def path_for_sim_result_file(self):
         # Setup Simulation Result file names
-        return os.path.join(self.target.cfg.vcd_path)
+        if os.path.isfile(self.target.cfg.vcd_path):
+            return self.target.cfg.vcd_path
+        else:
+            raise Exception(f'ERROR: Result file: self.target.cfg.vcd_path does not exist; cannot read results!')
 
     def fetch_simdata(self, file_handle, name="", update_data=False):
         """

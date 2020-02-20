@@ -1,5 +1,4 @@
 from anasymod.enums import ConfigSections
-from inicio import config_dict
 
 class BaseConfig():
     """
@@ -15,8 +14,7 @@ class BaseConfig():
             raise KeyError(f"provided section key:{section} is not supported")
 
     def update_config(self, subsection=None):
-        """
-        Update config by entries from config file; datatype is a dict.
+        """ Update config by entries from config file; datatype is a dict.
         Using subsection argument, it is possible to read an object specific config section, this
         is necessary if multiple objects of one class are in use, e.g. for multiple targets.
 

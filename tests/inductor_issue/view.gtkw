@@ -1,0 +1,30 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Fri May 24 17:19:59 2019
+[*]
+[dumpfile] "/home/sgherbst/Code/anasymod/tests/inductor_issue/build/vcd/top_sim.vcd"
+[dumpfile_mtime] "Fri May 24 17:19:52 2019"
+[dumpfile_size] 3974
+[savefile] "/home/sgherbst/Code/anasymod/tests/inductor_issue/view.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-21.984463 750000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[sst_width] 223
+[signals_width] 244
+[sst_expanded] 1
+[sst_vpaned_height] 153
+@8029
+top.v_out_probe
+@20000
+-
+-
+-
+-
+-
+-
+@28
+top.tb_i.gate_probe
+[pattern_trace] 1
+[pattern_trace] 0

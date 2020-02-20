@@ -12,7 +12,8 @@ setup(
         'jinja2',
         'pyvcd',
         'msdsl',
-        'svreal'
+        'svreal',
+        'pyserial'
     ],
     entry_points = {
         'console_scripts': [

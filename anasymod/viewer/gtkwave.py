@@ -6,12 +6,15 @@ from anasymod.util import call
 class GtkWaveViewer(Viewer):
     def view(self):
         # build command
-        cmd = [self.cfg.gtkwave_config.gtkwave, self.target.cfg.vcd_path]
+        if os.path.isfile(self.target.cfg.vcd_path):
+            cmd = [self.cfg.gtkwave_config.gtkwave, self.target.cfg.vcd_path]
 
-        # add waveform file if it exists
-        if self.cfg.gtkwave_config.gtkw_config is not None:
-            if os.path.isfile(self.cfg.gtkwave_config.gtkw_config):
-                cmd.append(self.cfg.gtkwave_config.gtkw_config)
+            # add waveform file if it exists
+            if self.cfg.gtkwave_config.gtkw_config is not None:
+                if os.path.isfile(self.cfg.gtkwave_config.gtkw_config):
+                    cmd.append(self.cfg.gtkwave_config.gtkw_config)
 
-        # run command
-        call(cmd)
+            # run command
+            call(cmd)
+        else:
+            raise Exception(f'ERROR: Result file: {self.target.cfg.vcd_path} does not exist; cannot open waveforms!')

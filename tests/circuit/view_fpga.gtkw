@@ -1,0 +1,27 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Wed Apr 10 03:59:47 2019
+[*]
+[dumpfile] "/home/sgherbst/Code/anasymod/tests/filter/build/vcd/top_fpga.vcd"
+[dumpfile_mtime] "Wed Apr 10 03:58:57 2019"
+[dumpfile_size] 244625
+[savefile] "/home/sgherbst/Code/anasymod/tests/filter/view_fpga.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-11.683785 13 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 223
+[signals_width] 118
+[sst_expanded] 1
+[sst_vpaned_height] 153
+@10028
+tb_i.v_out_probe
+@20000
+-
+-
+-
+-
+-
+-
+[pattern_trace] 1
+[pattern_trace] 0
