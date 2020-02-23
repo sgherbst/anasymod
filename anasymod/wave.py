@@ -152,7 +152,7 @@ class ConvertWaveform():
                     data = []
                     for c, v in probe_data[digital_signal.name]['data']:
                         try:
-                            data.append((int(c), int(v)))
+                            data.append((int(c), int(v, 2)))
                         except: # In case of an x or z value, a 0 will be added; this is necessary for PYVCD
                             data.append((int(c), int(0)))
 

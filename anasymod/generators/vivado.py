@@ -64,7 +64,6 @@ class VivadoTCLGenerator(CodeGenerator):
             if src.library is not None:
                 file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
                 self.set_property('library', value=f'{{{src.library}}}', objects=f'[get_files {file_list}]')
-                src.set_vhdl_library()
             if src.version is not None:
                 file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
                 self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
