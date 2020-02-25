@@ -102,12 +102,12 @@ class Analysis():
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
 
+        # Set float type to true, in case floating-point data types are used during simulation.
+        # This is needed when converting result files.
+        self.float_type = True
         for args in self._plugin_args:
             if 'float' in args.__dict__.keys():
                 self.float_type = args.float
-            else:
-                self.float_type = True
-
 
         #Set active target
         self.set_target(self.args.active_target)
