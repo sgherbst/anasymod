@@ -1,0 +1,11 @@
+{
+    "PROJECT": {
+        "board_name": "ZC702",
+        "plugins": ["msdsl"],
+        "emu_clk_freq": 10e6,
+        "dt": 0.1e-6
+    },
+    "TARGET": {
+        "fpga": {}
+    }
+}

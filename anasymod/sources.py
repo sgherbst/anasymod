@@ -36,7 +36,7 @@ class ConfigFileObj(CodeGenerator):
         if not isinstance(self.files, list):
             raise TypeError(f"Wrong format used in config file {self.config_path}")
         for file in self.files:
-            file = os.path.expandvars(file.strip('" '))
+            file = os.path.expandvars(str(file).strip('" '))
             if not os.path.isabs(file):
                 if self.config_path is not None:
                     path_suffix = file.replace('\\', '/').replace('/', os.sep).split(os.sep)

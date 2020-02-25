@@ -13,7 +13,7 @@ from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
-from anasymod.files import get_full_path, get_from_module, mkdir_p
+from anasymod.files import get_full_path, get_from_anasymod, mkdir_p
 from anasymod.sources import *
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
@@ -94,7 +94,7 @@ class Analysis():
         self._plugin_args = []
         for plugin in self._prj_cfg.cfg.plugins:
             try:
-                i = import_module(f"plugin.{plugin}")
+                i = import_module(f"{plugin}.plugin")
                 inst = i.CustomPlugin(prj_cfg=self._prj_cfg, cfg_file=self.cfg_file, prj_root=self.args.input)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
@@ -204,7 +204,7 @@ class Analysis():
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
+                get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -579,7 +579,7 @@ class Analysis():
         python analysis.py -i filter --models --sim --view
 
         -i, --input: Path to project root directory of the project that shall be opened and worked with.
-            default=get_from_module('anasymod', 'tests', 'filter'))
+            default=None
 
         --simulator_name: Simulator that shall be used for logic simulation.
             default=icarus for windows, xrun for linux
@@ -634,7 +634,7 @@ class Analysis():
             pass
 
 
-        parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
+        parser.add_argument('-i', '--input', type=str, default=None)
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
