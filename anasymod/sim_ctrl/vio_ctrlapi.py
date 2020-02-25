@@ -243,8 +243,7 @@ class VIOCtrlApi(CtrlApi):
 
         # Add vivado to PATH variable, in case of an inicio installation
         path = os.environ['PATH']
-        #path = path + f';{self.pcfg.vivado_config.hints}'
-        path = path + r';C:\Inicio\tools\64\Xilinx-18.2.0.3\Vivado\2018.2\bin'
+        path = path + f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
         os.environ['PATH'] = path
 
         self.proc = spawn(command=cmd, cwd=self.cwd, env=os.environ)
