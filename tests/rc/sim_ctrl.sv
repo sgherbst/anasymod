@@ -19,7 +19,8 @@ module sim_ctrl #(
         // initialize signals
         go_vio = 1'b0;
         rst_vio = 1'b1;
-        v_in_vio = float_to_fixed(1.0, `ANALOG_EXPONENT);
+        //v_in_vio = float_to_fixed(1.0, `ANALOG_EXPONENT);
+        v_in_vio = `FLOAT_TO_FIXED(1.0, `ANALOG_EXPONENT);
         #(1us);
 
         // pulse the clock
@@ -38,11 +39,14 @@ module sim_ctrl #(
             // print the current simulation state
             $display("t_sim: %0e, v_in_vio: %0f, v_out_vio: %0f",
                      t_sim,
-                     fixed_to_float(v_in_vio, `ANALOG_EXPONENT),
-                     fixed_to_float(v_out_vio, `ANALOG_EXPONENT));
+                     `FIXED_TO_FLOAT(v_in_vio, `ANALOG_EXPONENT),
+                     `FIXED_TO_FLOAT(v_out_vio, `ANALOG_EXPONENT));
+                     //fixed_to_float(v_in_vio, `ANALOG_EXPONENT),
+                     //fixed_to_float(v_out_vio, `ANALOG_EXPONENT));
 
             // check results
-            meas_val = fixed_to_float(v_out_vio, `ANALOG_EXPONENT);
+            meas_val = `FIXED_TO_FLOAT(v_out_vio, `ANALOG_EXPONENT);
+            //meas_val = fixed_to_float(v_out_vio, `ANALOG_EXPONENT);
             expt_val = 1.0 - $exp(-t_sim/tau);
             assert (((expt_val - abs_tol) <= meas_val) && (meas_val <= (expt_val + abs_tol))) else
                 $error("Measured value is out of range.");

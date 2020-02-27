@@ -48,7 +48,7 @@ def main():
     ])
 
     # add probes
-    model.add_probe(model.v_snub)
+    #model.add_probe(model.v_snub)
 
     # determine the output filename
     filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')

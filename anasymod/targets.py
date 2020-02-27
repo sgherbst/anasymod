@@ -16,7 +16,7 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import get_from_module
+from anasymod.files import get_from_anasymod
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 

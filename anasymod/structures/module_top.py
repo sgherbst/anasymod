@@ -116,10 +116,10 @@ class ModuleTop(JinjaTempl):
         ## Assign custom ctrl signals via abs paths into design
         self.assign_custom_ctlsigs = SVAPI()
         for ctrl_input in scfg.digital_ctrl_inputs + scfg.analog_ctrl_inputs:
-            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_input.abs_path, exp=ctrl_input)
+            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_input.abs_path, exp=ctrl_input.name)
 
         for ctrl_output in scfg.digital_ctrl_outputs + scfg.analog_ctrl_outputs:
-            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_output, exp=ctrl_output.abs_path)
+            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_output.name, exp=ctrl_output.abs_path)
 
         ######################################################
         # Manage trace port Module
