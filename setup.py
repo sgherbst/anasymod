@@ -27,8 +27,8 @@ setup(
         ]
     },
     install_requires=[
-        'svreal>=0.2.0.dev1',
-        'msdsl>=0.1.7.dev1',
+        'svreal>=0.2.0',
+        'msdsl>=0.1.7',
         'jinja2',
         'pyvcd',
         'pyserial',
