@@ -32,7 +32,8 @@ setup(
         'jinja2',
         'pyvcd',
         'pyserial',
-        'pexpect'
+        'pexpect',
+        'PyYAML'
     ],
     license='BSD 3-Clause "New" or "Revised" License',
     url=f'https://github.com/sgherbst/{name}',
