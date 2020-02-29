@@ -16,23 +16,29 @@ def float_to_fixed(x):
 def fixed_to_float(x):
     return x * (2.0**(ANALOG_EXPONENT))
 
-def parse():
-    parser = ArgumentParser()
-    parser.add_argument('--gen_bitstream', action='store_true')
-    return parser.parse_args()
+def test_rc_sim(simulator_name='vivado'):
+    # create analysis object
+    ana = Analysis(input=root,
+                   simulator_name=simulator_name)
+    # generate functional models
+    ana.msdsl.models()
+    # setup project's filesets
+    ana.setup_filesets()
+    # run the simulation
+    ana.simulate()
 
-def test_rc():
-    args = parse()
-    ana = Analysis(input=root)                              # create analysis object to host prototyping project
+def test_rc_emu(gen_bitstream=True):
+    # create analysis object
+    ana = Analysis(input=root)
+    # generate functional models
+    ana.msdsl.models()
+    ana.setup_filesets()
+    ana.set_target(target_name='fpga')      # set the active target to 'fpga'
 
-    ana.msdsl.models()                                      # generate functional models
-    ana.setup_filesets()                                    # setup project's filesets
-    ana.set_target(target_name='fpga')                      # set the active target to 'fpga'
+    if gen_bitstream:
+        ana.build()                         # generate bitstream for project
 
-    if args.gen_bitstream:
-        ana.build()                                         # generate bitstream for project
-
-    ctrl = ana.launch(debug=True)                    # start interactive control
+    ctrl = ana.launch(debug=True)           # start interactive control
 
     # routine to pulse clock
     def pulse_clock():
@@ -83,4 +89,18 @@ def test_rc():
         t_sim += 0.1e-6
 
 if __name__ == "__main__":
-    test_rc()
+    # parse command-line arguments
+    parser = ArgumentParser()
+    parser.add_argument('--sim', action='store_true')
+    parser.add_argument('--emulate', action='store_true')
+    parser.add_argument('--gen_bitstream', action='store_true')
+    parser.add_argument('--simulator_name', type=str, default=None)
+    args = parser.parse_args()
+
+    # run actions as requested
+    if args.sim:
+        print('Running simulation...')
+        test_rc_sim(simulator_name=args.simulator_name)
+    if args.emulate:
+        print('Running emulation...')
+        test_rc_emu(gen_bitstream=args.gen_bitstream)
