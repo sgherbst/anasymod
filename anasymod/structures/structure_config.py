@@ -1,13 +1,9 @@
-import os
+import os, yaml
 
 from anasymod.enums import ConfigSections
 from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
-from anasymod.structures.port_base import PortIN, PortOUT, Port
-from anasymod.structures.signal_base import Signal
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, ProbeSignal
-
-#ToDo: wrap vios into classes to better cope with parameters such as width, name, abs_path, portobj, sigobj, ...
+from anasymod.sim_ctrl.datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe
 
 class StructureConfig():
     """
@@ -17,59 +13,26 @@ class StructureConfig():
     There is also a specific interface to flow plugins that allows modification due to some needs
     from the plugin side, e.g. additional clks, resets, ios to the host application or resources on the FPGA board.
     """
-    def __init__(self, prj_cfg: EmuConfig):
+    def __init__(self, prj_cfg: EmuConfig, tstop):
         # Internal variables
         self.i_addr_counter = 0
         self.o_addr_counter = 0
 
-        # Path to ctrl_io file
-        self._ctrl_iofile_path = os.path.join(prj_cfg.root, 'ctrl_io.config')
-        # Path to clk file
-        self._clk_file_path = os.path.join(prj_cfg.root, 'clk.config')
-        # Path to clk file
-        self._dt_req_file_path = os.path.join(prj_cfg.root, 'dt_req.config')
-        # Path to probe file
-        self._probe_file_path = os.path.join(prj_cfg.root, 'probe.config')
-
+        # Path to clks.yaml file
+        self._clks_file_path = os.path.join(prj_cfg.root, 'clks.yaml')
+        # Path to simctrl.yaml file
+        self._simctrl_file_path = os.path.join(prj_cfg.root, 'simctrl.yaml')
 
         self.cfg = Config(prj_cfg=prj_cfg)
         self.cfg.update_config()
 
         #########################################################
-        # VIO interfaces
+        # Manage clks
         #########################################################
 
-        # Add DigitalCtrlInput for reset
-        self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
-        self.reset_ctrl.i_addr = self._assign_i_addr()
-
-        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
-        self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
-        self.dec_thr_ctrl.i_addr = self._assign_i_addr()
-
-        # CtrlIOs
-        self.digital_ctrl_inputs = []
-        self.digital_ctrl_outputs = []
-        self.analog_ctrl_inputs = []
-        self.analog_ctrl_outputs = []
-
-        #Only for testing
-        #self.digital_ctrl_inputs = [DigitalCtrlInput(name='hufflpu', width=31, abspath='test',init_value=41)]
-        #self.digital_ctrl_inputs[0].i_addr = self._assign_i_addr()
-        #self.digital_ctrl_outputs = [DigitalCtrlOutput(name='banii', width=1, abspath='testi')]
-        #self.digital_ctrl_outputs[0].o_addr = self._assign_o_addr()
-        #self.analog_ctrl_inputs = [AnalogCtrlInput(name='mimpfl', init_value=42.0, abspath='testii', range=500)]
-        #self.analog_ctrl_inputs[0].i_addr = self._assign_i_addr()
-        #self.analog_ctrl_outputs = [AnalogCtrlOutput(name='primpf', range=250, abspath=r'top.tb_i.v_out')]
-        #self.analog_ctrl_outputs[0].o_addr = self._assign_o_addr()
-
-        self._read_iofile()
-
-        #########################################################
-        # CLK manager interfaces
-        #########################################################
-
-        self.emu_clk = DigitalSignal(name='emu_clk', abspath=None, width=1)
+        self.emu_clk = ClkIndependent(name='emu_clk', freq=float(prj_cfg.cfg.emu_clk_freq))
+        self.emu_clk_2x = ClkIndependent(name='emu_clk_2x', freq=float(prj_cfg.cfg.emu_clk_freq) * 2) # multiplied by two, as emu_clk_2x is twice as fast as emu_clk
+        self.dbg_clk = ClkIndependent(name='dbg_hub_clk', freq=float(prj_cfg.board.dbg_hub_clk_freq))
 
         # add clk_in
         self.clk_i_num = len(prj_cfg.board.clk_pin)
@@ -83,53 +46,51 @@ class StructureConfig():
             raise ValueError(
                 f"Wrong number of pins for boards param 'clk_pin', expecting 1 or 2, provided:{self.clk_i_num}")
 
-        # add master clk_outs, currently there is exactly one master clock, in case there is the need for multiple ones,
-        # the num parameter needs to be exposed and naming needs to be configurable -> names might still be hardcoded at
-        # some places!!!
-        self.clk_m_num = 1
-        self.clk_m = [DigitalSignal(abspath=None, width=1, name='emu_clk_2x')]
+        # Add independent clks, that will be implemented via clk_wiz IP core for FPGA
+        self.clk_independent = []
+        """ type : [ClkIndependent]"""
 
-        # add debug clk_out
-        self.clk_d_num = 1
-        self.clk_d = []
+        # Add derived clks; those are aligned with emu_clk
+        self.clk_derived = []
+        """ type : [ClkDerived]"""
 
-        # currently there is exactly one debug clock, in case there is the need for multiple ones, name handling must be
-        # implemented, there are some places in codebase where the debug clk name is still hard coded!!!
-        for k in range(self.clk_d_num):
-            self.clk_d += [DigitalSignal(abspath=None, width=1, name=f'dbg_hub_clk{k}')]
+        # Number of gated clks
+        self.num_gated_clks = 0
 
-        #########################################################
-        # EMU CLK generator interfaces
-        #########################################################
+        # Number of dt requests
+        self.num_dt_reqs = 0
 
-        # add custom clk_out and associated clk_gate (currently all of them are derrived from this one master clk)
-        # signals as tuples (clk_out, clk_gate)
-        self.clk_o = []
-
-        self._read_clkfile()
+        self._read_clksfile()
 
         #########################################################
-        # Time manager interfaces
+        # Simulation control interfaces
         #########################################################
 
-        self.dt_reqs = []
+        # CtrlIOs
+        self.digital_ctrl_inputs = []
+        self.digital_ctrl_outputs = []
+        self.analog_ctrl_inputs = []
+        self.analog_ctrl_outputs = []
+        self.analog_probes = []
+        self.digital_probes = []
 
-        self._read_dt_reqfile()
+        # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
-        #########################################################
-        # Probe interfaces
-        #########################################################
+        # Add time signal representing current simulated time
+        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=(1.1 * tstop), width=prj_cfg.cfg.time_width)
 
-        self.analog_probes = [] # use later
-        self.time_probes = [] # use later
-        self.reset_probes = [] # use later
-        self.digital_probes = [] # use later
+        # Add DigitalCtrlInput for reset
+        self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
+        self.reset_ctrl.i_addr = self._assign_i_addr()
 
-        #temporary
-        self.probes = []
-        """ : type: ProbeSignal"""
+        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
+        self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
+        self.dec_thr_ctrl.i_addr = self._assign_i_addr()
 
-        self._read_probefile()
+        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling for the ila depending on 'emu_dec_thr'
+        self.dec_cmp = DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1)
+
+        self._read_simctrlfile()
 
     def _assign_i_addr(self):
         """
@@ -147,174 +108,176 @@ class StructureConfig():
         self.o_addr_counter +=1
         return curr_addr
 
-    def _read_iofile(self):
+    def _read_clksfile(self):
         """
-        Read all lines from iofile and call parse function to populate ctrl_ios attributes.
+        Read all lines from clks file clks.config and store in structure config attributes. This includes either
+        independent clks, which will directly be added to the clk management block and in case of a FPGA simulation
+        implemented via clk_wiz IP core, or derived clks, which will be derived for the main emulation clk em,u_clk_2x.
         """
-        if os.path.isfile(self._ctrl_iofile_path):
-            with open(self._ctrl_iofile_path, "r") as f:
-                ctrlios = f.readlines()
-            self._parse_iofile(ctrlios=ctrlios)
+        if os.path.isfile(self._clks_file_path):
+            try:
+                clks = yaml.safe_load(open(self._clks_file_path, "r"))
+            except yaml.YAMLError as exc:
+                raise Exception(exc)
+
+            if clks is not None:
+                # Add independent clks to structure config
+                if 'independent_clks' in clks.keys():
+                    print(f'Independent Clks: {[key for key in clks["independent_clks"].keys()]}')
+                    for independent_clk in clks['independent_clks'].keys():
+                        self.clk_independent.append(ClkIndependent(name=independent_clk,
+                                                                   freq=float(clks['independent_clks'][independent_clk]['freq'])))
+                else:
+                    print(f'No Independent Clks provided.')
+
+                # Add derived clks to structure config
+                if 'derived_clks' in clks.keys():
+                    print(f'Derived Clks: {[key for key in clks["derived_clks"].keys()]}')
+                    for derived_clk in clks['derived_clks'].keys():
+                        abspath_emu_dt = None
+                        abspath_emu_clk = None
+                        abspath_emu_rst = None
+                        abspath_dt_req = None
+                        abspath_gated_clk = None
+                        abspath_gated_clk_req = None
+                        if 'abspath' in clks['derived_clks'][derived_clk].keys():  # default abspath is provided
+                            abspath_default = clks['derived_clks'][derived_clk]['abspath']
+                        else:
+                            raise Exception(f'No abspath provided for clk: {derived_clk}')
+
+                        if 'emu_dt' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['variable_timestep', 'oscillator']):
+                            emu_dt_signame = clks['derived_clks'][derived_clk]['emu_dt'] if ('emu_dt' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['emu_dt'] is not "") else '__emu_dt'
+                            abspath_emu_dt = abspath_default + '.' + emu_dt_signame
+                        if 'emu_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
+                            emu_clk_signame = clks['derived_clks'][derived_clk]['emu_clk'] if ('emu_clk' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['emu_clk'] is not "") else '__emu_clk'
+                            abspath_emu_clk = abspath_default + '.' + emu_clk_signame
+                        if 'emu_rst' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
+                            emu_rst_signame = clks['derived_clks'][derived_clk]['emu_rst'] if ('emu_rst' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['emu_rst'] is not "") else '__emu_rst'
+                            abspath_emu_rst = abspath_default + '.' + emu_rst_signame
+                        if 'dt_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['variable_timestep', 'oscillator']):
+                            dt_req_signame = clks['derived_clks'][derived_clk]['dt_req'] if ('dt_req' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['dt_req'] is not "") else '__emu_dt_req'
+                            abspath_dt_req = abspath_default + '.' + dt_req_signame
+                            self.num_dt_reqs += 1
+                        if 'gated_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'oscillator']):
+                            gated_clk_signame = clks['derived_clks'][derived_clk]['gated_clk'] if ('gated_clk' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['gated_clk'] is not "") else '__emu_clk_i'
+                            abspath_gated_clk = abspath_default + '.' + gated_clk_signame
+                            self.num_gated_clks += 1
+                        if 'gated_clk_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'oscillator']):
+                            gated_clk_req_signame = clks['derived_clks'][derived_clk]['gated_clk_req'] if ('gated_clk_req' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['gated_clk_req'] is not "") else '__emu_clk_val'
+                            abspath_gated_clk_req = abspath_default + '.' + gated_clk_req_signame
+
+                        self.clk_derived.append(ClkDerived(name=derived_clk, abspath_emu_dt=abspath_emu_dt, abspath_emu_clk=abspath_emu_clk, abspath_emu_rst=abspath_emu_rst, abspath_dt_req=abspath_dt_req, abspath_gated_clk=abspath_gated_clk, abspath_gated_clk_req=abspath_gated_clk_req))
+                else:
+                    print(f'No Derived Clks provided.')
         else:
-            print(f"No ctrl_io file existing, no additional control IOs will be available for this simulation.")
+            print(f"No clks.config file existing, no additional clks will be added for this design.")
 
-    def _parse_iofile(self, ctrlios: list):
+    def _read_simctrlfile(self):
         """
-        Read all lines from ctrl io file and store IO objects in CtrlIO container while adding access addresses to
-        each IO object.
-        :param ctrlios: Lines extracted to ctrl_io file
+        Read all lines from simulation control file simctrl.yaml and store in structure config attributes.
         """
+        if os.path.isfile(self._simctrl_file_path):
+            try:
+                sigs = yaml.safe_load(open(self._simctrl_file_path, "r"))
+            except yaml.YAMLError as exc:
+                raise Exception(exc)
 
-        for k, line in enumerate(ctrlios):
-            line = line.strip()
+            if sigs is not None:
+                # Add analog probes to structure config
+                if 'analog_probes' in sigs.keys():
+                    print(f'Analog Probes: {[key for key in sigs["analog_probes"].keys()]}')
+                    for analog_probe in sigs['analog_probes'].keys():
+                        self.analog_probes.append(AnalogProbe(name=analog_probe,
+                                                              abspath=sigs['analog_probes'][analog_probe]['abspath'],
+                                                              range=sigs['analog_probes'][analog_probe]['range'],
+                                                              width=sigs['analog_probes'][analog_probe]['width'] if 'width' in sigs['analog_probes'][analog_probe].keys() else 25))
+                else:
+                    print(f'No Analog Probes provided.')
 
-            if line.startswith('#'):
-                # skip comments
-                continue
+                # Add digital probes to structure config
+                if 'digital_probes' in sigs.keys():
+                    print(f'Digital Probes: {[key for key in sigs["digital_probes"].keys()]}')
+                    for digital_probe in sigs['digital_probes'].keys():
+                        self.digital_probes.append(DigitalSignal(name=digital_probe,
+                                                                abspath=sigs['digital_probes'][digital_probe]['abspath'],
+                                                                width=sigs['digital_probes'][digital_probe]['width']))
+                else:
+                    print(f'No Digital Probes provided.')
 
-            if line:
-                try:
-                    line = eval(line)
-                    if isinstance(line, DigitalCtrlInput):
-                        line.i_addr = self._assign_i_addr()
-                        self.digital_ctrl_inputs.append(line)
-                    elif isinstance(line, DigitalCtrlOutput):
-                        line.o_addr = self._assign_o_addr()
-                        self.digital_ctrl_outputs.append(line)
-                    elif isinstance(line, AnalogCtrlInput):
-                        line.i_addr = self._assign_i_addr()
-                        self.analog_ctrl_inputs.append(line)
-                    elif isinstance(line, AnalogCtrlOutput):
-                        line.o_addr = self._assign_o_addr()
-                        self.analog_ctrl_outputs.append(line)
-                    else:
-                        raise Exception(f"Line {k+1} of ctrl_io file: {self._ctrl_iofile_path} does not fit do a specified source or config type")
-                except:
-                    raise Exception(f"Line {k+1} of config file: {self._ctrl_iofile_path} could not be processed properely")
+                # Add digital ctrl inputs to structure config
+                if 'digital_ctrl_inputs' in sigs.keys() and sigs['digital_ctrl_inputs'] is not None:
+                    print(f'Digital Ctrl Inputs: {[key for key in sigs["digital_ctrl_inputs"].keys()]}')
+                    for d_ctrl_in in sigs['digital_ctrl_inputs'].keys():
+                        d_ctrl_i = DigitalCtrlInput(name=d_ctrl_in,
+                                                    abspath=sigs['digital_ctrl_inputs'][d_ctrl_in]['abspath'],
+                                                    width=sigs['digital_ctrl_inputs'][d_ctrl_in]['width'],
+                                                    init_value=sigs['digital_ctrl_inputs'][d_ctrl_in]['init_value'] if 'init_value' in sigs['digital_ctrl_inputs'][d_ctrl_in].keys() else 0)
+                        d_ctrl_i.i_addr = self._assign_i_addr()
+                        self.digital_ctrl_inputs.append(d_ctrl_i)
+                else:
+                    print(f'No Digital Ctrl Input provided.')
 
-    def _read_clkfile(self):
-        """
-        Read all lines from clk.config file and call parse function to populate emu clk attribute.
-        """
-        if os.path.isfile(self._clk_file_path):
-            with open(self._clk_file_path, "r") as f:
-                clks = f.readlines()
-            self._parse_clkfile(clks=clks)
+                # Add digital ctrl outputs to structure config
+                if 'digital_ctrl_outputs' in sigs.keys() and sigs['digital_ctrl_outputs'] is not None:
+                    print(f'Digital Ctrl Outputs: {[key for key in sigs["digital_ctrl_outputs"].keys()]}')
+                    for d_ctrl_out in sigs['digital_ctrl_outputs'].keys():
+                        d_ctrl_o = DigitalCtrlOutput(name=d_ctrl_out,
+                                                     abspath=sigs['digital_ctrl_outputs'][d_ctrl_out]['abspath'],
+                                                     width=sigs['digital_ctrl_outputs'][d_ctrl_out]['width'])
+                        d_ctrl_o.o_addr = self._assign_o_addr()
+                        self.digital_ctrl_outputs.append(d_ctrl_o)
+                else:
+                    print(f'No Digital Ctrl Outputs provided.')
+
+                # Add analog ctrl inputs to structure config
+                if 'analog_ctrl_inputs' in sigs.keys() and sigs['analog_ctrl_inputs'] is not None:
+                    print(f'Analog Ctrl Inputs: {[key for key in sigs["analog_ctrl_inputs"].keys()]}')
+                    for a_ctrl_in in sigs['analog_ctrl_inputs'].keys():
+                        a_ctrl_i = AnalogCtrlInput(name=a_ctrl_in,
+                                                    abspath=sigs['analog_ctrl_inputs'][a_ctrl_in]['abspath'],
+                                                    range=sigs['analog_ctrl_inputs'][a_ctrl_in]['range'],
+                                                    init_value=sigs['analog_ctrl_inputs'][a_ctrl_in]['init_value'] if 'init_value' in sigs['analog_ctrl_inputs'][a_ctrl_in].keys() else 0.0)
+                        a_ctrl_i.i_addr = self._assign_i_addr()
+                        self.analog_ctrl_inputs.append(a_ctrl_i)
+                else:
+                    print(f'No Analog Ctrl Input provided.')
+
+                # Add analog ctrl outputs to structure config
+                if 'analog_ctrl_outputs' in sigs.keys() and sigs['analog_ctrl_outputs'] is not None:
+                    print(f'Analog Ctrl Outputs: {[key for key in sigs["analog_ctrl_outputs"].keys()]}')
+                    for a_ctrl_out in sigs['analog_ctrl_outputs'].keys():
+                        a_ctrl_o = AnalogCtrlOutput(name=a_ctrl_out,
+                                                     abspath=sigs['analog_ctrl_outputs'][a_ctrl_out]['abspath'],
+                                                     range=sigs['analog_ctrl_outputs'][a_ctrl_out]['range'])
+                        a_ctrl_o.o_addr = self._assign_o_addr()
+                        self.analog_ctrl_outputs.append(a_ctrl_o)
+                else:
+                    print(f'No Analog Ctrl Outputs provided.')
         else:
-            print(f"No clk.config file existing, no additional clks will be added.")
+            print(f"No simctrl.yaml file existing, no additional probes will be available for this simulation.")
 
-    def _parse_clkfile(self, clks: []):
-        """
-        Read all lines from ctrl io file and store IO objects in CtrlIO container while adding access addresses to
-        each IO object.
-        :param clks: Lines extracted from clk file
-        """
+class ClkIndependent(DigitalSignal):
+    """
+    Container for an independent clk object.
+    """
 
-        for k, item in enumerate(clks):
-            item = item.strip()
+    def __init__(self, name, freq):
+        super().__init__(abspath="", name=name, width=1)
+        self.freq = freq
 
-            if item.startswith('#'):
-                # skip comments
-                continue
+class ClkDerived(DigitalSignal):
+    """
+    Container for a derived clk object.
+    """
 
-            if item:
-                try:
-                    item = eval(item)
-                    if isinstance(item, str):
-                        self.clk_o.append(item)
-                    else:
-                        raise Exception(f"Elements of line {k + 1} in clk file: {self._clk_file_path} don't consist of strings")
-                except:
-                    raise Exception(f"Line {k+1} of clk file: {self._clk_file_path} could not be processed properely")
-
-    def _read_dt_reqfile(self):
-        """
-        Read all lines from dt_req.config file and call parse function to populate dt_req attribute.
-        """
-        if os.path.isfile(self._dt_req_file_path):
-            with open(self._dt_req_file_path, "r") as f:
-                dt_reqs = f.readlines()
-            self._parse_dt_reqfile(dt_reqs=dt_reqs)
-        else:
-            print(f"No dt_req.config file existing, no additional dt requests will be added.")
-
-    def _parse_dt_reqfile(self, dt_reqs: list):
-        """
-        Read all lines from dt_req file dt_req.config and store in dt_req attribute.
-        :param clks: Lines extracted from dt_req file
-        """
-
-        for k, dt_req in enumerate(dt_reqs):
-            dt_req = dt_req.strip()
-
-            if dt_req.startswith('#'):
-                # skip comments
-                continue
-
-            if dt_req:
-                try:
-                    dt_req = eval(dt_req)
-                    if isinstance(dt_req, str):
-                        self.dt_reqs.append(dt_req)
-                    else:
-                        raise Exception(f"Tuple elements of line {k + 1} in clk file: {self._dt_req_file_path} don't consist of strings")
-                except:
-                    raise Exception(f"Line {k+1} of clk file: {self._dt_req_file_path} could not be processed properely")
-
-    def _read_probefile(self):
-        """
-        Read all lines from probe.config file and call parse function to populate probe attribute.
-        """
-        if os.path.isfile(self._probe_file_path):
-            with open(self._probe_file_path, "r") as f:
-                probes = f.readlines()
-            self._parse_probefile(probes=probes)
-        else:
-            print(f"No probe.config file existing, no additional probes will be available for this simulation.")
-
-    def _parse_probefile(self, probes: list):
-        """
-        Read all lines from probe file probe.config and store in probe attribute.
-        :param clks: Lines extracted from dt_req file
-        """
-
-        for k, probe in enumerate(probes):
-            probe = probe.strip()
-
-            if probe.startswith('#'):
-                # skip comments
-                continue
-
-            if probe:
-                try:
-                    probe = eval(probe)
-                    if (isinstance(probe, list) and len(probe) == 4):
-                        self.probes.append(ProbeSignal(name=probe[0], abspath=probe[1], width=probe[2], exponent=probe[3]))
-                    else:
-                        raise Exception(f"Probe specified in line {k + 1} in probe file: {self._probe_file_path} has "
-                                        f"wrong format, expected is: ['name', 'abspath', 'width','exponent']")
-                except:
-                    raise Exception(f"Line {k+1} of probe.config file: {self._probe_file_path} could not be processed properely")
-
-        # ToDo: Once different probe types are supported, parser needs to differenciate properly
-        #self.analog_signals = []
-        #for name, width, exponent in zip(signals[0], signals[2], signals[1]):
-        #    self.analog_signals.append((name, width, exponent))
-
-        #self.time_signal = []
-        #for name,width, exponent in zip(signals[3], signals[5], signals[4]):
-        #    self.time_signal.append((name, width, exponent))
-
-        #self.reset_signal = []
-        #for name,width, exponent in zip(signals[6], [r"1"], [None]):
-        #    self.reset_signal.append((name, width, exponent))
-
-        #self.digital_signals = []
-        #for name in signals[7]:
-        #    self.digital_signals.append((name, r"1", None))
-
-        #for name, width in zip(signals[8], signals[9]):
-        #    self.digital_signals.append((name, width, None))
+    def __init__(self, name, abspath_emu_dt, abspath_emu_clk, abspath_emu_rst, abspath_dt_req, abspath_gated_clk, abspath_gated_clk_req):
+        super().__init__(abspath="", name=name, width=1)
+        self.abspath_emu_dt = abspath_emu_dt
+        self.abspath_emu_clk = abspath_emu_clk
+        self.abspath_emu_rst = abspath_emu_rst
+        self.abspath_dt_req = abspath_dt_req
+        self.abspath_gated_clk = abspath_gated_clk
+        self.abspath_gated_clk_req = abspath_gated_clk_req
 
 class Config(BaseConfig):
     """
@@ -325,11 +288,4 @@ class Config(BaseConfig):
         super().__init__(cfg_file=prj_cfg.cfg_file, section=ConfigSections.STRUCTURE)
 
         self.rst_clkcycles = 1
-
-        #########################################################
-        # CLK manager settings
-        #########################################################
-
-        # add gated clk_outs
-        self.clk_o_num = 0
-        self.clk_g_num = 0
+        """ type(int) : number of clk cycles, the initial emu_rst signal shall be active. """

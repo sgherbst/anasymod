@@ -8,7 +8,7 @@ class TemplDbgHub(JinjaTempl):
         self.dbg_hub_prop['C_ENABLE_CLK_DIVIDER'] = 'false'
         self.dbg_hub_prop['C_USER_SCAN_CHAIN'] = '1'
         self.dbg_hub_prop['C_CLK_INPUT_FREQ_HZ'] = str(int(target.prj_cfg.board.dbg_hub_clk_freq))
-        self.conn_dbg_clk = f'clk_gen_i/clk_wiz_0_i/clk_out{target.str_cfg.clk_m_num + target.str_cfg.clk_d_num}'
+        self.conn_dbg_clk = f'clk_gen_i/clk_wiz_0_i/clk_out2'
         #ToDo: In case multiple dbg hubs are necessary, managing signal names needs to be adapted and several
         # instantiations are necessary
 

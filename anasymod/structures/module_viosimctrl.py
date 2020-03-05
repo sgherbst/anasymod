@@ -2,7 +2,7 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput
+from anasymod.sim_ctrl.datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 class ModuleVIOSimCtrl(JinjaTempl):
     def __init__(self, scfg: StructureConfig):
@@ -27,14 +27,16 @@ class ModuleVIOSimCtrl(JinjaTempl):
         # PC sim control section
         #####################################################
 
-        # Custom control IOs for pc sim control module
+        ## Custom control IOs for pc sim control module
         self.pc_sim_crtl_ifc = SVAPI()
 
-        sim_ctrl_module = ModuleInst(api=self.pc_sim_crtl_ifc, name="sim_ctrl")
-        sim_ctrl_module.add_inputs(ctrl_outputs, connections=ctrl_outputs)
-        sim_ctrl_module.add_outputs(crtl_inputs, connections=crtl_inputs)
+        # Only generate instantiation if there is any ctrl signal available
+        if len(ctrl_outputs + crtl_inputs) != 0:
+            sim_ctrl_module = ModuleInst(api=self.pc_sim_crtl_ifc, name="sim_ctrl")
+            sim_ctrl_module.add_inputs(ctrl_outputs, connections=ctrl_outputs)
+            sim_ctrl_module.add_outputs(crtl_inputs, connections=crtl_inputs)
 
-        sim_ctrl_module.generate_instantiation()
+            sim_ctrl_module.generate_instantiation()
 
         # set number of clk cycles for initial reset
         self.rst_clkcycles = scfg.cfg.rst_clkcycles
@@ -92,17 +94,18 @@ class ModuleVIOSimCtrl(JinjaTempl):
     `endif // `ifdef DEC_THR_VAL_MSDSL
     assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
 
-    {% if subst.pc_sim_crtl_ifc.text is not none %} 
+     
     //module for custom vio handling
     //NOTE: sim_ctrl module must be written and added to the project manually!!!
 {{subst.pc_sim_crtl_ifc.text}}
-    {% endif %}
+    
 `else
 	// VIO instantiation
 {{subst.vio_wiz_inst.text}}
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule
+
 `default_nettype wire
 '''
 

@@ -3,8 +3,7 @@
 
 `timescale 1ns/1ps
 
-`include "real.sv"
-`include "math.sv"
+`include "svreal.sv"
 `include "msdsl.sv"
 
 `default_nettype none
@@ -30,11 +29,6 @@ module tb;
         .clk(clk),
         .out(out)
     );
-
-    // emulation output
-    `PROBE_ANALOG(in_p);
-    `PROBE_ANALOG(in_n);
-    `PROBE_DIGITAL(out, 1);
 
     // main stimulus
     real stim;

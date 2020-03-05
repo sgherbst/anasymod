@@ -3,8 +3,7 @@
 
 `timescale 1ns/1ps
 
-`include "real.sv"
-`include "math.sv"
+`include "svreal.sv"
 `include "msdsl.sv"
 
 `default_nettype none
@@ -36,10 +35,6 @@ module tb;
         .v_out(v_out)
     );
 
-    // emulation output
-    `PROBE_ANALOG(v_in);
-    `PROBE_ANALOG(v_out);
-    `PROBE_DIGITAL(ctrl, 1);
 endmodule
 
 `default_nettype wire

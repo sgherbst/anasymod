@@ -1,16 +1,18 @@
 from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
-from anasymod.probe_config import ProbeConfig
+#from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
+from anasymod.sim_ctrl.datatypes import ProbeSignal
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         super().__init__(trim_blocks=False, lstrip_blocks=False)
         pcfg = target.prj_cfg
+        scfg = target.str_cfg
 
-        # read in probe signals from the probe config file
-        self.probe_signals = ProbeConfig(probe_cfg_path=target.probe_cfg_path)
+        self.analog_probes = scfg.analog_probes
+        self.digital_probes = scfg.digital_probes
 
         # set server address
         self.server_addr = server_addr
@@ -51,27 +53,14 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         # of "2" corresponds to a decimation ratio of "3", and so on.
         decimation_ratio_setting = int(round(decimation_ratio_float)) - 1
 
-        # extract the time signal
-        # note that time_signal is actually a list (should have exactly one value)
-        if len(self.probe_signals.time_signal) == 0:
-            raise Exception('Time signal not found -- check the probe config file.')
-        elif len(self.probe_signals.time_signal) > 1:
-            raise Exception('Multiple time signals not found  -- check the probe config file.')
-        else:
-            time_signal = self.probe_signals.time_signal[0]
-
-        # extract properties from the time signal, which is a 3-tuple of strings
-        time_name, time_width, time_exponent = time_signal
-        time_width = int(time_width)
-        time_exponent = int(time_exponent)
-
         # determine starting time as an integer value
-        start_time_int = int(round(start_time*(2**(-time_exponent))))
+        time = target.str_cfg.time_probe
+        start_time_int = int(round(start_time*(2**(int(-time.exponent)))))
 
         # export the decimation ratio, starting time, and time signal name to the template
-        self.time_name = time_name
+        self.time_name = time.name
         self.decimation_ratio_setting = str(decimation_ratio_setting)
-        self.start_time_int = f"{time_width}'u{start_time_int}"
+        self.start_time_int = f"{int(time.width)}'u{start_time_int}"
 
     TEMPLATE_TEXT = '''
 # Connect to hardware
@@ -98,45 +87,48 @@ program_hw_devices $my_hw_device
 refresh_hw_device $my_hw_device
 
 # VIO setup
-set vio_0_i [get_hw_vios -of_objects $hw_device -filter {CELL_NAME=~"sim_ctrl_gen_i/vio_0_i"}]
+set vio_0_i [get_hw_vios -of_objects $my_hw_device -filter {CELL_NAME=~"sim_ctrl_gen_i/vio_0_i"}]
 set rst_hw_probe [get_hw_probes *rst* -of_objects $vio_0_i]
-
-# Code related to non-interactive mode starts here 
 
 # ILA setup
 set my_hw_ila [get_hw_ilas]
 display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $my_hw_ila]
 
+##################################################
+# Code related to non-interactive mode starts here
+##################################################
+
 # Trigger setup
-# TODO: use starting time as trigger condition
 startgroup
 set_property CONTROL.CAPTURE_MODE BASIC $my_hw_ila
 set_property CONTROL.TRIGGER_POSITION 0 $my_hw_ila
 endgroup
-set_property TRIGGER_COMPARE_VALUE gt{{subst.start_time_int}} [get_hw_probes {{subst.time_name}} -of_objects $my_hw_ila]
+set_property TRIGGER_COMPARE_VALUE gt{{subst.start_time_int}} [get_hw_probes trace_port_gen_i/{{subst.time_name}} -of_objects $my_hw_ila]
 
 # Capture setup
 # TODO: use variable for emu_dec_cmp_probe
 # probably always be "2" because unfortunately "1" is not a valid option.
 set_property CONTROL.DATA_DEPTH 2 $my_hw_ila
 set_property CONTROL.WINDOW_COUNT {{subst.window_count}} $my_hw_ila
-set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes emu_dec_cmp_probe -of_objects $my_hw_ila]
+set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes trace_port_gen_i/emu_dec_cmp -of_objects $my_hw_ila]
 
 # VIO: decimation ratio
 # TODO: use variable for emu_dec_thr
-set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $vio_0_i]
-set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $vio_0_i]
-commit_hw_vio [get_hw_probes vio_gen_i/emu_dec_thr -of_objects $vio_0_i]
+set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
+set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
+commit_hw_vio [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
 
 # Radix setup: real numbers
-{% for probename, _, _ in subst.probe_signals.analog_signals + subst.probe_signals.time_signal %}
-catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes {{probename}}]{{'}'}}
+{% for probe in subst.analog_probes %}
+catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{probe.name}}]{{'}'}}
 {% endfor %}
+
+catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{subst.time_name}}]{{'}'}}
 
 # Radix setup: unsigned digital values
 # TODO: handle both signed and unsigned digital values
-{% for probename, _, _ in subst.probe_signals.digital_signals + subst.probe_signals.reset_signal %}
-catch {{'{'}}set_property DISPLAY_RADIX UNSIGNED [get_hw_probes {{probename}}]{{'}'}}
+{% for probe in subst.digital_probes %}
+catch {{'{'}}set_property DISPLAY_RADIX UNSIGNED [get_hw_probes trace_port_gen_i/{{probe.name}}]{{'}'}}
 {% endfor %}
 
 # Put design in reset

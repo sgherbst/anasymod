@@ -5,11 +5,11 @@ from collections import OrderedDict
 
 from anasymod.sim.sim import Simulator
 from anasymod.util import call
-from anasymod.targets import SimulationTarget
+from anasymod.targets import CPUTarget
 from anasymod.config import EmuConfig
 
 class XceliumSimulator(Simulator):
-    def __init__(self, target: SimulationTarget):
+    def __init__(self, target: CPUTarget):
         super().__init__( target=target)
         self.unit = None
         self.id = None
@@ -88,7 +88,10 @@ class XceliumSimulator(Simulator):
             libraries[library] += files
 
         for library, sources in libraries.items():
-            cmd += ['-makelib', library]
+            if library is not None:
+                cmd += ['-makelib', library]
+            else:
+                cmd += ['-makelib']
             cmd += sources
             cmd += ['-endlib']
 
@@ -110,6 +113,8 @@ class XceliumSimulator(Simulator):
                 cmd += ["-unit", self.unit ]
             if self.id:
                 cmd += ["-id", self.id ]
+            else:
+                self.id = "xcelium"
 
             print(cmd)
             call(cmd, cwd=self.cfg.build_root)

@@ -9,7 +9,7 @@ from math import ceil, log2
 from collections import namedtuple
 from argparse import ArgumentParser
 
-from msdsl import VerilogGenerator
+from msdsl.generator.verilog import VerilogGenerator
 
 def back2fwd(path: str):
     return path.replace('\\', '/')
@@ -26,8 +26,9 @@ def call(args, cwd=None, wait=True):
     # run the command
     kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
     if wait:
-        ret = subprocess.call(**kwargs)
-        assert ret == 0
+        print(f"Checking return code of subprocess call: {args}")
+        result = subprocess.run(**kwargs)
+        assert result.returncode == 0, f"Exited with error code: {result.returncode}"
     else:
         subprocess.Popen(**kwargs)
 

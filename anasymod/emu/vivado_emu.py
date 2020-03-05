@@ -7,14 +7,10 @@ from anasymod.util import back2fwd
 from anasymod.templates.dbg_hub import TemplDbgHub
 from anasymod.templates.ext_clk import TemplExtClk
 from anasymod.templates.clk_wiz import TemplClkWiz
-from anasymod.templates.vio_wiz import TemplVIO
 from anasymod.templates.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
-from anasymod.templates.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
-from anasymod.templates.probe_extract import TemplPROBE_EXTRACT
 from anasymod.templates.ila import TemplILA
 from anasymod.targets import FPGATarget
-from anasymod.enums import FPGASimCtrl
-from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
+from anasymod.structures.structure_config import StructureConfig
 
 
 class VivadoEmulation(VivadoTCLGenerator):
@@ -27,6 +23,9 @@ class VivadoEmulation(VivadoTCLGenerator):
         super().__init__(target=target)
 
     def build(self):
+        scfg = self.target.str_cfg
+        """ type : StructureConfig """
+
         # create a new project
         self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
                               project_directory=self.target.project_root,
@@ -47,35 +46,39 @@ class VivadoEmulation(VivadoTCLGenerator):
             for file in xdc_file.files:
                 self.writeln(f'read_xdc "{back2fwd(file)}"')
 
-        # write constraints to file
-        constrs = CodeGenerator()
-        constrs.use_templ(TemplExtClk(target=self.target))
-
-        # TODO: allow tracing for custom_top
         if not self.target.cfg.custom_top:
+            # write constraints to file
+            constrs = CodeGenerator()
+            # generate constraints for external clk
+            constrs.use_templ(TemplExtClk(target=self.target))
             # generate clock wizard IP core
             self.use_templ(TemplClkWiz(target=self.target))
 
             # Add IP cores necessary for control interface
-            ip_core_templates = self.target.ctrl.add_ip_cores(scfg=self.target.str_cfg, ip_dir=self.target.ip_dir)
+            ip_core_templates = self.target.ctrl.add_ip_cores(scfg=scfg, ip_dir=self.target.ip_dir)
             for ip_core_template in ip_core_templates:
                 self.use_templ(ip_core_template)
 
-            # Add constraints for additional generated emu_clks
-            constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
-            for k in range(len(self.target.str_cfg.clk_o)):
+            ## Add constraints for additional generated emu_clks
+            # In case no timemanager is used, remove hierarchy from instantiated gen_emu_clks module
+            if scfg.num_gated_clks >= 1:
+                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
+            else:
+                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
+            for k in range(scfg.num_gated_clks):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
-            # Setup ILA for signal probing
-            self.use_templ(TemplILA(target=self.target))
+            # Setup ILA for signal probing - only of at least one probe is defined
+            if len(scfg.analog_probes + scfg.digital_probes + [scfg.time_probe]) != 0:
+                self.use_templ(TemplILA(target=self.target))
     
             # Setup Debug Hub
             constrs.use_templ(TemplDbgHub(target=self.target))
 
-        # write master constraints to file and add to project
-        master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
-        constrs.write_to_file(master_constr_path)
-        self.add_files([master_constr_path], fileset='constrs_1')
+            # write master constraints to file and add to project
+            master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
+            constrs.write_to_file(master_constr_path)
+            self.add_files([master_constr_path], fileset='constrs_1')
 
         # read user-provided IPs
         self.writeln('# Custom user-provided IP cores')
@@ -126,12 +129,8 @@ class VivadoEmulation(VivadoTCLGenerator):
         :param server_addr: Hardware server address for hw server launched by Vivado
         """
 
-        self.use_templ(TemplLAUNCH_FPGA_SIM(target=self.target, server_addr=server_addr))
-        self.run(filename=r"launch_FPGA.tcl", interactive=True)
+        self.target.ctrl_api._initialize()
+        self.target.ctrl_api._setup_ctrl(server_addr=server_addr)
 
-        # ToDo: Depending on the fpga_ctrl setting in the project, setup the control interface e.g. UART or VIO, also
-        # ToDo: check that VIO only works for linux
-
-        # Return the control interface handle
-        # ToDo: include spawnu + Steven's control setup to start Vivado TCL shell and return the shell handle
-        #return
+        # return ctrl object to user for further interactive commands
+        return self.target.ctrl_api

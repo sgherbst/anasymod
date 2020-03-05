@@ -3,8 +3,7 @@
 
 `timescale 1ns/1ps
 
-`include "real.sv"
-`include "math.sv"
+`include "svreal.sv"
 `include "msdsl.sv"
 
 `default_nettype none
@@ -33,9 +32,6 @@ module tb;
         .sw2(gate)
     );
 
-    // emulation output
-    `PROBE_ANALOG(v_out);
-    `PROBE_DIGITAL(gate, 1);
 endmodule
 
 `default_nettype wire

@@ -1,10 +1,9 @@
 import os
 
 from anasymod.defines import Define
-from anasymod.util import back2fwd
 from anasymod.config import EmuConfig
 from anasymod.base_config import BaseConfig
-from anasymod.enums import ConfigSections, FPGASimCtrl
+from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
@@ -13,21 +12,22 @@ from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
+from anasymod.structures.module_emu_clks import ModuleEmuClks
+from anasymod.structures.module_time_manager import ModuleTimeManager
+from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
+from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
+from anasymod.files import get_from_anasymod
+
+from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
 class Target():
     """
     This class inherits all source and define objects necessary in order to run actions for a specific target.
-
-    Attributes:
-        _name               Target name
-        content    Dict of Lists of source and define objects associated with target
     """
-    def __init__(self, prj_cfg: EmuConfig, plugins: list, name):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, name, target_type, float_type):
         self.prj_cfg = prj_cfg
         self.plugins = plugins
-
-        # Initialize structure configuration
-        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg)
+        self.float_type = float_type
 
         # Instantiate Simulation ControlInfrastructure Interface
         self.ctrl = None
@@ -43,13 +43,17 @@ class Target():
         self.content = Content()
 
         # Initialize target_config
-        self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name)
+        self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name, target_type=target_type)
+
+        # Initialize structure configuration
+        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop)
 
     def set_tstop(self):
         """
         Add define statement to specify tstop
         """
         self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
+        self.str_cfg.time_probe.range = 1.1 * float(self.cfg.tstop)
 
     def assign_fileset(self, fileset: dict):
         """
@@ -74,65 +78,66 @@ class Target():
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
             top_file.write(ModuleTop(target=self).render())
-
         self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
 
         # Build control structure and add all sources to project
         if self.ctrl is not None:
             self.ctrl.gen_ctrlwrapper(str_cfg=self.str_cfg, content=self.content)
+        else:
+            #ToDO: needs to be cleaned up, should have individual module for pc simulation control
+            with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
+                ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
+            self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'))]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
         with (open(clkmanagerwrapper_path, 'w')) as clkm_file:
             clkm_file.write(ModuleClkManager(scfg=self.str_cfg).render())
-
         self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path)]
 
         # Generate traceport wrapper and add to target sources
         trapwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_traceport_wrap.sv')
         with (open(trapwrapper_path, 'w')) as trap_file:
             trap_file.write(ModuleTracePort(scfg=self.str_cfg).render())
-
         self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
 
-    def setup_ctrl_ifc(self):
-        """
-        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
-        mode, which does not possess a direct control interface via anasymod.
+        # Generate emulation clk gen module and add to target sources
+        gen_emu_clks_path = os.path.join(self.prj_cfg.build_root, 'gen_emu_clks.sv')
+        with (open(gen_emu_clks_path, 'w')) as emu_clks_file:
+            emu_clks_file.write(ModuleEmuClks(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
+        self.content.verilog_sources += [VerilogSource(files=gen_emu_clks_path)]
 
-        :rtype: ControlInfrastructure
-        """
-        #ToDo: This should only be executed for FPGA simulation!
-
-        if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
-            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
-            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
-        elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
-            print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
-        else:
-            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
+        # Generate time manager and add to target sources
+        timemanager_path = os.path.join(self.prj_cfg.build_root, 'gen_time_manager.sv')
+        with (open(timemanager_path, 'w')) as timemanager_file:
+            timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
+        self.content.verilog_sources += [VerilogSource(files=timemanager_path)]
 
     @property
     def project_root(self):
         return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
 
-class SimulationTarget(Target):
-    def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"sim"):
-        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name)
+    @property
+    def result_name_raw(self):
+        return f"{self.cfg.top_module}_{self._name}.{self.cfg.result_type_raw}"
 
-    def setup_vcd(self):
-        self.content.defines.append(Define(name='VCD_FILE_MSDSL', value=back2fwd(self.cfg.vcd_path)))
+    @property
+    def result_path_raw(self):
+        return os.path.join(self.prj_cfg.build_root, r"raw_results", self.result_name_raw)
+
+class CPUTarget(Target):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, float_type:bool, name=r"sim"):
+        target_type = ConfigSections.CPU_TARGET
+        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type, float_type=float_type)
+
+        self.cfg.result_type_raw = ResultFileTypes.VCD
 
 class FPGATarget(Target):
-    """
+    def __init__(self, prj_cfg: EmuConfig, plugins: list,  float_type:bool, name=r"fpga"):
+        target_type = ConfigSections.FPGA_TARGET
+        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type, float_type=float_type)
 
-    Attributes:
-        _ip_cores        List of ip_core objects associated with target, those will generated during the build process
-    """
-    def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"fpga"):
-        # call the super constructor
-        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name)
+        self.cfg.result_type_raw = ResultFileTypes.CSV
 
         # use a different default TSTOP value, which should provide about 0.1 ps timing resolution and plenty of
         # emulation time for most purposes.
@@ -144,6 +149,29 @@ class FPGATarget(Target):
         """
         super().gen_structure()
         self.ctrl.gen_ctrl_infrastructure(str_cfg=self.str_cfg, content=self.content)
+
+    def setup_ctrl_ifc(self, debug=False):
+        """
+        Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
+        mode, which does not possess a direct control interface via anasymod.
+
+        :rtype: ControlInfrastructure
+        """
+        #ToDo: This should only be executed for FPGA simulation!
+
+        if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
+            print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
+            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl_api = VIOCtrlApi(result_path=self.cfg.vcd_path, result_path_raw=self.result_path_raw,
+                                       result_type_raw=self.cfg.result_type_raw, pcfg=self.prj_cfg, scfg=self.str_cfg,
+                                       bitfile_path=self.bitfile_path, ltxfile_path=self.ltxfile_path,
+                                       float_type=self.float_type, debug=debug)
+        elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            print("Direct anasymod FPGA simulation control via UART enabled.")
+            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg)
+        else:
+            raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
 
     @property
     def probe_cfg_path(self):
@@ -167,18 +195,32 @@ class Config(BaseConfig):
     """
     Container to store all config attributes.
     """
-    def __init__(self, cfg_file, prj_cfg, name):
-        super().__init__(cfg_file=cfg_file, section=ConfigSections.TARGET)
+    def __init__(self, cfg_file, prj_cfg, name, target_type):
+        super().__init__(cfg_file=cfg_file, section=target_type)
         self.tstop = 10.0
+        """ type(float) : simulation duration for target in seconds. """
+
         self.emu_clk_freq =25e6
+        """ type(float) : emulation frequency in Hz, that is used as main independent clk in the design. """
+
         self.top_module = 'top'
+        """ type(str) : name ot the top-level module, that is used for this target. """
+
         self.custom_top = False
+        """ type(bool) : indicates, whether or not a custom top is used. """
+
         self.vcd_name = f"{self.top_module}_{name}.vcd"
+        """ type(str) : name of the converted vcd simulation result file. """
+
         self.vcd_path = os.path.join(prj_cfg.build_root, r"vcd", self.vcd_name)
+        """ type(str) : path used to store converted vcd simulation result file. """
         # TODO: move these paths to toolchain specific config, which shall be instantiated in the target class
-        self.csv_name = f"{self.top_module}_{name}.csv"
-        self.csv_path = os.path.join(prj_cfg.build_root, r"csv", self.csv_name)
+
+        self.result_type_raw = None
+        """ type(float) : simulation result format used for the selected target. """
+
         self.fpga_sim_ctrl = FPGASimCtrl.VIVADO_VIO
+        """ type(float) : FPGA simulation control interface used for this target. """
 
 class Content():
     """

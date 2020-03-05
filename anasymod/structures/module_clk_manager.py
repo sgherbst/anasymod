@@ -2,7 +2,7 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.ctrlifc_datatypes import DigitalSignal
+from anasymod.sim_ctrl.datatypes import DigitalSignal
 
 
 class ModuleClkManager(JinjaTempl):
@@ -19,8 +19,9 @@ class ModuleClkManager(JinjaTempl):
 
         module = ModuleInst(api=self.module_ifc, name="clk_gen")
         module.add_inputs(scfg.clk_i)
-        module.add_outputs(scfg.clk_d)
-        module.add_outputs(scfg.clk_m)
+        module.add_output(scfg.dbg_clk)
+        module.add_output(scfg.emu_clk_2x)
+        module.add_outputs(scfg.clk_independent)
         module.generate_header()
 
         #####################################################
@@ -32,13 +33,20 @@ class ModuleClkManager(JinjaTempl):
         clk_wiz.add_inputs(scfg.clk_i, connections=scfg.clk_i)
 
         # handled by emu clk generator
-        for k, port in enumerate(scfg.clk_m + scfg.clk_d):
+        for k, port in enumerate([scfg.emu_clk_2x] + [scfg.dbg_clk] + scfg.clk_independent):
             clk_wiz.add_output(DigitalSignal(abspath=None, width=1, name=f'clk_out{k + 1}'), connection=port)
 
         clk_wiz.add_input(DigitalSignal(abspath=None, width=1, name='reset'), connection=r"1'b0")
         clk_wiz.add_output(DigitalSignal(abspath=None, width=1, name='locked'), DigitalSignal(abspath=None, width=1, name='locked'))
 
         clk_wiz.generate_instantiation()
+
+        #####################################################
+        # Create independent clks for simulation case
+        #####################################################
+
+        self.emu_clk = scfg.emu_clk
+        self.independent_clks = scfg.clk_independent
 
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
@@ -48,23 +56,36 @@ class ModuleClkManager(JinjaTempl):
 
 `ifdef SIMULATION_MODE_MSDSL
 	// emulator clock sequence
-	logic emu_clk_state = 1'b0;
+	logic emu_clk_2x_state = 1'b0;
+{% for clk in subst.independent_clks %}
+	logic {{clk.name}}_state= 1'b0;
+{% endfor %}
+	
 	initial begin
 		// since the reset signal is initially "1", this delay+posedge will
 		// cause the MSDSL templates to be reset
-	    #((0.5*`DT_MSDSL)*1s);
-	    emu_clk_state = 1'b1;
+	    #((0.25*`DT_MSDSL)*1s);
+	    emu_clk_2x_state = 1'b1;
 
 	    // clock runs forever
 	    forever begin
-	        #((0.5*`DT_MSDSL)*1s);
-	        emu_clk_state = ~emu_clk_state;
+	        #((0.25*`DT_MSDSL)*1s);
+	        emu_clk_2x_state = ~emu_clk_2x_state;
 	    end
+	    
+{% for clk in subst.independent_clks %}	    
+	    forever begin
+	        #(({{0.50 * (subst.emu_clk.freq / clk.freq)}}*`DT_MSDSL)*1s);
+	        {{clk.name}}_state = ~{{clk.name}}_state;
+	    end
+{% endfor %}
 	end
 	
 	// output assignment
-	assign emu_clk_2x = emu_clk_state;
-	
+	assign emu_clk_2x = emu_clk_2x_state;
+{% for clk in subst.independent_clks %}
+	assign {{clk.name}} = {{clk.name}}_state;
+{% endfor %}	
 `else
 	logic locked;
 

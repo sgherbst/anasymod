@@ -1,0 +1,11 @@
+analog_probes:
+    v_out_probe:
+        abspath:    'tb_i.v_out'
+        range:      5
+    v_in_probe:
+        abspath:    'tb_i.v_in'
+        range:      1.3
+digital_probes:
+    ctrl_probe:
+        abspath:    'tb_i.gate'
+        width:      1

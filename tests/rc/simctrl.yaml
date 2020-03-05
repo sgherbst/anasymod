@@ -1,0 +1,21 @@
+analog_probes:
+  v_out_ila:
+    abspath: 'tb_i.v_out'
+    range: 64
+digital_ctrl_inputs:
+  go_vio:
+    abspath: 'tb_i.go_vio'
+    width: 1
+    init_value: 0x0
+  rst_vio:
+    abspath: 'tb_i.rst_vio'
+    width: 1
+    init_value: 0x1
+  v_in_vio:
+    abspath: 'tb_i.v_in_vio'
+    width: 25
+    init_value: 0x0
+digital_ctrl_outputs:
+  v_out_vio:
+    abspath: 'tb_i.v_out_vio'
+    width: 25

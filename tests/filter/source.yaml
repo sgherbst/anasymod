@@ -1,0 +1,3 @@
+verilog_sources:
+  sim_ctrl:
+    files: './sim_ctrl.sv'

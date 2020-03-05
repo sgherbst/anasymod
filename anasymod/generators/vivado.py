@@ -46,25 +46,27 @@ class VivadoTCLGenerator(CodeGenerator):
         self.add_bd_file(bd_files=content.bd_files)
 
     def add_verilog_sources(self, ver_src: [VerilogSource]):
-        f_list = []
         for src in ver_src:
-            f_list += src.files
-        self.add_files(f_list)
+            self.add_files(src.files)
+            if src.version is not None:
+                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
 
     def add_verilog_headers(self, ver_hdr):
-        f_list = []
         for src in ver_hdr:
-            f_list += src.files
-        self.add_files(f_list)
-        file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in f_list) + ' }'
-        self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
+            self.add_files(src.files)
+            file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+            self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
 
     def add_vhdl_sources(self, vhdl_src):
         for src in vhdl_src:
             self.add_files(src.files)
-            file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
             if src.library is not None:
-                self.set_property('library', '"' + src.library + '"', f'[get_files {file_list}]')
+                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                self.set_property('library', value=f'{{{src.library}}}', objects=f'[get_files {file_list}]')
+            if src.version is not None:
+                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
 
     def add_mem_file(self, mem_files: [MEMFile]):
         for mem_file in mem_files:
