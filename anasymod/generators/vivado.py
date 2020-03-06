@@ -95,6 +95,11 @@ class VivadoTCLGenerator(CodeGenerator):
         self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", fileset)
 
     def add_files(self, files, norecurse=True, fileset=None):
+        if files is None or len(files) == 0:
+            # don't generate a command because add_files does not work with
+            # an empty list of files
+            return
+
         cmd = ['add_files']
         if fileset is not None:
             cmd.extend(['-fileset', fileset])
