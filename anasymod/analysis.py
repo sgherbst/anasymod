@@ -401,7 +401,7 @@ class Analysis():
         probeobj = self._setup_probeobj(target=getattr(self, self.args.active_target))
         return probeobj._probes()
 
-    def preserve(self, wave, risetime=None):
+    def preserve(self, wave):
         """
         This function preserve the stepping of the waveform 'wave'. This is necessary, if limit checks should be
         conducted on the waveform later on.
@@ -410,17 +410,13 @@ class Analysis():
 
         :return: 2d numpy.ndarray
         """
-        if risetime is None:
-            timestep = (wave[0][-1]-wave[0][0])/len(wave[0])  # calculating average timestep
-            risetime = 0.001*timestep
-
         temp_data = None
         wave_step =[]
 
         for d in wave.transpose():
             if temp_data is not None:
                 if d[1] != temp_data:
-                    wave_step.append([d[0]-risetime,temp_data]) #old value with same timestep to preserve stepping
+                    wave_step.append([d[0],temp_data]) #old value with same timestep to preserve stepping
             wave_step.append(d)
             temp_data = d[1]
 
