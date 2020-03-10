@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 name = 'anasymod'
-version = '0.2.0'
+version = '0.2.1'
 
 DESCRIPTION = '''\
 Tool for running mixed-signal emulations on FPGAs\
