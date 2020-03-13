@@ -107,14 +107,13 @@ class VivadoConfig():
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
-
-        self.lsf_opts = None
+                
+        #self.lsf_opts = ''
         if platform == 'linux' or platform == 'linux2':
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
-
-            #self.lsf_opts = "-eh_ram 70000 -eh_ncpu 4 -eh_ui inicio_batch"
-            self.lsf_opts = "-eh_local"
+            self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
+            #self.lsf_opts = "-eh_local"
 
         self._vivado = vivado
         # set various project options
@@ -142,6 +141,10 @@ class XceliumConfig():
 
         # name of TCL file
         self.tcl_input = 'input.tcl'
+
+        #self.lsf_opts = ''
+        if platform == 'linux' or platform == 'linux2':
+            self.lsf_opts = "-eh_ncpu 4"
 
     @property
     def xrun(self):
@@ -197,6 +200,8 @@ class GtkWaveConfig():
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], parent.cfg_dict['TOOLS_gtkwave'], 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
+        if platform == 'linux' or platform == 'linux2':
+            self.lsf_opts = "-eh_ram 7000"
 
     @property
     def gtkwave(self):
@@ -213,6 +218,8 @@ class SimVisionConfig():
         self.hints = [lambda: os.path.join(env['SIMVISION_INSTALL_PATH'], 'bin')]
         self._simvision = simvision
         self.svcf_config = None
+        if platform == 'linux' or platform == 'linux2':
+            self.lsf_opts = "-eh_ram 7000"
 
     @property
     def simvision(self):
@@ -260,6 +267,10 @@ class Config(BaseConfig):
         self.time_width = 39
         """ type(int) : number of bits used for emulation time signal.
             Any value above 39 does not work with the current vivado ILA core version. """
+        
+        self.lsf_opts = ''
+        """ type(string) : LSF options which can be passed to our tool wrapper commands in the Inicio Flowpackage
+            Execution handler options, e.g. '-eh_ncpu 8' can be used"""
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

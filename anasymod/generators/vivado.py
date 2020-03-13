@@ -114,6 +114,9 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # assemble the command
         cmd = [self.target.prj_cfg.vivado_config.vivado, '-mode', 'tcl' if interactive else 'batch', '-source', tcl_script]
+        # inserting lsf_opts after vivado call:
+        cmd[1:1] = self.target.prj_cfg.vivado_config.lsf_opts.split()
+
         if nolog:
             cmd.append('-nolog')
         if nojournal:
