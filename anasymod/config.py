@@ -108,9 +108,13 @@ class VivadoConfig():
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
 
+        self.lsf_opts = None
         if platform == 'linux' or platform == 'linux2':
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
+
+            #self.lsf_opts = "-eh_ram 70000 -eh_ncpu 4 -eh_ui inicio_batch"
+            self.lsf_opts = "-eh_local"
 
         self._vivado = vivado
         # set various project options
