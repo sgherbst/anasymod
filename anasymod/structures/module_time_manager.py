@@ -43,6 +43,7 @@ class ModuleTimeManager(JinjaTempl):
                 self.signal_gen.gen_signal(DigitalSignal(name=f'dt_arr_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
 
             self.assign_ends = SVAPI()
+            self.assign_ends.indent()
             self.assign_ends.writeln(f'assign dt_arr_{dt_req_sig_names[0]} = dt_req_{dt_req_sig_names[0]};')
             self.assign_ends.writeln(f'assign emu_dt = dt_arr_{dt_req_sig_names[-1]};')
 
@@ -65,11 +66,14 @@ class ModuleTimeManager(JinjaTempl):
 
     `ASSIGN_CONST_REAL({{subst.dt_value}}, emu_dt);
     `ADD_INTO_REAL(emu_time, emu_dt, emu_time_next);
-    `MEM_INTO_ANALOG(emu_time_next, emu_time, 1'b1, `CLK_MSDSL, `RST_MSDSL, 0);
+    `DFF_INTO_REAL(emu_time_next, emu_time, `RST_MSDSL, `CLK_MSDSL, 1'b1, 0);
 {% else %}
+
+    logic emu_time_sig;
+    
     // create array of intermediate results and assign the endpoints
     {{subst.signal_gen.text}}
-    {{subst.assign_ends.text}}
+{{subst.assign_ends.text}}
     
     // assign intermediate results
     {{subst.assign_intermediates.text}}
@@ -77,11 +81,13 @@ class ModuleTimeManager(JinjaTempl):
     // calculate emulation time
     always @(posedge emu_clk) begin
         if (emu_rst == 1'b1) begin
-            emu_time <= '0;
+            emu_time_sig <= '0;
         end else begin
-            emu_time <= emu_time + emu_dt;
+            emu_time_sig <= emu_time_sig + emu_dt;
         end
     end
+    
+    assign emu_time = emu_time_sig;
 {% endif %}
 endmodule
 

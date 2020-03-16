@@ -150,7 +150,7 @@ class SVAPI(GenAPI):
             raise Exception(
                 f"Wrong number of io_objects provided in list, exactly two are requrend, provided were: {len(io_objs)}")
 
-    def assign_to(self, io_obj: io_obj_types_union, exp):
+    def assign_to(self, io_obj: io_obj_types_str_union, exp):
         """
         Assign 'exp' to signal 'io_obj.name'.
         NOTE: If the io_obj is of the AnalogSignal type, it is only possible to assign another signal of the same type
@@ -174,6 +174,8 @@ class SVAPI(GenAPI):
                                     f"AnalogSignal object or a constant value is supported; given: '{exp}'")
         elif isinstance(io_obj, (DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
             self.writeln(f"assign {io_obj.name} = {exp};")
+        elif isinstance(io_obj, str):
+            self.writeln(f"assign {io_obj} = {exp};")
         else:
             raise Exception(f'Not supported signal type provided:{type(io_obj)}')
 

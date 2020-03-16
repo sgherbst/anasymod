@@ -31,7 +31,7 @@ def main(cap=0.16e-6, ind=0.16e-6, res=0.1):
     model.add_eqn_sys(eqns)
 
     # define probes
-    model.add_probe(model.i_ind)
+    #model.add_probe(model.i_ind)
 
     # determine the output filename
     filename = os.path.join(get_full_path(args.output), f'{model.module_name}.sv')

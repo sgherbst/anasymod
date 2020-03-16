@@ -3,8 +3,7 @@
 
 `timescale 1ns/1ps
 
-`include "real.sv"
-`include "math.sv"
+`include "svreal.sv"
 `include "msdsl.sv"
 
 `default_nettype none

@@ -4,13 +4,14 @@ import shutil
 
 from sys import platform
 from glob import glob
-from anasymod.files import get_full_path, get_from_module, mkdir_p
-from anasymod.util import back2fwd, vivado_search_key
+from anasymod.files import get_full_path, mkdir_p
+from anasymod.util import vivado_search_key
 from os import environ as env
 from anasymod.enums import BoardNames
 from anasymod.plugins import *
 from anasymod.fpga_boards.boards import *
 from anasymod.base_config import BaseConfig
+
 class EmuConfig:
     def __init__(self, root, cfg_file, active_target, build_root=None):
 
@@ -101,19 +102,14 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
         # intermediate variables for generic Xilinx path
-        self.vivado_inicio = ''
-        if 'win' in platform.lower():
+        if platform in {'win32', 'cygwin'}:
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
             xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
-            self.vivado_inicio = os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" )
-
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
-                      lambda: self.vivado_inicio,]
-                
         #self.lsf_opts = ''
         self.lsf_opts_ls = ''
-        if platform == 'linux' or platform == 'linux2':
+        if platform in {'linux', 'linux2'}:
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
             self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
