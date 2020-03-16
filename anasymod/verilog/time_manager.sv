@@ -15,8 +15,9 @@ module time_manager #(
     assign emu_dt = dt_arr[n-1];
 
     // assign intermediate results
+    genvar k;
     generate
-        for (genvar k=1; k<n; k=k+1) begin
+        for (k=1; k<n; k=k+1) begin
             assign dt_arr[k] = dt_req[k] < dt_arr[k-1] ? dt_req[k] : dt_arr[k-1];
         end
     endgenerate
