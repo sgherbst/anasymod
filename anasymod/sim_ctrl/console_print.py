@@ -1,5 +1,7 @@
 # Terminal formatting codes adapted from http://www.lihaoyi.com/post/BuildyourownCommandLinewithANSIescapecodes.html#8-colors
 
+import os
+
 COLOR_CODES = dict(
     black = '\x1b[30m',
     red = '\x1b[31m',
@@ -31,14 +33,23 @@ def cprint(s, *args, color=None, bold=None, **kwargs):
     print(to_print, *args, **kwargs)
 
 def cprint_announce(title, text, color=None, bold=None):
-    cprint(title, color=color, bold=bold, end='')
+    if os.name != 'nt':
+        cprint(title, color=color, bold=bold, end='')
+    else:
+        print(title)
     print(text)
 
 def cprint_block_start(title, color=None, bold=None):
-    cprint(f'<{title}>', color=color, bold=bold)
+    if os.name != 'nt':
+        cprint(f'<{title}>', color=color, bold=bold)
+    else:
+        print(f'<{title}>')
 
 def cprint_block_end(title, color=None, bold=None):
-    cprint(f'</{title}>', color=color, bold=bold)
+    if os.name != 'nt':
+        cprint(f'</{title}>', color=color, bold=bold)
+    else:
+        print(f'<{title}>')
 
 def cprint_block(str_list, title, color=None, bold=None):
     # don't print out anything if the string list has zero length

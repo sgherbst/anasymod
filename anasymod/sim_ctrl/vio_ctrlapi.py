@@ -8,6 +8,9 @@ from anasymod.generators.gen_api import CodeGenerator
 from anasymod.templates.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.config import EmuConfig
+from anasymod.enums import TraceUnitOperators
+from anasymod.sim_ctrl.datatypes import AnalogProbe, DigitalSignal
+from anasymod.wave import ConvertWaveform
 
 SERVER_PORT = 57937
 
@@ -17,19 +20,25 @@ class VIOCtrlApi(CtrlApi):
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self, scfg: StructureConfig, pcfg: EmuConfig, bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False):
+    def __init__(self, result_path_raw, result_type_raw, result_path, scfg: StructureConfig, pcfg: EmuConfig,
+                 bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False, float_type=False):
         super().__init__()
         # set defaults
         if err_strs is None:
             err_strs = ['ERROR', 'FATAL']
+
+        self.result_path_raw = result_path_raw
+        self.result_type_raw = result_type_raw
+        self.result_path = result_path
+        self.pcfg = pcfg
+        self.scfg = scfg
+        self.float_type = float_type
 
         # save settings
         self.cwd = cwd
         self.prompt = prompt
         self.debug = debug
         self.err_strs = err_strs
-        self.pcfg = pcfg
-        self.scfg = scfg
         self.bitfile_path = bitfile_path
         self.ltxfile_path = ltxfile_path
 
@@ -40,7 +49,7 @@ class VIOCtrlApi(CtrlApi):
         Send a single line in target shell specific language e.g. in tcl for tcl shell.
         :param line: Line that shall be send to/processed by shell
         :param timeout: Maximum time granted for operation to finish
-        :return:
+        :return: Return string from Vivado TCL interpreter
         """
         if self.debug:
             cprint_block([line], title='SEND', color='magenta')
@@ -60,28 +69,113 @@ class VIOCtrlApi(CtrlApi):
         Source a script written language for targeted shell.
         :param script: Name/Path to script that shall be sourced
         :param timeout: Maximum time granted for operation to finish
-        :return:
         """
         script = Path(script).resolve()
-        self.sendline(f'source {script}', timeout=timeout)
-    
+        res = self.sendline(f'source {script.as_posix()}', timeout=timeout)
+
+    def setup_trace_unit(self, trigger_name, trigger_operator, trigger_value):
+        """
+        Setup the trace unit. This involves defining the signal, that shall be used to start tracing and defining the
+        comparison operator, which is used to monitor the trigger signal. Also arm the trace unit at the end.
+
+        :param trigger_name:        Probe signal to be used as trigger signal.
+        :param trigger_operator:    Comparison operator that is used when monitoring the trigger signal to detect,
+                                    when a trigger shall be fired. Available oerators are:
+                                        eq (equal),
+                                        neq (not equal),
+                                        gt (greater than),
+                                        gteq (greater or equal than),
+                                        lt (lesser than),
+                                        lteq (lesser or equal than)
+        :param trigger_value:       Value, the probe signal is compared to.
+        """
+
+        trigger_obj = None
+
+        # Check, if provided tirgger_signal is a valid signal connected to the ILA
+        for probe in [self.scfg.time_probe] + self.scfg.analog_probes + self.scfg.digital_probes:
+            if trigger_name == probe.name:
+                trigger_obj = probe
+            elif trigger_name == 'time':
+                trigger_obj = self.scfg.time_probe
+            else:
+                raise Exception(f'ERROR: Provided trigger_signal:{trigger_name} is not a valid probe in the existing project!')
+
+        # Check if operator set is legal
+        if not trigger_operator in TraceUnitOperators.__dict__.values():
+            raise Exception(f'ERROR: Provided operator:{trigger_operator} is not legal! Supported operators are:{TraceUnitOperators.__dict__.values()}')
+
+        # Convert compare value depending on signal type
+        if isinstance(trigger_obj, AnalogProbe):
+            if not isinstance(trigger_value, float):
+                raise Exception(
+                    f'ERROR: trigger_value type for an analog trigger signal shall ne float, it is instead:{type(trigger_value)}')
+            value_int = int(round(trigger_value * (2 ** (int(-trigger_obj.exponent)))))
+            trigger_value_int = f"{int(trigger_obj.width)}'u{value_int}"
+        elif isinstance(trigger_obj, DigitalSignal):
+            if isinstance(trigger_value, int):
+                trigger_value_int = f"{trigger_obj.width}'u{trigger_value}"
+            else:
+                p = set(trigger_value)
+                s = {'0', '1'}
+
+                if s == p or p == {'0'} or p == {'1'}:
+                    trigger_value_int = f"{trigger_obj.width}'b{trigger_value}"
+                else:
+                    raise Exception(f'ERROR: Provided trigger value:{trigger_value} is not valid for a digital trigger '
+                                    f'signal, either provide and interger or binary string!')
+        else:
+            raise Exception(f'ERROR: No valid signal type for provided trigger signal:{trigger_name} Type:{type(trigger_obj)}')
+
+        self.sendline(f'set_property CONTROL.TRIGGER_POSITION 0 $ila_0_i')
+        self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_int} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
+
+        self.arm_trace_unit()
+
+    def arm_trace_unit(self):
+        """
+        Arm the trace unit, this will delete the buffer and arm the trigger.
+        """
+        self.sendline('run_hw_ila $ila_0_i')
+
+    def wait_on_and_dump_trace(self, result_file=None):
+        """
+        Wait until the trace unit stopped recording data. Transmit this data to the host PC, store by default to the raw
+        result file path, or a custom path provided by the user, and convert analog values from fixed-point to float.
+        Finally store it to a .vcd file in the default location.
+
+        :param result_file: Optionally, it is possible to provide a custom result file path.
+        """
+
+        # wait until trace buffer is full
+        self.sendline('wait_on_hw_ila $ila_0_i')
+
+        # transmit and dump trace buffer data to a CSV file
+        self.sendline('upload_hw_ila_data $ila_0_i')
+        self.sendline(f'write_hw_ila_data -csv_file -force {{{self.result_path_raw if result_file is None else result_file}}} hw_ila_data_1')
+
+        # Convert to .vcd and from fixed-point to float
+        ConvertWaveform(result_path_raw=self.result_path_raw,
+                        result_type_raw=self.result_type_raw,
+                        result_path=self.result_path,
+                        str_cfg=self.scfg,
+                        float_type=self.float_type)
+
     def refresh_param(self, name, timeout=30):
         """
         Refresh selected control parameter.
         :param name: Name of control parameter
         :param timeout: Maximum time granted for operation to finish
-        :return:
         """
-        self.sendline(f'refresh_hw_vio {name}', timeout=timeout)
+        self.sendline(f'refresh_hw_vio ${name}', timeout=timeout)
 
     def get_param(self, name, timeout=30):
         """
         Read value of a control parameter in design.
         :param name: Name of control parameter to be read
         :param timeout: Maximum time granted for operation to finish
-        :return:
         """
-        before = self.sendline(f'get_property INPUT_VALUE {name}', timeout=timeout)
+        before = self.sendline(f'get_property INPUT_VALUE ${name}', timeout=timeout)
         before = before.splitlines()[-1] # get last line
         before = before.strip() # strip off whitespace
         return before
@@ -92,9 +186,8 @@ class VIOCtrlApi(CtrlApi):
         :param name: Name of control parameter to be set
         :param value: Value of control parameter sto be set
         :param timeout: Maximum time granted for operation to finish
-        :return:
         """
-        self.sendline(f'set_property OUTPUT_VALUE {value} {name}', timeout=timeout)
+        self.sendline(f'set_property OUTPUT_VALUE {value} ${name}', timeout=timeout)
         self.sendline(f'commit_hw_vio {name}')
 
     def set_var(self, name, value):
@@ -102,9 +195,17 @@ class VIOCtrlApi(CtrlApi):
         Define a variable in target shell environment.
         :param name: Name of variable that shall be set
         :param value: Value of variable that shall be set
-        :return:
         """
         self.sendline(f'set {name} {self._tcl_val(value)}')
+
+    def set_reset(self, value, timeout=30):
+        """
+        Control the 'emu_rst' signal, in order to put the system running on the FPGA into or out of reset state.
+        :param value: Value of reset signal, 1 will set it to reset and 0 will release reset.
+        :param timeout: Maximum time granted for operation to finish
+        """
+        self.sendline(f'set_property OUTPUT_VALUE {value} ${self.scfg.reset_ctrl.name}', timeout=timeout)
+        self.sendline(f'commit_hw_vio ${self.scfg.reset_ctrl.name}')
 
     ### Utility Functions
 
@@ -142,8 +243,7 @@ class VIOCtrlApi(CtrlApi):
 
         # Add vivado to PATH variable, in case of an inicio installation
         path = os.environ['PATH']
-        #path = path + f';{self.pcfg.vivado_config.hints}'
-        path = path + r';C:\Inicio\tools\64\Xilinx-18.2.0.3\Vivado\2018.2\bin'
+        path = path + f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
         os.environ['PATH'] = path
 
         self.proc = spawn(command=cmd, cwd=self.cwd, env=os.environ)
@@ -157,7 +257,7 @@ class VIOCtrlApi(CtrlApi):
         :param server_addr: Address of remote hardware server
         :return:
         """
-        launch_script = r"launch_FPGA.tcl"
+        launch_script = os.path.join(os.path.dirname(os.path.dirname(self.result_path_raw)), r"launch_FPGA.tcl")
         codegen = CodeGenerator()
         codegen.use_templ(TemplLAUNCH_FPGA_SIM(pcfg=self.pcfg, scfg=self.scfg, bitfile_path=self.bitfile_path,
                                                ltxfile_path=self.ltxfile_path, server_addr=server_addr))

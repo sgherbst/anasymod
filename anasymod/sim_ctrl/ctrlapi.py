@@ -27,6 +27,40 @@ class CtrlApi:
         """
         raise NotImplementedError("Base class was called to execute function")
 
+    def setup_trace_unit(self, trigger_name, trigger_operator, trigger_value):
+        """
+        Setup the trace unit. This involves defining the signal, that shall be used to start tracing and defining the
+        comparison operator, which is used to monitor the trigger signal.
+
+        :param trigger_name:        Probe signal to be used as trigger signal.
+        :param trigger_operator:    Comparison operator that is used when monitoring the trigger signal to detect,
+                                    when a trigger shall be fired. Available oerators are:
+                                        eq (equal),
+                                        neq (not equal),
+                                        gt (greater than),
+                                        gteq (greater or equal than),
+                                        lt (lesser than),
+                                        lteq (lesser or equal than)
+        :param trigger_value:       Value, the probe signal is compared to.
+        """
+        raise NotImplementedError("Base class was called to execute function")
+
+    def arm_trace_unit(self):
+        """
+        Arm the trace unit, this will delete the buffer and arm the trigger.
+        """
+        raise NotImplementedError("Base class was called to execute function")
+
+    def wait_on_and_dump_trace(self, result_file=None):
+        """
+        Wait until the trace unit stopped recording data. Transmit this data to the host PC, store by default to the raw
+        result file path, or a custom path provided by the user, and convert analog values from fixed-point to float.
+        Finally store it to a .vcd file in the default location.
+
+        :param result_file: Optionally, it is possible to provide a custom result file path.
+        """
+        raise NotImplementedError("Base class was called to execute function")
+
     def refresh_param(self, name, timeout=30):
         """
         Refresh selected control parameter.
@@ -61,6 +95,14 @@ class CtrlApi:
         :param name: Name of variable that shall be set
         :param value: Value of variable that shall be set
         :return:
+        """
+        raise NotImplementedError("Base class was called to execute function")
+
+    def set_reset(self, value, timeout=30):
+        """
+        Control the 'emu_rst' signal, in order to put the system running on the FPGA into or out of reset state.
+        :param value: Value of reset signal, 1 will set it to reset and 0 will release reset.
+        :param timeout: Maximum time granted for operation to finish
         """
         raise NotImplementedError("Base class was called to execute function")
 

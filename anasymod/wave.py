@@ -7,14 +7,13 @@ except:
 
 import datetime
 from anasymod.utils.VCD_parser import ParseVCD
-from anasymod.targets import Target
 from anasymod.enums import ResultFileTypes
 
 class ConvertWaveform():
-    def __init__(self, target: Target, float_type=True):
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True):
         # defaults
-        scfg = target.str_cfg
-        self.target = target
+        self.result_path_raw = result_path_raw
+        scfg = str_cfg
         self.signal_lookup = {}
 
         # store data from FPGA in a dictionary
@@ -22,9 +21,9 @@ class ConvertWaveform():
         real_signals = set()
         reg_widths = {}
 
-        if target.cfg.result_type_raw == ResultFileTypes.CSV:
+        if result_type_raw == ResultFileTypes.CSV:
             # read CSV file
-            with open(target.result_path_raw, 'r') as f:
+            with open(self.result_path_raw, 'r') as f:
                 first_line = f.readline()
 
             # split up the first line into comma-delimited names
@@ -67,7 +66,7 @@ class ConvertWaveform():
                     probe_data[name] = [int(x) for x in probe_data[name]]
 
             # Write data to VCD file
-            with open(target.cfg.vcd_path, 'w') as vcd:
+            with open(result_path, 'w') as vcd:
                 with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
@@ -102,8 +101,8 @@ class ConvertWaveform():
                         for signal_full_name, scaled_data in probe_data.items():
                             writer.change(reg[signal_full_name], round(1e9 * timestamp), scaled_data[k])
 
-        elif target.cfg.result_type_raw == ResultFileTypes.VCD:
-            vcd_file_name = target.result_path_raw
+        elif result_type_raw == ResultFileTypes.VCD:
+            vcd_file_name = result_path_raw
             vcd_handle = ParseVCD(vcd_file_name)
             signal_dict = vcd_handle.parse_vcd(update_data=False)
 
@@ -153,14 +152,14 @@ class ConvertWaveform():
                     data = []
                     for c, v in probe_data[digital_signal.name]['data']:
                         try:
-                            data.append((int(c), int(v)))
+                            data.append((int(c), int(v, 2)))
                         except: # In case of an x or z value, a 0 will be added; this is necessary for PYVCD
                             data.append((int(c), int(0)))
 
                     probe_data[digital_signal.name]['data'] = data
 
             # Write data to VCD file
-            with open(target.cfg.vcd_path, 'w') as vcd:
+            with open(result_path, 'w') as vcd:
                 with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
@@ -198,7 +197,7 @@ class ConvertWaveform():
                                 writer.change(reg[signal_full_name], round(1e9 * timestamp), probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']][1])
                                 probe_data[signal_full_name]['index'] += 1
         else:
-            raise Exception(f'ERROR: No supported Result file format selected:{target.cfg.result_type_raw}')
+            raise Exception(f'ERROR: No supported Result file format selected:{result_type_raw}')
 
 
 
@@ -207,4 +206,4 @@ class ConvertWaveform():
         Getting unscaled data from csv file column
         :return:
         """
-        return np.genfromtxt(self.target.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)
+        return np.genfromtxt(self.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)
