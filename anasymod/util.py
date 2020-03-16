@@ -24,7 +24,7 @@ def call(args, cwd=None, wait=True):
     os.chdir(cwd)
 
     # run the command
-    kwargs = dict(args=args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
     if wait:
         print(f"Checking return code of subprocess call: {args}")
         result = subprocess.run(**kwargs)
