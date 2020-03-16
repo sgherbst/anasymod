@@ -101,18 +101,23 @@ class VivadoConfig():
         # set project name
         self.project_name = 'project'
         # intermediate variables for generic Xilinx path
+        self.vivado_inicio = ''
         if 'win' in platform.lower():
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
             xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
+            self.vivado_inicio = os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" )
+
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
+                      lambda: self.vivado_inicio,]
                 
         #self.lsf_opts = ''
+        self.lsf_opts_ls = ''
         if platform == 'linux' or platform == 'linux2':
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
             self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
+            self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
             #self.lsf_opts = "-eh_local"
 
         self._vivado = vivado

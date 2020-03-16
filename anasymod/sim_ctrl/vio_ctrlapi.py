@@ -138,12 +138,18 @@ class VIOCtrlApi(CtrlApi):
         # start the interpreter
         print('Starting Vivado TCL interpreter.')
         sys.stdout.flush()
-        cmd = 'vivado -nolog -nojournal -notrace -mode tcl'
 
+        cmd = 'vivado '
+        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
+        #cmd += self.pcfg.vivado_config.lsf_opts + ' '
+        cmd += '-nolog -nojournal -notrace -mode tcl'
+
+        #TODO: Use Inicio cfg dict to get Vivado path
         # Add vivado to PATH variable, in case of an inicio installation
         path = os.environ['PATH']
         #path = path + f';{self.pcfg.vivado_config.hints}'
-        path = path + r';C:\Inicio\tools\64\Xilinx-18.2.0.3\Vivado\2018.2\bin'
+        #path = path + r';C:\Inicio\tools\64\Xilinx-18.2.0.3\Vivado\2018.2\bin'
+        path = path + self.pcfg.vivado_config.vivado_inicio
         os.environ['PATH'] = path
 
         self.proc = spawn(command=cmd, cwd=self.cwd, env=os.environ)

@@ -293,6 +293,7 @@ class Analysis():
         if server_addr is None:
             server_addr = self.args.server_addr
 
+        self._setup_targets(target=self.act_fpga_target)
         # check if bitstream was generated for active fpga target
         target = getattr(self, self.act_fpga_target)
         if not os.path.isfile(getattr(target, 'bitfile_path')):
@@ -323,6 +324,8 @@ class Analysis():
         if server_addr is None:
             server_addr = self.args.server_addr
 
+        self._setup_targets(target=self.act_fpga_target)
+
         # check if bitstream was generated for active fpga target
         target = getattr(self, self.act_fpga_target)
         if not os.path.isfile(getattr(target, 'bitfile_path')):
@@ -332,7 +335,7 @@ class Analysis():
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
             mkdir_p(os.path.dirname(target.cfg.vcd_path))
 
-        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
+        if not os.path.exists(os.path.dirname(target.result_path_raw)):
             mkdir_p(os.path.dirname(target.cfg.csv_path))
 
         # launch the emulation
