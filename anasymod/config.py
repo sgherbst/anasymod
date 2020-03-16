@@ -106,7 +106,7 @@ class VivadoConfig():
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
             xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
         # set path to vivado binary
-        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
+        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
         #self.lsf_opts = ''
         self.lsf_opts_ls = ''
         if platform in {'linux', 'linux2'}:
