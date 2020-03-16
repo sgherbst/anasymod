@@ -22,13 +22,11 @@ steps:
       export PYTHON_MSDSL=`which python`
       echo $$PYTHON_MSDSL
 
-      # run rc test
-      cd tests/rc
-      echo
-      anasymod -i . --models
-      anasymod -i . --sim --simulator_name vivado
-      anasymod -i . --build
-      pytest test_rc.py -v -r s
+      # run tests
+      pytest --cov-report=xml --cov=anasymod tests -v -r s
+
+      # upload coverage information
+      bash <(curl -s https://codecov.io/bash)
 
       # deactivate virtual environment
       deactivate

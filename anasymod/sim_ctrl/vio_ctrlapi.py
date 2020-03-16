@@ -188,7 +188,7 @@ class VIOCtrlApi(CtrlApi):
         :param timeout: Maximum time granted for operation to finish
         """
         self.sendline(f'set_property OUTPUT_VALUE {value} ${name}', timeout=timeout)
-        self.sendline(f'commit_hw_vio {name}')
+        self.sendline(f'commit_hw_vio ${name}')
 
     def set_var(self, name, value):
         """
@@ -228,25 +228,35 @@ class VIOCtrlApi(CtrlApi):
         :return:
         """
 
-        # Use pexpect under linux for interactive vivado ctrl
-        if os.name == 'posix':
-            from pexpect import spawn
-        elif os.name == 'nt':
-            from wexpect import spawn
-        else:
-            raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
-
-        # start the interpreter
+        # log current status
         print('Starting Vivado TCL interpreter.')
         sys.stdout.flush()
+
+        # construct the command to launch Vivado
         cmd = 'vivado -nolog -nojournal -notrace -mode tcl'
 
-        # Add vivado to PATH variable, in case of an inicio installation
-        path = os.environ['PATH']
-        path = path + f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
-        os.environ['PATH'] = path
-
-        self.proc = spawn(command=cmd, cwd=self.cwd, env=os.environ)
+        # Use pexpect under linux for interactive vivado ctrl
+        if os.name == 'posix':
+            # Add Vivado to the path using the Windows PATH separator (semicolon)
+            # A copy of the environment is made to avoid side effects outside this function
+            # TODO: do this only if needed
+            env = os.environ.copy()
+            env['PATH'] += f':{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            # Launch Vivado
+            from pexpect import spawnu
+            self.proc = spawnu(command=cmd, cwd=self.cwd, env=env)
+        elif os.name == 'nt':
+            # Add Vivado to the path using the Windows PATH separator (semicolon)
+            # A copy of the environment is made to avoid side effects outside this function
+            # TODO: do this only if needed
+            env = os.environ.copy()
+            env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            # Launch Vivado
+            # TODO: should this be spawnu instead?
+            from wexpect import spawn
+            self.proc = spawn(command=cmd, cwd=self.cwd, env=env)
+        else:
+            raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
 
         # wait for the prompt
         self._expect_prompt(timeout=300)
