@@ -12,7 +12,7 @@ class Plugin():
         self._cfg_file = cfg_file
         self._prj_root = prj_root
         self._build_root = build_root
-        self._srccfg_path = os.path.join(self._prj_root, r"source.config")
+        self._srccfg_path = os.path.join(self._prj_root, r"source.yaml")
         self._name = name
         self._defines = []
         self._verilog_sources = []

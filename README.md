@@ -1,18 +1,14 @@
-# Introduction
+# anasymod
+[![BuildKite status](https://badge.buildkite.com/7f10348afca3b631bbbb2175919b9039101c2a5e55c3371460.svg?branch=master)](https://buildkite.com/stanford-aha/anasymod)
+[![Code Coverage](https://codecov.io/gh/sgherbst/anasymod/branch/master/graph/badge.svg)](https://codecov.io/gh/sgherbst/anasymod)
+[![License:BSD-3-Clause](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-**anasymod** is a Python package for running FPGA emulations of mixed-signal systems.  It supports digital blocks described with Verilog or VHDL and synthesizable analog models created using [msdsl](https://github.com/sgherbst/msdsl) and [svreal](https://github.com/sgherbst/svreal).
+**anasymod** is a tool for running FPGA emulations of mixed-signal systems.  It supports digital blocks described with Verilog or VHDL and synthesizable analog models created using [msdsl](https://github.com/sgherbst/msdsl) and [svreal](https://github.com/sgherbst/svreal).
 
 # Installation
 
-1. Open a terminal, and note the current directory, since the **pip** commands below will clone some code from GitHub and place it in a subdirectory called **src**.  If you prefer to place the cloned code in a different directory, you can specify that by providing the **--src** flag to **pip**.
-2. If you haven't already, install **msdsl** and **svreal**:
 ```shell
-> pip install -e git+https://github.com/sgherbst/svreal.git#egg=svreal
-> pip install -e git+https://github.com/sgherbst/msdsl.git#egg=msdsl
-```
-3. Then install **anasymod**.
-```shell
-pip install -e git+https://github.com/sgherbst/anasymod.git#egg=anasymod
+> pip install anasymod
 ```
 
 If you get a permissions error when running one of the **pip** commands, you can try adding the **--user** flag to the **pip** command.  This will cause **pip** to install packages in your user directory rather than to a system-wide location.

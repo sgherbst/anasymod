@@ -16,7 +16,7 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import get_from_module
+from anasymod.files import get_from_anasymod
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -24,9 +24,10 @@ class Target():
     """
     This class inherits all source and define objects necessary in order to run actions for a specific target.
     """
-    def __init__(self, prj_cfg: EmuConfig, plugins: list, name, target_type):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, name, target_type, float_type):
         self.prj_cfg = prj_cfg
         self.plugins = plugins
+        self.float_type = float_type
 
         # Instantiate Simulation ControlInfrastructure Interface
         self.ctrl = None
@@ -125,16 +126,16 @@ class Target():
         return os.path.join(self.prj_cfg.build_root, r"raw_results", self.result_name_raw)
 
 class CPUTarget(Target):
-    def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"sim"):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list, float_type:bool, name=r"sim"):
         target_type = ConfigSections.CPU_TARGET
-        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type)
+        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type, float_type=float_type)
 
         self.cfg.result_type_raw = ResultFileTypes.VCD
 
 class FPGATarget(Target):
-    def __init__(self, prj_cfg: EmuConfig, plugins: list, name=r"fpga"):
+    def __init__(self, prj_cfg: EmuConfig, plugins: list,  float_type:bool, name=r"fpga"):
         target_type = ConfigSections.FPGA_TARGET
-        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type)
+        super().__init__(prj_cfg=prj_cfg, plugins=plugins, name=name, target_type=target_type, float_type=float_type)
 
         self.cfg.result_type_raw = ResultFileTypes.CSV
 
@@ -149,7 +150,7 @@ class FPGATarget(Target):
         super().gen_structure()
         self.ctrl.gen_ctrl_infrastructure(str_cfg=self.str_cfg, content=self.content)
 
-    def setup_ctrl_ifc(self):
+    def setup_ctrl_ifc(self, debug=False):
         """
         Setup the control interface according to what was provided in the project configuration. default is VIVADO_VIO
         mode, which does not possess a direct control interface via anasymod.
@@ -161,8 +162,10 @@ class FPGATarget(Target):
         if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
             print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
             self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
-            self.ctrl_api = VIOCtrlApi(pcfg=self.prj_cfg, scfg=self.str_cfg, bitfile_path=self.bitfile_path,
-                                       ltxfile_path=self.ltxfile_path)
+            self.ctrl_api = VIOCtrlApi(result_path=self.cfg.vcd_path, result_path_raw=self.result_path_raw,
+                                       result_type_raw=self.cfg.result_type_raw, pcfg=self.prj_cfg, scfg=self.str_cfg,
+                                       bitfile_path=self.bitfile_path, ltxfile_path=self.ltxfile_path,
+                                       float_type=self.float_type, debug=debug)
         elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
             self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)

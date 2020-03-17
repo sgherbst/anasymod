@@ -9,6 +9,7 @@ class ConfigSections:
     STRUCTURE = "STRUCTURE"
     FPGASIM = "FPGASIM"
 
+
 class BoardNames:
     """
     Container including enums for all supported boards.
@@ -29,6 +30,7 @@ class BoardNames:
     TE0720 = 'TE0720'
     ARTY_200T_CUSTOM_LIDAR = 'ARTY_200T_CUSTOM_LIDAR'
 
+
 class PortDir:
     """
     Container including enums for all supported port directions.
@@ -37,6 +39,19 @@ class PortDir:
     OUT = "output"
     INOUT = "inout"
 
+
+class TraceUnitOperators:
+    """
+    Container including enums for all valid operators that can be used for setting up the trace unit
+    """
+    EQUAL = 'eq'
+    NOTEQUAL = 'neq'
+    GREATER = 'gt'
+    GREATEREQUAL = 'gteq'
+    LESSER = 'lt'
+    LESSEREQUAL = 'lteq'
+
+
 class CtrlOps:
     """
     Container including enums for all supported control operations for controlling the FPGA.
@@ -44,12 +59,14 @@ class CtrlOps:
     WRITE_PARAMETER = 0
     READ_PARAMETER = 1
 
+
 class FPGASimCtrl:
     """
     Container including enums for all supported FPGA control interfaces.
     """
     UART_ZYNQ = 'UART_ZYNQ'
     VIVADO_VIO = 'VIVADO_VIO'
+
 
 class ResultFileTypes:
     """

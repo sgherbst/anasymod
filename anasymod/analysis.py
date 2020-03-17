@@ -13,7 +13,7 @@ from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
-from anasymod.files import get_full_path, get_from_module, mkdir_p
+from anasymod.files import get_full_path, get_from_anasymod, mkdir_p
 from anasymod.sources import *
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
@@ -94,7 +94,7 @@ class Analysis():
         self._plugin_args = []
         for plugin in self._prj_cfg.cfg.plugins:
             try:
-                i = import_module(f"plugin.{plugin}")
+                i = import_module(f"{plugin}.plugin")
                 inst = i.CustomPlugin(prj_cfg=self._prj_cfg, cfg_file=self.cfg_file, prj_root=self.args.input)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
@@ -102,12 +102,12 @@ class Analysis():
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
 
+        # Set float type to true, in case floating-point data types are used during simulation.
+        # This is needed when converting result files.
+        self.float_type = True
         for args in self._plugin_args:
             if 'float' in args.__dict__.keys():
                 self.float_type = args.float
-            else:
-                self.float_type = True
-
 
         #Set active target
         self.set_target(self.args.active_target)
@@ -204,7 +204,7 @@ class Analysis():
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
                 self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                get_from_module('anasymod', 'verilog', 'zynq_uart.bd')
+                get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -273,9 +273,9 @@ class Analysis():
         Generate bitstream for FPGA target
         """
 
-        shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
+        shutil.rmtree(self._prj_cfg.build_root) # Remove target specific build dir to make sure there is no legacy
         mkdir_p(self._prj_cfg.build_root)
-        self._setup_targets(target=self.act_fpga_target)
+        self._setup_targets(target=self.act_fpga_target, gen_structures=True)
 
         # Check if active target is an FPGA target
         target = getattr(self, self.act_fpga_target)
@@ -292,6 +292,10 @@ class Analysis():
 
         if server_addr is None:
             server_addr = self.args.server_addr
+
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
 
         # check if bitstream was generated for active fpga target
         target = getattr(self, self.act_fpga_target)
@@ -311,17 +315,26 @@ class Analysis():
 
         # post-process results
 
-        ConvertWaveform(target=target, float_type=self.float_type)
+        ConvertWaveform(result_path_raw=target.result_path_raw,
+                        result_type_raw=target.cfg.result_type_raw,
+                        result_path=target.cfg.vcd_path,
+                        str_cfg=target.str_cfg,
+                        float_type=self.float_type)
 
-    def launch(self, server_addr=None):
+    def launch(self, server_addr=None, debug=False):
         """
         Program bitstream to FPGA, setup control infrastructure and wait for interactive commands.
 
         :param server_addr: Address of Vivado hardware server used for communication to FPGA board
+        :param debug: Enable or disable debug mode when running an interactive simulation
         """
 
         if server_addr is None:
             server_addr = self.args.server_addr
+
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target, debug=debug)
 
         # check if bitstream was generated for active fpga target
         target = getattr(self, self.act_fpga_target)
@@ -332,8 +345,8 @@ class Analysis():
         if not os.path.exists(os.path.dirname(target.cfg.vcd_path)):
             mkdir_p(os.path.dirname(target.cfg.vcd_path))
 
-        if not os.path.exists(os.path.dirname(target.cfg.csv_path)):
-            mkdir_p(os.path.dirname(target.cfg.csv_path))
+        if not os.path.exists(os.path.dirname(target.result_path_raw)):
+            mkdir_p(os.path.dirname(target.result_path_raw))
 
         # launch the emulation
         ctrl_handle = VivadoEmulation(target=target).launch_FPGA(server_addr=server_addr)
@@ -352,7 +365,7 @@ class Analysis():
 
         shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
         mkdir_p(self._prj_cfg.build_root)
-        self._setup_targets(target=self.act_cpu_target)
+        self._setup_targets(target=self.act_cpu_target, gen_structures=True)
 
         target = getattr(self, self.act_cpu_target)
 
@@ -382,7 +395,11 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
         # post-process results
-        ConvertWaveform(target=target, float_type=self.float_type)
+        ConvertWaveform(result_path_raw=target.result_path_raw,
+                        result_type_raw=target.cfg.result_type_raw,
+                        result_path=target.cfg.vcd_path,
+                        str_cfg=target.str_cfg,
+                        float_type=self.float_type)
 
     def probe(self, name, emu_time=False):
         """
@@ -401,7 +418,7 @@ class Analysis():
         probeobj = self._setup_probeobj(target=getattr(self, self.args.active_target))
         return probeobj._probes()
 
-    def preserve(self, wave, risetime=None):
+    def preserve(self, wave):
         """
         This function preserve the stepping of the waveform 'wave'. This is necessary, if limit checks should be
         conducted on the waveform later on.
@@ -410,17 +427,13 @@ class Analysis():
 
         :return: 2d numpy.ndarray
         """
-        if risetime is None:
-            timestep = (wave[0][-1]-wave[0][0])/len(wave[0])  # calculating average timestep
-            risetime = 0.001*timestep
-
         temp_data = None
         wave_step =[]
 
         for d in wave.transpose():
             if temp_data is not None:
                 if d[1] != temp_data:
-                    wave_step.append([d[0]-risetime,temp_data]) #old value with same timestep to preserve stepping
+                    wave_step.append([d[0],temp_data]) #old value with same timestep to preserve stepping
             wave_step.append(d)
             temp_data = d[1]
 
@@ -566,7 +579,7 @@ class Analysis():
         python analysis.py -i filter --models --sim --view
 
         -i, --input: Path to project root directory of the project that shall be opened and worked with.
-            default=get_from_module('anasymod', 'tests', 'filter'))
+            default=None
 
         --simulator_name: Simulator that shall be used for logic simulation.
             default=icarus for windows, xrun for linux
@@ -621,7 +634,7 @@ class Analysis():
             pass
 
 
-        parser.add_argument('-i', '--input', type=str, default=get_from_module('anasymod', 'tests', 'filter'))
+        parser.add_argument('-i', '--input', type=str, default=None)
         parser.add_argument('--simulator_name', type=str, default=default_simulator_name)
         parser.add_argument('--synthesizer_name', type=str, default='vivado')
         parser.add_argument('--viewer_name', type=str, default=default_viewer_name)
@@ -640,7 +653,7 @@ class Analysis():
 
         self.args, _ = parser.parse_known_args()
 
-    def _setup_targets(self, target):
+    def _setup_targets(self, target, gen_structures=False, debug=False):
         """
         Setup targets for project.
         This may differ from one project to another and needs customization.
@@ -659,7 +672,7 @@ class Analysis():
             #######################################################
             # Create and setup simulation target
             #######################################################
-            self.__setattr__(target, CPUTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=target))
+            self.__setattr__(target, CPUTarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=target, float_type=self.float_type))
             getattr(getattr(self, target), 'assign_fileset')(fileset=filesets['default'])
             if target in filesets:
                 getattr(getattr(self, target), 'assign_fileset')(fileset=filesets[target])
@@ -668,14 +681,14 @@ class Analysis():
             getattr(getattr(getattr(self, target), 'cfg'), 'update_config')(subsection=target)
             getattr(getattr(self, target), 'set_tstop')()
             getattr(getattr(self, target), 'update_structure_config')()
-            if not getattr(getattr(getattr(self, target), 'cfg'), 'custom_top'):
+            if (not getattr(getattr(getattr(self, target), 'cfg'), 'custom_top') and gen_structures):
                 getattr(getattr(self, target), 'gen_structure')()
 
         elif target in self.fpga_targets:
             #######################################################
             # Create and setup FPGA target
             #######################################################
-            self.__setattr__(target, FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=target))
+            self.__setattr__(target, FPGATarget(prj_cfg=self._prj_cfg, plugins=self._plugins, name=target, float_type=self.float_type))
             getattr(getattr(self, target), 'assign_fileset')(fileset=filesets['default'])
             if target in filesets:
                 getattr(getattr(self, target), 'assign_fileset')(fileset=filesets[target])
@@ -685,8 +698,9 @@ class Analysis():
             getattr(getattr(self, target), 'set_tstop')()
             getattr(getattr(self, target), 'update_structure_config')()
             if not getattr(getattr(getattr(self, target), 'cfg'), 'custom_top'):
-                getattr(getattr(self, target), 'setup_ctrl_ifc')()
-                getattr(getattr(self, target), 'gen_structure')()
+                getattr(getattr(self, target), 'setup_ctrl_ifc')(debug=debug)
+                if gen_structures:
+                    getattr(getattr(self, target), 'gen_structure')()
 
         # Copy generated sources by plugin from plugin build_root to target-specific build_root
         for plugin in self._plugins:

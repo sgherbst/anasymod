@@ -52,6 +52,8 @@ class ModuleEmuClks(JinjaTempl):
             self.generated_clks.dedent()
             self.generated_clks.writeln(f'end')
             self.generated_clks.dedent()
+            self.generated_clks.writeln(f'end')
+            self.generated_clks.writeln(f'')
             self.generated_clks.writeln(f'`ifndef SIMULATION_MODE_MSDSL')
             self.generated_clks.indent()
             for gated_clk_sig_name in gated_clk_sig_names:

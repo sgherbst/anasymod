@@ -90,14 +90,15 @@ refresh_hw_device $my_hw_device
 set vio_0_i [get_hw_vios -of_objects $my_hw_device -filter {CELL_NAME=~"sim_ctrl_gen_i/vio_0_i"}]
 set rst_hw_probe [get_hw_probes *rst* -of_objects $vio_0_i]
 
-# Code related to non-interactive mode starts here
-
 # ILA setup
 set my_hw_ila [get_hw_ilas]
 display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $my_hw_ila]
 
+##################################################
+# Code related to non-interactive mode starts here
+##################################################
+
 # Trigger setup
-# TODO: use starting time as trigger condition
 startgroup
 set_property CONTROL.CAPTURE_MODE BASIC $my_hw_ila
 set_property CONTROL.TRIGGER_POSITION 0 $my_hw_ila

@@ -1,0 +1,2 @@
+include anasymod/verilog/*.*v
+include anasymod/verilog/*.bd

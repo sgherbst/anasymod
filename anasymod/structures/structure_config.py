@@ -31,7 +31,7 @@ class StructureConfig():
         #########################################################
 
         self.emu_clk = ClkIndependent(name='emu_clk', freq=float(prj_cfg.cfg.emu_clk_freq))
-        self.emu_clk_2x = ClkIndependent(name='emu_clk_2x', freq=float(prj_cfg.cfg.emu_clk_freq * 2)) # multiplied by two, as emu_clk_2x is twice as fast as emu_clk
+        self.emu_clk_2x = ClkIndependent(name='emu_clk_2x', freq=float(prj_cfg.cfg.emu_clk_freq) * 2) # multiplied by two, as emu_clk_2x is twice as fast as emu_clk
         self.dbg_clk = ClkIndependent(name='dbg_hub_clk', freq=float(prj_cfg.board.dbg_hub_clk_freq))
 
         # add clk_in
@@ -87,7 +87,7 @@ class StructureConfig():
         self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
         self.dec_thr_ctrl.i_addr = self._assign_i_addr()
 
-        # Add DigitalCtrlInput for control signal 'emu_dec_cmp' to trigger samplöing for the ila depending on 'emu_dec_thr'
+        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling for the ila depending on 'emu_dec_thr'
         self.dec_cmp = DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1)
 
         self._read_simctrlfile()
@@ -145,20 +145,26 @@ class StructureConfig():
                         else:
                             raise Exception(f'No abspath provided for clk: {derived_clk}')
 
-                        if 'emu_dt' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
-                            abspath_emu_dt = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_dt'] if clks['derived_clks'][derived_clk]['emu_dt'] is not "" else '__emu_dt'
+                        if 'emu_dt' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['variable_timestep', 'oscillator']):
+                            emu_dt_signame = clks['derived_clks'][derived_clk]['emu_dt'] if ('emu_dt' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['emu_dt'] is not "") else '__emu_dt'
+                            abspath_emu_dt = abspath_default + '.' + emu_dt_signame
                         if 'emu_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
-                            abspath_emu_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_clk'] if clks['derived_clks'][derived_clk]['emu_clk'] is not "" else '__emu_clk'
+                            emu_clk_signame = clks['derived_clks'][derived_clk]['emu_clk'] if ('emu_clk' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['emu_clk'] is not "") else '__emu_clk'
+                            abspath_emu_clk = abspath_default + '.' + emu_clk_signame
                         if 'emu_rst' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'variable_timestep', 'oscillator']):
-                            abspath_emu_rst = abspath_default + '.' + clks['derived_clks'][derived_clk]['emu_rst'] if clks['derived_clks'][derived_clk]['emu_rst'] is not "" else '__emu_rst'
+                            emu_rst_signame = clks['derived_clks'][derived_clk]['emu_rst'] if ('emu_rst' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['emu_rst'] is not "") else '__emu_rst'
+                            abspath_emu_rst = abspath_default + '.' + emu_rst_signame
                         if 'dt_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['variable_timestep', 'oscillator']):
-                            abspath_dt_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['dt_req'] if clks['derived_clks'][derived_clk]['dt_req'] is not "" else '__emu_dt_req'
+                            dt_req_signame = clks['derived_clks'][derived_clk]['dt_req'] if ('dt_req' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['dt_req'] is not "") else '__emu_dt_req'
+                            abspath_dt_req = abspath_default + '.' + dt_req_signame
                             self.num_dt_reqs += 1
-                        if 'gated_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
-                            abspath_gated_clk = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk'] if clks['derived_clks'][derived_clk]['gated_clk'] is not "" else '__emu_clk_i'
+                        if 'gated_clk' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'oscillator']):
+                            gated_clk_signame = clks['derived_clks'][derived_clk]['gated_clk'] if ('gated_clk' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['gated_clk'] is not "") else '__emu_clk_i'
+                            abspath_gated_clk = abspath_default + '.' + gated_clk_signame
                             self.num_gated_clks += 1
-                        if 'gated_clk_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['oscillator']):
-                            abspath_gated_clk_req = abspath_default + '.' + clks['derived_clks'][derived_clk]['gated_clk_req'] if clks['derived_clks'][derived_clk]['gated_clk_req'] is not "" else '__emu_clk_val'
+                        if 'gated_clk_req' in clks['derived_clks'][derived_clk].keys() or ('preset' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['preset'] in ['fixed_timestep', 'oscillator']):
+                            gated_clk_req_signame = clks['derived_clks'][derived_clk]['gated_clk_req'] if ('gated_clk_req' in clks['derived_clks'][derived_clk].keys() and clks['derived_clks'][derived_clk]['gated_clk_req'] is not "") else '__emu_clk_val'
+                            abspath_gated_clk_req = abspath_default + '.' + gated_clk_req_signame
 
                         self.clk_derived.append(ClkDerived(name=derived_clk, abspath_emu_dt=abspath_emu_dt, abspath_emu_clk=abspath_emu_clk, abspath_emu_rst=abspath_emu_rst, abspath_dt_req=abspath_dt_req, abspath_gated_clk=abspath_gated_clk, abspath_gated_clk_req=abspath_gated_clk_req))
                 else:

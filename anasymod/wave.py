@@ -7,14 +7,13 @@ except:
 
 import datetime
 from anasymod.utils.VCD_parser import ParseVCD
-from anasymod.targets import Target
 from anasymod.enums import ResultFileTypes
 
 class ConvertWaveform():
-    def __init__(self, target: Target, float_type=True):
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True):
         # defaults
-        scfg = target.str_cfg
-        self.target = target
+        self.result_path_raw = result_path_raw
+        scfg = str_cfg
         self.signal_lookup = {}
 
         # store data from FPGA in a dictionary
@@ -22,9 +21,9 @@ class ConvertWaveform():
         real_signals = set()
         reg_widths = {}
 
-        if target.cfg.result_type_raw == ResultFileTypes.CSV:
+        if result_type_raw == ResultFileTypes.CSV:
             # read CSV file
-            with open(target.result_path_raw, 'r') as f:
+            with open(self.result_path_raw, 'r') as f:
                 first_line = f.readline()
 
             # split up the first line into comma-delimited names
@@ -67,7 +66,7 @@ class ConvertWaveform():
                     probe_data[name] = [int(x) for x in probe_data[name]]
 
             # Write data to VCD file
-            with open(target.cfg.vcd_path, 'w') as vcd:
+            with open(result_path, 'w') as vcd:
                 with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
@@ -102,8 +101,8 @@ class ConvertWaveform():
                         for signal_full_name, scaled_data in probe_data.items():
                             writer.change(reg[signal_full_name], round(1e9 * timestamp), scaled_data[k])
 
-        elif target.cfg.result_type_raw == ResultFileTypes.VCD:
-            vcd_file_name = target.result_path_raw
+        elif result_type_raw == ResultFileTypes.VCD:
+            vcd_file_name = result_path_raw
             vcd_handle = ParseVCD(vcd_file_name)
             signal_dict = vcd_handle.parse_vcd(update_data=False)
 
@@ -153,14 +152,14 @@ class ConvertWaveform():
                     data = []
                     for c, v in probe_data[digital_signal.name]['data']:
                         try:
-                            data.append((int(c), int(v)))
+                            data.append((int(c), int(v, 2)))
                         except: # In case of an x or z value, a 0 will be added; this is necessary for PYVCD
                             data.append((int(c), int(0)))
 
                     probe_data[digital_signal.name]['data'] = data
 
             # Write data to VCD file
-            with open(target.cfg.vcd_path, 'w') as vcd:
+            with open(result_path, 'w') as vcd:
                 with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
@@ -186,19 +185,36 @@ class ConvertWaveform():
                                                                     size=vcd_size)
 
                     # iterate over all timesteps
-                    for cycle_count, timestamp in probe_data[scfg.time_probe.name]['data']:
+                    for idx, (cycle_count, timestamp) in enumerate(probe_data[scfg.time_probe.name]['data']):
                         # break if timestamp is less than zero since it means that wrapping has occurred
                         if timestamp < 0:
                             break
 
                         # iterate over all signals and log their change at this timestamp
                         for signal_full_name in probe_data.keys():
-                            #Check if a value change has occured at this timestep
-                            if cycle_count == probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']][0]:
-                                writer.change(reg[signal_full_name], round(1e9 * timestamp), probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']][1])
-                                probe_data[signal_full_name]['index'] += 1
+                            current_signal = probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']]
+                            # Check if registered signals shall be associated with timestamp of emu_time signal
+                            if emu_time_scaled:
+                                # Check if a value change has occured at this timestep
+                                if cycle_count == current_signal[0]:
+                                    print(f"{signal_full_name}:{round(1e9 * timestamp)}:{current_signal[1]}")
+                                    writer.change(reg[signal_full_name], round(1e9 * timestamp), current_signal[1])
+                                elif round(probe_data[scfg.time_probe.name]['data'][idx + 1][0] - 25000) > current_signal[0]:
+                                    # Note: There is always a difference of 25000 between a data signal and a timestep event -> substract 25000
+                                    # The cycle count from data signal does not have a match with emu_time signal's cycle count
+                                    # -> we need to apply interpolation in order to assign the timestamp properly
+                                    print(f"needer to interp: {signal_full_name}: {round(probe_data[scfg.time_probe.name]['data'][idx+1][1] * 1e12)}")
+                                    cycles_in_dt = probe_data[scfg.time_probe.name]['data'][idx+1][0] - cycle_count
+                                    dt = probe_data[scfg.time_probe.name]['data'][idx+1][1] - timestamp
+                                    interp_timestamp = dt/cycles_in_dt * (current_signal[0] - cycle_count + 25000) + timestamp
+                                    writer.change(reg[signal_full_name], round(1e9 * interp_timestamp), current_signal[1])
+                                else:
+                                    continue
+                            else: # Registered signal are associated with original cycle count
+                                writer.change(reg[signal_full_name], current_signal[0], current_signal[1])
+                            probe_data[signal_full_name]['index'] += 1
         else:
-            raise Exception(f'ERROR: No supported Result file format selected:{target.cfg.result_type_raw}')
+            raise Exception(f'ERROR: No supported Result file format selected:{result_type_raw}')
 
 
 
@@ -207,4 +223,4 @@ class ConvertWaveform():
         Getting unscaled data from csv file column
         :return:
         """
-        return np.genfromtxt(self.target.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)
+        return np.genfromtxt(self.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)

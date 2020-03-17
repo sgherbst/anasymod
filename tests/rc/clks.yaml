@@ -1,0 +1,4 @@
+derived_clks:
+  tb_clk:
+    abspath: 'tb_i.clk_gen'
+    preset: fixed_timestep
