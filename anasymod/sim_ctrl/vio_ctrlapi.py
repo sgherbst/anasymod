@@ -251,6 +251,7 @@ class VIOCtrlApi(CtrlApi):
             # TODO: do this only if needed
             env = os.environ.copy()
             env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            os.environ['WEXPECT_SPAWN_CLASS'] = 'SpawnPipe'
             # Launch Vivado
             # TODO: should this be spawnu instead?
             from wexpect import spawn
