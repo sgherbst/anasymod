@@ -42,6 +42,11 @@ class VIOCtrlApi(CtrlApi):
         self.bitfile_path = bitfile_path
         self.ltxfile_path = ltxfile_path
 
+        # create dictionary of analog control I/O
+        # TODO: is there a better way to access this information?
+        self.analog_ctrl_outputs = {elem.name: elem for elem in self.scfg.analog_ctrl_outputs}
+        self.analog_ctrl_inputs = {elem.name: elem for elem in self.scfg.analog_ctrl_inputs}
+
     ### User Functions
 
     def sendline(self, line, timeout=float('inf')):
@@ -175,10 +180,17 @@ class VIOCtrlApi(CtrlApi):
         :param name: Name of control parameter to be read
         :param timeout: Maximum time granted for operation to finish
         """
-        before = self.sendline(f'get_property INPUT_VALUE ${name}', timeout=timeout)
-        before = before.splitlines()[-1] # get last line
-        before = before.strip() # strip off whitespace
-        return before
+        # get output result as a string
+        value = self.sendline(f'get_property INPUT_VALUE ${name}', timeout=timeout)
+        value = value.splitlines()[-1] # get last line
+        value = value.strip() # strip off whitespace
+
+        # convert value to floating-point if needed
+        if name in self.analog_ctrl_outputs:
+            value = self.analog_ctrl_outputs[name].fixed_to_float(int(value))
+
+        # return value
+        return value
 
     def set_param(self, name, value, timeout=30):
         """
@@ -187,6 +199,11 @@ class VIOCtrlApi(CtrlApi):
         :param value: Value of control parameter sto be set
         :param timeout: Maximum time granted for operation to finish
         """
+        # convert value to fixed-point if needed
+        if name in self.analog_ctrl_inputs:
+            value = self.analog_ctrl_inputs[name].float_to_fixed(value)
+
+        # send command
         self.sendline(f'set_property OUTPUT_VALUE {value} ${name}', timeout=timeout)
         self.sendline(f'commit_hw_vio ${name}')
 

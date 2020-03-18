@@ -62,6 +62,9 @@ def test_func_emu(gen_bitstream=True):
     err = np.linalg.norm(exact-apprx)
     assert err <= 0.001
 
+    # declare success
+    print('Success!')
+
 if __name__ == "__main__":
     # parse command-line arguments
     parser = ArgumentParser()

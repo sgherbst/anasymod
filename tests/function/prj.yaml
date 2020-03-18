@@ -1,5 +1,5 @@
 PROJECT:
   dt: 0.1e-6
-  board_name: ARTY_A7
+  board_name: ZC702
   plugins: ['msdsl']
   emu_clk_freq: 10e6
