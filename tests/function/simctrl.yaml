@@ -1,0 +1,9 @@
+analog_ctrl_inputs:
+  in_:
+    abspath: 'tb_i.in_'
+    range: 10
+    init_value: 0.0
+analog_ctrl_outputs:
+  out:
+    abspath: 'tb_i.out'
+    range: 10
