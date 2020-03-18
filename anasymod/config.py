@@ -106,15 +106,15 @@ class VivadoConfig():
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
             xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
         # set path to vivado binary
-        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
-        #self.lsf_opts = ''
+        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
+        # lsf options for tcl mode of Vivado
         self.lsf_opts_ls = ''
         if platform in {'linux', 'linux2'}:
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
             self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
             self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
-            #self.lsf_opts = "-eh_local"
 
         self._vivado = vivado
         # set various project options
@@ -142,8 +142,6 @@ class XceliumConfig():
 
         # name of TCL file
         self.tcl_input = 'input.tcl'
-
-        #self.lsf_opts = ''
         if platform == 'linux' or platform == 'linux2':
             self.lsf_opts = "-eh_ncpu 4"
 

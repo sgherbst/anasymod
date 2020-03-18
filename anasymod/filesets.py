@@ -91,7 +91,7 @@ class Filesets():
                 self._verilog_sources.append(VerilogSource(files=cfg['verilog_sources'][verilog_source]['files'],
                                                            fileset=cfg['verilog_sources'][verilog_source]['fileset'] if 'fileset' in cfg['verilog_sources'][verilog_source].keys() else 'default',
                                                            config_path=cfg_path,
-                                                           version=cfg['verilog_sources'][verilog_source]['version'] if 'verilog_version' in cfg['verilog_sources'][verilog_source].keys() else None))
+                                                           version=cfg['verilog_sources'][verilog_source]['version'] if 'version' in cfg['verilog_sources'][verilog_source].keys() else None))
         if 'verilog_headers' in cfg.keys(): # Add verilog headers to filesets
             print(f'Verilog Headers: {[key for key in cfg["verilog_headers"].keys()]}')
             for verilog_header in cfg['verilog_headers'].keys():
