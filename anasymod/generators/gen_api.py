@@ -106,21 +106,17 @@ class SVAPI(GenAPI):
         """
 
         if direction in [PortDir.IN]:
-            if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(io_obj, AnalogSignal):
                 return f"`INPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
                 return f"input wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
-            elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
-                return f"input `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
         elif direction in [PortDir.OUT]:
-            if isinstance(io_obj, AnalogSignal)and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(io_obj, AnalogSignal):
                 return f"`OUTPUT_REAL({io_obj.name})"
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
                 return f"output wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
-            elif isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput)):
-                return f"output `DATA_TYPE_REAL(`LONG_WIDTH_REAL) {io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
@@ -306,10 +302,6 @@ class ModuleInst():
 
         ### Check if module includes analog ports or parameters
         analog_ports = self.analog_inputs + self.analog_outputs
-        # Remove analog control signals as for those signals no parameters will be transmitted
-        for analog_port in analog_ports:
-            if isinstance(analog_port, (AnalogCtrlInput, AnalogCtrlOutput)):
-                analog_ports.remove(analog_port)
 
         if (analog_ports or self.parameters):
             self.api.writeln(f"module {self.name} #(")
@@ -354,7 +346,7 @@ class ModuleInst():
         analog_connections = []
         for connection in self.connections:
             # Remove analog control signals as for those signals no parameters will be transmitted
-            if isinstance(connection[0], AnalogSignal) and not isinstance(connection[0], (AnalogCtrlInput, AnalogCtrlOutput)):
+            if isinstance(connection[0], AnalogSignal):
                 analog_connections.append(connection)
 
         if (analog_connections or self.parameters):

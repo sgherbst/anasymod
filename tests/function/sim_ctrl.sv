@@ -17,7 +17,7 @@ module sim_ctrl #(
 
     // wire output
     real out_int;
-    assign out = `TO_REAL(out);
+    assign out_int = `TO_REAL(out);
 
     // clipping to range
     function real clip(input real x, input real min, input real max);
@@ -32,6 +32,7 @@ module sim_ctrl #(
 
     // run simulation
     real expct, sum_err_sqrd, rms_err;
+    integer n_samp;
     initial begin
         // wait for emulator reset to complete
         #(10us);
@@ -42,21 +43,23 @@ module sim_ctrl #(
 
         // walk through simulation values
         sum_err_sqrd = 0.0;
+        n_samp = 0;
         for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int = in_int + 0.05) begin
             // wait
             #(1us);
             // compute expected output
-            expct = $sin($clip(in_int, -m_pi, +m_pi));
+            expct = $sin(clip(in_int, -m_pi, +m_pi));
             // print simulation state
             $display("in_int: %0f, out_int: %0f, expct: %0f", in_int, out_int, expct);
             // accumulate error
-            sum_err_sqrd = sum_err_sqrd + ((expct - out_int)**2)
+            sum_err_sqrd = sum_err_sqrd + ((expct - out_int)**2);
+            n_samp = n_samp + 1;
         end
 
         // check result
         rms_err = $sqrt((1.0/n_samp)*sum_err_sqrd);
         $display("RMS error: %0f", rms_err);
-        assert rms_err <= err_tol else $error("RMS error is too high.");
+        assert (rms_err <= err_tol) else $error("RMS error is too high.");
 
         // end simulation
         $finish;

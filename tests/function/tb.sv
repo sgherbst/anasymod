@@ -8,7 +8,7 @@ module tb;
     // clock control
     logic clk, rst;
     clk_route clk_route_i (
-        .clk(clk)
+        .clk(clk),
         .rst(rst)
     );
 
