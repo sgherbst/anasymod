@@ -1,18 +1,12 @@
 `include "svreal.sv"
 
 module tb;
-    // signals
-    logic signed [24:0] v_in_vio;
-    logic signed [24:0] v_out_vio;
-    logic go_vio;
-    logic rst_vio;
-    logic clk;
+    // analog signals
+    `MAKE_REAL(v_in, 10.0);
+    `MAKE_REAL(v_out, 10.0);
 
-    // declare SVREAL signals
-    `REAL_FROM_WIDTH_EXP(v_in, 25, `ANALOG_EXPONENT);
-    `REAL_FROM_WIDTH_EXP(v_out, 25, `ANALOG_EXPONENT);
-    assign v_in = v_in_vio;
-    assign v_out_vio = v_out;
+    // control signals
+    logic go_vio, rst_vio, clk;
 
     // clock control
     single_step_clk clk_gen (

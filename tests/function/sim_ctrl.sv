@@ -59,7 +59,9 @@ module sim_ctrl #(
         // check result
         rms_err = $sqrt((1.0/n_samp)*sum_err_sqrd);
         $display("RMS error: %0f", rms_err);
-        assert (rms_err <= err_tol) else $error("RMS error is too high.");
+        if (!(rms_err <= err_tol)) begin
+            $error("RMS error is too high.");
+        end
 
         // end simulation
         $finish;

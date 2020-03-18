@@ -8,14 +8,6 @@ from math import exp
 
 root = os.path.dirname(__file__)
 
-ANALOG_EXPONENT = -18
-
-def float_to_fixed(x):
-    return int(x * (2.0**(-ANALOG_EXPONENT)))
-
-def fixed_to_float(x):
-    return x * (2.0**(ANALOG_EXPONENT))
-
 def test_rc_sim(simulator_name='vivado'):
     # create analysis object
     ana = Analysis(input=root,
@@ -56,7 +48,7 @@ def test_rc_emu(gen_bitstream=True):
     # reset everything else
     ctrl.set_param(name='go_vio', value=0)
     ctrl.set_param(name='rst_vio', value=1)
-    ctrl.set_param(name='v_in_vio', value=float_to_fixed(1.0))
+    ctrl.set_param(name='v_in', value=1.0)
 
     # pulse the clock
     pulse_clock()
@@ -72,13 +64,13 @@ def test_rc_emu(gen_bitstream=True):
     for _ in range(25):
         # get readings
         ctrl.refresh_param('vio_0_i')
-        v_out_vio = fixed_to_float(int(ctrl.get_param('v_out_vio')))
+        v_out = ctrl.get_param('v_out')
 
         # print readings
-        print(f't_sim: {t_sim}, v_out_vio: {v_out_vio}')
+        print(f't_sim: {t_sim}, v_out: {v_out}')
 
         # check results
-        meas_val = v_out_vio
+        meas_val = v_out
         expt_val = 1.0 - exp(-t_sim / tau)
         assert (expt_val - abs_tol) <= meas_val <= (expt_val + abs_tol), 'Measured value is out of range.'
 
@@ -87,6 +79,9 @@ def test_rc_emu(gen_bitstream=True):
 
         # update the time variable
         t_sim += 0.1e-6
+
+    # declare success
+    print('Success!')
 
 if __name__ == "__main__":
     # parse command-line arguments

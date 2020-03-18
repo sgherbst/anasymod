@@ -8,9 +8,6 @@ defines:
   DT_MSDSL:
     name: DT_MSDSL
     value: 0.1e-6
-  ANALOG_EXPONENT:
-    name: ANALOG_EXPONENT
-    value: -18
   SIMULATION_MODE_MSDSL:
     name: SIMULATION_MODE_MSDSL
     fileset: "sim"
