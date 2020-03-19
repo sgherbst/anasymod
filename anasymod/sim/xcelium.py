@@ -22,6 +22,7 @@ class XceliumSimulator(Simulator):
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
         if "ifxxcelium" in self.cfg.xcelium_config.xrun:
+            cmd += self.target.prj_cfg.xcelium_config.lsf_opts.split()
             cmd += ['inicio']
             if self.unit:
                 cmd += ["-unit", self.unit]

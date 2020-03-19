@@ -233,7 +233,9 @@ class VIOCtrlApi(CtrlApi):
         sys.stdout.flush()
 
         # construct the command to launch Vivado
-        cmd = 'vivado -nolog -nojournal -notrace -mode tcl'
+        cmd = 'vivado '
+        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
+        cmd += '-nolog -nojournal -notrace -mode tcl'
 
         # Use pexpect under linux for interactive vivado ctrl
         if os.name == 'posix':
