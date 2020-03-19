@@ -1,5 +1,6 @@
 from math import ceil, log2
 
+
 class _Signal():
     """
     Container for signals that can be used to describe connectivity within the design.
@@ -15,7 +16,9 @@ class _Signal():
         self.name = name
         self.abs_path = abspath
 
-### Digital Signal Classes
+
+# Digital Signal Classes
+
 
 class DigitalSignal(_Signal):
     """
@@ -65,7 +68,9 @@ class DigitalCtrlOutput(DigitalSignal):
         super().__init__(abspath=abspath, name=name, width=width, delimiter=delimiter)
         self.o_addr = None
 
-### Analog Signal Classes
+
+# Analog Signal Classes
+
 
 class AnalogSignal(_Signal):
     """
@@ -77,9 +82,24 @@ class AnalogSignal(_Signal):
     :param range:       Range for analog fixed-point datatype
     """
 
-    def __init__(self, abspath, name, range, delimiter='.'):
+    def __init__(self, abspath, name, range, delimiter='.', width=25):
         super().__init__(abspath=abspath, name=name, delimiter=delimiter)
         self.range = range
+        # As of now, the number of bits for each analog signal shall not be changed without also
+        # changing the corresponding value in SVREAL (LONG_WIDTH_REAL=25); in future, it shall
+        # be possible to change width for each signal
+        self.width = width
+
+    @property
+    def exponent(self):
+        return int(ceil(log2((self.range) / (2 ** (self.width - 1) - 1))))
+
+    def float_to_fixed(self, val):
+        return int(round(val*(2.0**(-self.exponent))))
+
+    def fixed_to_float(self, val):
+        return val*(2.0**(self.exponent))
+
 
 class AnalogCtrlInput(AnalogSignal):
     """
@@ -93,10 +113,11 @@ class AnalogCtrlInput(AnalogSignal):
     :param range:       Range for analog fixed-point datatype
     """
 
-    def __init__(self, abspath, name, range, init_value=0.0, delimiter='.'):
-        super().__init__(abspath=abspath, name=name, range=range, delimiter=delimiter)
+    def __init__(self, abspath, name, range, init_value=0.0, delimiter='.', width=25):
+        super().__init__(abspath=abspath, name=name, range=range, delimiter=delimiter, width=width)
         self.i_addr = None
         self.init_value = init_value
+
 
 class AnalogCtrlOutput(AnalogSignal):
     """
@@ -109,9 +130,10 @@ class AnalogCtrlOutput(AnalogSignal):
     :param range:       Range for analog fixed-point datatype
     """
 
-    def __init__(self, abspath, name, range, delimiter='.'):
-        super().__init__(abspath=abspath, name=name, range=range, delimiter=delimiter)
+    def __init__(self, abspath, name, range, delimiter='.', width=25):
+        super().__init__(abspath=abspath, name=name, range=range, delimiter=delimiter, width=width)
         self.o_addr = None
+
 
 class AnalogProbe(AnalogSignal):
     """
@@ -127,19 +149,7 @@ class AnalogProbe(AnalogSignal):
     """
 
     def __init__(self, abspath, name, range, width=25, delimiter='.'):
-        super().__init__(abspath=abspath, name=name, delimiter=delimiter, range=range)
-
-        # As of now, the number of bits for each analog signal shall not be changed without also changing the corresponding
-        # value in SVREAL (LONG_WIDTH_REAL=25); in future, it shall be possible to change width for each signal
-        self.width = width
-
-    @property
-    def exponent(self):
-        return ceil(log2((self.range) / (2 ** (self.width - 1) - 1)))
-
-
-
-
+        super().__init__(abspath=abspath, name=name, delimiter=delimiter, range=range, width=width)
 
 
 class ProbeSignal():

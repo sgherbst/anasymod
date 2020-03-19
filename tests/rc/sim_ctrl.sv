@@ -1,17 +1,29 @@
 `include "svreal.sv"
 
 module sim_ctrl #(
-    parameter real tau=1e-6,
-    parameter real abs_tol=1e-3
+    `DECL_REAL(v_in),
+    `DECL_REAL(v_out)
 ) (
-    input wire logic signed [24:0] v_out_vio,
-    output var logic signed [24:0] v_in_vio='d0,
-    output var logic go_vio=1'b0,
-    output var logic rst_vio=1'b1
+    `OUTPUT_REAL(v_in),
+    `INPUT_REAL(v_out),
+    output var logic go_vio,
+    output var logic rst_vio
 );
+    // test parameters
+    localparam real tau=1e-6;
+    localparam real abs_tol=1e-3;
+
+    // wire input
+    real v_in_int;
+    assign `FORCE_REAL(v_in_int, v_in);
+
+    // wire output
+    real v_out_int;
+    assign v_out_int = `TO_REAL(v_out);
+
+    // control variables
     integer k;
     real t_sim, expt_val, meas_val;
-
     initial begin
         // wait for emulator reset to complete
         #(10us);
@@ -19,7 +31,7 @@ module sim_ctrl #(
         // initialize signals
         go_vio = 1'b0;
         rst_vio = 1'b1;
-        v_in_vio = `FLOAT_TO_FIXED(1.0, `ANALOG_EXPONENT);
+        v_in_int = 1.0;
         #(1us);
 
         // pulse the clock
@@ -36,18 +48,14 @@ module sim_ctrl #(
         t_sim = 0.0;
         for (k=0; k<25; k=k+1) begin
             // print the current simulation state
-            $display(
-                "t_sim: %0e, v_in_vio: %0f, v_out_vio: %0f",
-                t_sim,
-                `FIXED_TO_FLOAT(v_in_vio, `ANALOG_EXPONENT),
-                `FIXED_TO_FLOAT(v_out_vio, `ANALOG_EXPONENT)
-            );
+            $display("t_sim: %0e, v_in_int: %0f, v_out_int: %0f", t_sim, v_in_int, v_out_int);
 
             // check results
-            meas_val = `FIXED_TO_FLOAT(v_out_vio, `ANALOG_EXPONENT);
+            meas_val = v_out_int;
             expt_val = 1.0 - $exp(-t_sim/tau);
-            assert (((expt_val - abs_tol) <= meas_val) && (meas_val <= (expt_val + abs_tol))) else
+            if (!(((expt_val - abs_tol) <= meas_val) && (meas_val <= (expt_val + abs_tol)))) begin
                 $error("Measured value is out of range.");
+            end
 
             // pulse the clock
             go_vio = 1'b1;

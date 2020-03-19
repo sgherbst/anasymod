@@ -17,30 +17,25 @@ class TemplVIO(TemplGenericIp):
 
         # handle input ports
         for k, input in enumerate(ctrl_outputs):
-            if isinstance(input, AnalogCtrlOutput):
-                #ToDo: currently the width is set to 25 bit for all analog signals, this might be adjusted, ideally
-                # value should be set from same souce as the real.sv define for LONG_WIDTH_REAL
-                width = 25
-            elif isinstance(input, DigitalCtrlOutput):
-                width = input.width
-            else:
+            # check that the signal type can be handled
+            if not isinstance(input, (AnalogCtrlOutput, DigitalCtrlOutput)):
                 raise Exception(f"Provided signal type:{type(input)} is not supported!")
-
-            props[f'CONFIG.C_PROBE_IN{k+0}_WIDTH'] = str(width)
+            # set signal width
+            props[f'CONFIG.C_PROBE_IN{k+0}_WIDTH'] = str(input.width)
 
         # handle output ports
         for k, output in enumerate([scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + crtl_inputs):
-            if isinstance(output, AnalogCtrlInput):
-                # ToDo: currently the width is set to 25 bit for all analog signals, this might be adjusted, ideally
-                #  value should be set from same souce as the real.sv define for LONG_WIDTH_REAL
-                width = 25
-            elif isinstance(output, DigitalCtrlInput):
-                width = output.width
-            else:
+            # check that the signal type can be handled
+            if not isinstance(output, (AnalogCtrlInput, DigitalCtrlInput)):
                 raise Exception(f"Provided signal type:{type(output)} is not supported!")
-            props[f'CONFIG.C_PROBE_OUT{k+0}_WIDTH'] = str(width)
+            # set signal width
+            props[f'CONFIG.C_PROBE_OUT{k + 0}_WIDTH'] = str(output.width)
+            # set initial value of probe
             if output.init_value is not None:
-                props[f'CONFIG.C_PROBE_OUT{k+0}_INIT_VAL'] = str(output.init_value)
+                init_value = output.init_value
+                if isinstance(output, AnalogCtrlInput):
+                    init_value = output.float_to_fixed(init_value)
+                props[f'CONFIG.C_PROBE_OUT{k+0}_INIT_VAL'] = str(init_value)
 
         props['CONFIG.C_NUM_PROBE_IN'] = str(len(ctrl_outputs))
         props['CONFIG.C_NUM_PROBE_OUT'] = str(len([scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + crtl_inputs))

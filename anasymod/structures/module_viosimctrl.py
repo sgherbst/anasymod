@@ -76,6 +76,8 @@ class ModuleVIOSimCtrl(JinjaTempl):
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
+`include "svreal.sv"
+
 `default_nettype none
 {{subst.module_ifc.text}}
 
