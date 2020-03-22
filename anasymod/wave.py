@@ -14,7 +14,7 @@ class ConvertWaveform():
     Convert raw result files to vcd and also make sure fixed-point datatypes are properly converted to a floating point
     representation. Currently supported raw result datatypes are vcd and csv.
     """
-    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=False):
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True):
         """
 
         :param str_cfg: structure config object used in current project.
