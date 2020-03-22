@@ -87,7 +87,9 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln(f'read_ip "{back2fwd(file)}"')
 
         # upgrade IPs as necessary
-        self.writeln('upgrade_ip [get_ips]')
+        self.writeln('if {[get_ips] ne ""} {')
+        self.writeln('    upgrade_ip [get_ips]')
+        self.writeln('}')
 
         # generate all IPs
         self.writeln('generate_target all [get_ips]')

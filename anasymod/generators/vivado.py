@@ -47,36 +47,41 @@ class VivadoTCLGenerator(CodeGenerator):
 
     def add_verilog_sources(self, ver_src: [VerilogSource]):
         for src in ver_src:
-            self.add_files(src.files)
-            if src.version is not None:
-                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
-                self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
+            if src.files:
+                self.add_files(src.files)
+                if src.version is not None:
+                    file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                    self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
 
     def add_verilog_headers(self, ver_hdr):
         for src in ver_hdr:
-            self.add_files(src.files)
-            file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
-            self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
+            if src.files:
+                self.add_files(src.files)
+                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
 
     def add_vhdl_sources(self, vhdl_src):
         for src in vhdl_src:
-            self.add_files(src.files)
-            if src.library is not None:
-                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
-                self.set_property('library', value=f'{{{src.library}}}', objects=f'[get_files {file_list}]')
-            if src.version is not None:
-                file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
-                self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
+            if src.files:
+                self.add_files(src.files)
+                if src.library is not None:
+                    file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                    self.set_property('library', value=f'{{{src.library}}}', objects=f'[get_files {file_list}]')
+                if src.version is not None:
+                    file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
+                    self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
 
     def add_mem_file(self, mem_files: [MEMFile]):
         for mem_file in mem_files:
-            self.add_files(mem_file.files)
+            if src.files:
+                self.add_files(mem_file.files)
 
     def add_bd_file(self, bd_files: [BDFile]):
         for bd_file in bd_files:
-            cmd = ['read_bd']
-            cmd.append('{ ' + ' '.join('"' + back2fwd(file) + '"' for file in bd_file.files) + ' }')
-            self.writeln(' '.join(cmd))
+            if bd_file.files:
+                cmd = ['read_bd']
+                cmd.append('{ ' + ' '.join('"' + back2fwd(file) + '"' for file in bd_file.files) + ' }')
+                self.writeln(' '.join(cmd))
 
 
     def add_project_defines(self, content, fileset):
@@ -95,13 +100,16 @@ class VivadoTCLGenerator(CodeGenerator):
         self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", fileset)
 
     def add_files(self, files, norecurse=True, fileset=None):
-        cmd = ['add_files']
-        if fileset is not None:
-            cmd.extend(['-fileset', fileset])
-        if norecurse:
-            cmd.append('-norecurse')
-        cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
-        self.writeln(' '.join(cmd))
+        if files != []:
+            cmd = ['add_files']
+            if fileset is not None:
+                cmd.extend(['-fileset', fileset])
+            if norecurse:
+                cmd.append('-norecurse')
+            cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
+            self.writeln(' '.join(cmd))
+        else:
+            print('No Content in source!')
 
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
