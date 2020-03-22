@@ -33,6 +33,7 @@ setup(
         'pyvcd',
         'pyserial',
         'pexpect',
+        'wexpect>=3.3.0'
         'PyYAML'
     ],
     license='BSD 3-Clause "New" or "Revised" License',

@@ -108,10 +108,15 @@ class VivadoConfig():
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
-
+        # lsf options for tcl mode of Vivado
+        self.lsf_opts_ls = ''
+        self.lsf_opts = parent.cfg.lsf_opts
         if platform in {'linux', 'linux2'}:
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
+            if 'CAMINO' in os.environ:
+                self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
+                self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
 
         self._vivado = vivado
         # set various project options
@@ -132,7 +137,7 @@ class XceliumConfig():
     def __init__(self, parent: EmuConfig, xrun=None):
         # save reference to parent config
         self.parent = parent
-
+        self.lsf_opts = parent.cfg.lsf_opts
         # set path to xrun binary
         self.hints = [lambda: os.path.join(env['XCELIUM_INSTALL_PATH'], 'bin')]
         self._xrun = xrun
@@ -140,11 +145,14 @@ class XceliumConfig():
         # name of TCL file
         self.tcl_input = 'input.tcl'
 
+
+
     @property
     def xrun(self):
         if self._xrun is None:
             try:
                 self._xrun = find_tool(name='ifxxcelium', hints=self.hints)
+                self.lsf_opts = "-eh_ncpu 4"
                 #self._xrun += " execute"
             except:
                 self._xrun = find_tool(name='xrun', hints=self.hints)
@@ -194,6 +202,9 @@ class GtkWaveConfig():
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], parent.cfg_dict['TOOLS_gtkwave'], 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
+        self.lsf_opts = parent.cfg.lsf_opts
+        if 'CAMINO' in os.environ:
+            self.lsf_opts = "-eh_ram 7000"
 
     @property
     def gtkwave(self):
@@ -210,6 +221,9 @@ class SimVisionConfig():
         self.hints = [lambda: os.path.join(env['SIMVISION_INSTALL_PATH'], 'bin')]
         self._simvision = simvision
         self.svcf_config = None
+        self.lsf_opts = parent.cfg.lsf_opts
+        if 'CAMINO' in os.environ:
+            self.lsf_opts = "-eh_ram 7000"
 
     @property
     def simvision(self):
@@ -257,6 +271,10 @@ class Config(BaseConfig):
         self.time_width = 39
         """ type(int) : number of bits used for emulation time signal.
             Any value above 39 does not work with the current vivado ILA core version. """
+        
+        self.lsf_opts = ''
+        """ type(string) : LSF options which can be passed to our tool wrapper commands in the Inicio Flowpackage
+            Execution handler options, e.g. '-eh_ncpu 8' can be used"""
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

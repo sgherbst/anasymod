@@ -233,7 +233,9 @@ class VIOCtrlApi(CtrlApi):
         sys.stdout.flush()
 
         # construct the command to launch Vivado
-        cmd = 'vivado -nolog -nojournal -notrace -mode tcl'
+        cmd = 'vivado '
+        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
+        cmd += '-nolog -nojournal -notrace -mode tcl'
 
         # Use pexpect under linux for interactive vivado ctrl
         if os.name == 'posix':
@@ -251,9 +253,13 @@ class VIOCtrlApi(CtrlApi):
             # TODO: do this only if needed
             env = os.environ.copy()
             env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            os.environ['WEXPECT_SPAWN_CLASS'] = 'SpawnPipe'
             # Launch Vivado
-            # TODO: should this be spawnu instead?
-            from wexpect import spawn
+            try:
+                # import patched wexpect from Inicio installation
+                from site_pip_packages.wexpect import spawn
+            except:
+                from wexpect import spawn
             self.proc = spawn(command=cmd, cwd=self.cwd, env=env)
         else:
             raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
