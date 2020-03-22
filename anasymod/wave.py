@@ -10,7 +10,21 @@ from anasymod.utils.VCD_parser import ParseVCD
 from anasymod.enums import ResultFileTypes
 
 class ConvertWaveform():
-    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True):
+    """
+    Convert raw result files to vcd and also make sure fixed-point datatypes are properly converted to a floating point
+    representation. Currently supported raw result datatypes are vcd and csv.
+    """
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=False):
+        """
+
+        :param str_cfg: structure config object used in current project.
+        :param result_type_raw: filetype of result file to be converted
+        :param result_path_raw: path to raw result file
+        :param result_path: path to converted result file
+        :param float_type: flag to indicate if real signal's data type is fixed-point or floating point
+        :param emu_time_scaled: flag to indicate, if signals shall be displayed over cycle count or time
+        """
+
         # defaults
         self.result_path_raw = result_path_raw
         scfg = str_cfg
@@ -184,35 +198,84 @@ class ConvertWaveform():
                                                                     var_type=vcd_var_type,
                                                                     size=vcd_size)
 
-                    # iterate over all timesteps
+                    # calculate emu_time offset
+                    offset = 0
                     for idx, (cycle_count, timestamp) in enumerate(probe_data[scfg.time_probe.name]['data']):
                         # break if timestamp is less than zero since it means that wrapping has occurred
                         if timestamp < 0:
                             break
 
-                        # iterate over all signals and log their change at this timestamp
-                        for signal_full_name in probe_data.keys():
-                            current_signal = probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']]
-                            # Check if registered signals shall be associated with timestamp of emu_time signal
-                            if emu_time_scaled:
-                                # Check if a value change has occured at this timestep
-                                if cycle_count == current_signal[0]:
-                                    print(f"{signal_full_name}:{round(1e9 * timestamp)}:{current_signal[1]}")
-                                    writer.change(reg[signal_full_name], round(1e9 * timestamp), current_signal[1])
-                                elif round(probe_data[scfg.time_probe.name]['data'][idx + 1][0] - 25000) > current_signal[0]:
-                                    # Note: There is always a difference of 25000 between a data signal and a timestep event -> substract 25000
-                                    # The cycle count from data signal does not have a match with emu_time signal's cycle count
-                                    # -> we need to apply interpolation in order to assign the timestamp properly
-                                    print(f"needer to interp: {signal_full_name}: {round(probe_data[scfg.time_probe.name]['data'][idx+1][1] * 1e12)}")
-                                    cycles_in_dt = probe_data[scfg.time_probe.name]['data'][idx+1][0] - cycle_count
-                                    dt = probe_data[scfg.time_probe.name]['data'][idx+1][1] - timestamp
-                                    interp_timestamp = dt/cycles_in_dt * (current_signal[0] - cycle_count + 25000) + timestamp
-                                    writer.change(reg[signal_full_name], round(1e9 * interp_timestamp), current_signal[1])
-                                else:
-                                    continue
-                            else: # Registered signal are associated with original cycle count
-                                writer.change(reg[signal_full_name], current_signal[0], current_signal[1])
-                            probe_data[signal_full_name]['index'] += 1
+                        if timestamp > 0:
+                            break
+
+                        offset = cycle_count
+
+                    #############################
+                    # Represent signals over time
+                    #############################
+
+                    if emu_time_scaled:
+                        for idx, (cycle_count, timestamp) in enumerate(probe_data[scfg.time_probe.name]['data']):
+                            # break if timestamp is less than zero since it means that wrapping has occurred
+                            if timestamp < 0:
+                                break
+
+                            # store all available signals in list, any signal, that is no longer in the list will be skipped
+                            # signals, where the cycle_count is nop longer between current and next cycle count of the time
+                            # signal will be removed from the list
+                            sigs_in_interval = list(probe_data.keys())
+                            """:type : list """
+
+                            # list of all activities within time interval
+                            timestep_events = []
+
+                            # As soon as all signals are no longer in the interval, timestep will advance
+                            while sigs_in_interval:
+                                for signal_full_name in sigs_in_interval:
+                                    sig_tuple = probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']]
+                                    if cycle_count == sig_tuple[0]:
+                                        timestep_events.append([signal_full_name, timestamp, sig_tuple[1]])
+
+                                        # This signal no longer needs to be observed
+                                        probe_data[signal_full_name]['index'] += 1
+                                        sigs_in_interval.remove(signal_full_name)
+                                    elif round(probe_data[scfg.time_probe.name]['data'][idx + 1][0] - offset) > sig_tuple[0]:
+                                        # Note: There is always an offset between cycle count and timestamp  -> substract offset
+                                        # The cycle count from data signal does not have a match with emu_time signal's cycle count
+                                        # -> we need to apply interpolation in order to assign the timestamp properly
+                                        cycles_in_dt = probe_data[scfg.time_probe.name]['data'][idx+1][0] - cycle_count
+                                        dt = probe_data[scfg.time_probe.name]['data'][idx+1][1] - timestamp
+                                        interp_timestamp = dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp
+
+                                        timestep_events.append([signal_full_name, interp_timestamp, sig_tuple[1]])
+
+                                        probe_data[signal_full_name]['index'] += 1
+                                    else:
+                                        # This signal no longer needs to be observed
+                                        sigs_in_interval.remove(signal_full_name)
+
+                            # Register events in time interval in chronological order
+                            timestep_events = sorted(timestep_events, key=self.sort_timestamp)
+                            for [sig_name, timestamp, value] in timestep_events:
+                                writer.change(reg[sig_name], round(1e9 * timestamp), value)
+
+                    ####################################
+                    # Represent signals over cycle count
+                    ####################################
+
+                    else:
+                        time_events = []  # store all events from result file
+                        for signal in probe_data.keys():
+                            for sig_tuple in probe_data[signal]['data']:
+                                time_events.append([signal, sig_tuple[0], sig_tuple[1]])
+
+                        # Register events in chronological order
+                        time_events = sorted(time_events, key=self.sort_timestamp)
+                        for [sig_name, timestamp, value] in time_events:
+                            writer.change(reg[sig_name], round(1e9 * timestamp), value)
+
+
+
         else:
             raise Exception(f'ERROR: No supported Result file format selected:{result_type_raw}')
 
@@ -224,3 +287,6 @@ class ConvertWaveform():
         :return:
         """
         return np.genfromtxt(self.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)
+
+    def sort_timestamp(self, element):
+        return element[1]
