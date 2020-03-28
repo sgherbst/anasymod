@@ -20,6 +20,7 @@ jobs:
       run: source regress.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        ANASYMOD_PYTHON: python3.7
     - name: Build source distribution
       run: python setup.py sdist
     - name: Publish source distribution to PyPI
