@@ -10,8 +10,8 @@ module clk_route (
     (* dont_touch = "true" *) logic __emu_clk_val;
     (* dont_touch = "true" *) logic __emu_clk_i;
 
-    // assign clock input (unused)
-    assign __emu_clk_i = 1'b0;
+    // assign clock value (unused)
+    assign __emu_clk_val = 1'b0;
 
     // assign outputs
     assign clk = __emu_clk;
