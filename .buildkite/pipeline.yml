@@ -2,12 +2,9 @@ steps:
   - command: |
       # set up environment
       source /etc/environment
-      python3.7 -m venv venv
-      source venv/bin/activate
+      export ANASYMOD_PYTHON=python3.7
+      export FPGA_SERVER=1
       printenv
-
-      # upgrade pip
-      python -m pip install --upgrade pip
 
       # run regression script
       source regress.sh

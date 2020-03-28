@@ -3,6 +3,7 @@ import os.path
 import subprocess
 import sys
 import json
+import shlex
 
 from multiprocessing.pool import ThreadPool
 from math import ceil, log2
@@ -26,8 +27,14 @@ def call(args, cwd=None, wait=True):
     # run the command
     kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
     if wait:
-        print(f"Checking return code of subprocess call: {args}")
+        # print command string with proper escaping so that
+        # a user can simply copy and paste the command to re-run it
+        cmd_str = ' '.join(shlex.quote(arg) for arg in args)
+        print(f"Checking return code of subprocess call: {cmd_str}")
+        # run the command
         result = subprocess.run(**kwargs)
+        # check the error code
+        # TODO: scan output for error strings?
         assert result.returncode == 0, f"Exited with error code: {result.returncode}"
     else:
         subprocess.Popen(**kwargs)

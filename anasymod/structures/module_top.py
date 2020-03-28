@@ -315,9 +315,8 @@ mem_digital #(
     end
 
     // dump waveforms to a specified VCD file
-    `define ADD_QUOTES_TO_MACRO(macro) `"macro`"
     initial begin
-        $dumpfile(`ADD_QUOTES_TO_MACRO({{subst.result_path_raw}}));
+        $dumpfile("{{subst.result_path_raw}}");
     end
 `endif // `ifdef SIMULATION_MODE_MSDSL
 

@@ -1,4 +1,5 @@
 import os
+import pytest
 
 from anasymod.analysis import Analysis
 from argparse import ArgumentParser
@@ -7,8 +8,9 @@ from time import sleep
 from math import exp
 
 root = os.path.dirname(__file__)
+SIMULATOR = 'icarus' if 'FPGA_SERVER' not in os.environ else 'vivado'
 
-def test_rc_sim(simulator_name='vivado'):
+def test_rc_sim(simulator_name=SIMULATOR):
     # create analysis object
     ana = Analysis(input=root,
                    simulator_name=simulator_name)
@@ -19,6 +21,10 @@ def test_rc_sim(simulator_name='vivado'):
     # run the simulation
     ana.simulate()
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_rc_emu(gen_bitstream=True):
     # create analysis object
     ana = Analysis(input=root)

@@ -6,8 +6,8 @@ module sim_ctrl #(
 ) (
     `OUTPUT_REAL(v_in),
     `INPUT_REAL(v_out),
-    output var logic go_vio,
-    output var logic rst_vio
+    output reg go_vio,
+    output reg rst_vio
 );
     // test parameters
     localparam real tau=1e-6;
@@ -64,7 +64,7 @@ module sim_ctrl #(
             #(1us);
 
             // update the time variable
-            t_sim += `DT_MSDSL;
+            t_sim = t_sim + (`DT_MSDSL);
         end
 
         // end simulation

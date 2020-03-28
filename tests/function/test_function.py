@@ -1,11 +1,14 @@
 import os
-import numpy as np
-from argparse import ArgumentParser
-from time import sleep
+import pytest
 
 from anasymod.analysis import Analysis
+from argparse import ArgumentParser
+
+from time import sleep
+import numpy as np
 
 root = os.path.dirname(__file__)
+SIMULATOR = 'icarus' if 'FPGA_SERVER' not in os.environ else 'vivado'
 
 def myfunc(x):
     # clip input
@@ -13,7 +16,7 @@ def myfunc(x):
     # apply function
     return np.sin(x)
 
-def test_func_sim(simulator_name='vivado'):
+def test_func_sim(simulator_name=SIMULATOR):
     # create analysis object
     ana = Analysis(input=root,
                    simulator_name=simulator_name)
@@ -24,6 +27,10 @@ def test_func_sim(simulator_name='vivado'):
     # run the simulation
     ana.simulate()
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_func_emu(gen_bitstream=True):
     # create analysis object
     ana = Analysis(input=root)
