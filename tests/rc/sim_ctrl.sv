@@ -59,9 +59,9 @@ module sim_ctrl #(
 
             // pulse the clock
             go_vio = 1'b1;
-            #(1us);
+            #(0.5us);
             go_vio = 1'b0;
-            #(1us);
+            #(0.5us);
 
             // update the time variable
             t_sim = t_sim + (`DT_MSDSL);

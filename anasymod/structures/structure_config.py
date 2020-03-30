@@ -3,7 +3,9 @@ import os, yaml
 from anasymod.enums import ConfigSections
 from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
-from anasymod.sim_ctrl.datatypes import DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput, AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe
+from anasymod.sim_ctrl.datatypes import (DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput,
+                                         AnalogSignal, AnalogCtrlInput, AnalogCtrlOutput,
+                                         AnalogProbe)
 
 class StructureConfig():
     """
@@ -77,7 +79,7 @@ class StructureConfig():
         # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
         # Add time signal representing current simulated time
-        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=(1.1 * tstop), width=prj_cfg.cfg.time_width)
+        self.time_probe = DigitalSignal(name='emu_time', abspath='', width=prj_cfg.cfg.time_width)
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)

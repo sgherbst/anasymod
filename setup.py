@@ -33,7 +33,8 @@ setup(
         'pyvcd',
         'pyserial',
         'pexpect',
-        'PyYAML'
+        'PyYAML',
+        'si-prefix'
     ],
     license='BSD 3-Clause "New" or "Revised" License',
     url=f'https://github.com/sgherbst/{name}',

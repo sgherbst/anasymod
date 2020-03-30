@@ -218,8 +218,10 @@ class Analysis():
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DT_SCALE', value=f'{self._prj_cfg.cfg.dt_scale}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='EMU_CLK_FREQ', value=f'{self._prj_cfg.cfg.emu_clk_freq}', fileset=fileset))
 
     def add_sources(self, sources: Union[Sources, Define, list]):
         """
@@ -319,7 +321,8 @@ class Analysis():
                         result_type_raw=target.cfg.result_type_raw,
                         result_path=target.cfg.vcd_path,
                         str_cfg=target.str_cfg,
-                        float_type=self.float_type)
+                        float_type=self.float_type,
+                        dt_scale=target.cfg.dt_scale)
 
     def launch(self, server_addr=None, debug=False):
         """

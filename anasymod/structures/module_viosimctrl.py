@@ -73,7 +73,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
         vio_wiz.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=scfg.emu_clk)
         vio_wiz.generate_instantiation()
 
-    TEMPLATE_TEXT = '''
+    TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
 `include "svreal.sv"
@@ -85,7 +85,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
     // reset sequence
     logic emu_rst_state = 1'b1;
     initial begin
-        #((`DT_MSDSL)*{{subst.rst_clkcycles}}*1s);
+        #((1.0/(`EMU_CLK_FREQ))*{{subst.rst_clkcycles}}*1s);
         emu_rst_state = 1'b0;
     end
 
@@ -96,11 +96,9 @@ class ModuleVIOSimCtrl(JinjaTempl):
     `endif // `ifdef DEC_THR_VAL_MSDSL
     assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
 
-     
-    //module for custom vio handling
-    //NOTE: sim_ctrl module must be written and added to the project manually!!!
+    // module for custom vio handling
+    // NOTE: sim_ctrl module must be written and added to the project manually!!!
 {{subst.pc_sim_crtl_ifc.text}}
-    
 `else
 	// VIO instantiation
 {{subst.vio_wiz_inst.text}}

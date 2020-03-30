@@ -247,16 +247,15 @@ class Config(BaseConfig):
         self.dt = 0.1e-6
         """ type(float) : globally used dt value for projects, that strictly use fixed-timestep-based models. """
 
-        self.dt_exponent = -46
-        """ type(int) : currently not is use, as exponent for dt is calculated using macros in time_manager. """
+        self.dt_scale = 1e-15
+        """ type(float) : resolution for dt request and response signals (e.g., "1e-15" means 1fs resolution). """
 
-        self.dt_width = 27
-        """ type(int) : number of bits used for dt signal; this signal is used to transport the global dt signal through
-            the design. """
+        self.dt_width = 32
+        """ type(int) : number of bits used for dt request and response signals """
 
         self.time_width = 39
-        """ type(int) : number of bits used for emulation time signal.
-            Any value above 39 does not work with the current vivado ILA core version. """
+        """ type(int) : number of bits used for emulation time signal.  TODO: explore issue with using
+            values larger than 39 (related to ILA). """
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

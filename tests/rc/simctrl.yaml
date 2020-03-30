@@ -1,3 +1,10 @@
+analog_probes:
+  v_in_probe:
+    abspath:    'tb_i.v_in'
+    range:      10.0
+  v_out_probe:
+    abspath:    'tb_i.v_out'
+    range:      10.0
 analog_ctrl_inputs:
   v_in:
     abspath: 'tb_i.v_in'

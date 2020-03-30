@@ -61,12 +61,19 @@ class ModuleTimeManager(JinjaTempl):
 {{subst.module_ifc.text}}
 
 {% if subst.num_dt_reqs == 0 %}
-    `COPY_FORMAT_REAL(emu_time, emu_time_next);
-    `COPY_FORMAT_REAL(emu_time, emu_dt);
-
-    `ASSIGN_CONST_REAL({{subst.dt_value}}, emu_dt);
-    `ADD_INTO_REAL(emu_time, emu_dt, emu_time_next);
-    `DFF_INTO_REAL(emu_time_next, emu_time, `RST_MSDSL, `CLK_MSDSL, 1'b1, 0);
+    // assign internal state variable to output
+    logic [((`TIME_WIDTH)-1):0] emu_time_state;
+    assign emu_time = emu_time_state;
+    
+    // update emulation time on each clock cycle
+    localparam longint const_dt = ({{subst.dt_value}})/(`DT_SCALE);
+    always @(posedge emu_clk) begin
+        if (emu_rst==1'b1) begin
+            emu_time_state <= 0;
+        end else begin
+            emu_time_state <= emu_time_state + const_dt;
+        end
+    end
 {% else %}
 
     logic emu_time_sig;
