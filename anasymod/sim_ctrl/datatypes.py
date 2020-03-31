@@ -16,6 +16,9 @@ class _Signal():
         self.name = name
         self.abs_path = abspath
 
+    @classmethod
+    def from_dict(cls, name, dict):
+        return cls(name=name, **dict)
 
 # Digital Signal Classes
 
