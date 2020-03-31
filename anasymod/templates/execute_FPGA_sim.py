@@ -5,15 +5,11 @@ from anasymod.targets import FPGATarget
 
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
-    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str,
-                 dt_scale: float):
+    def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         '''
     `   :param start_time:  Point in time from which recording run data will start
         :param stop_time:   Point in time where FPGA run will be stopped
-        :param dt:          Update rate of analog behavior calculation
         :param server_addr: Hardware server address for hw server launched by Vivado
-        :param dt_scale:    Scale factor applied to interpret integer timestamps
-                            (e.g., 1e-15 for "1 fs")
         '''
 
         super().__init__(trim_blocks=False, lstrip_blocks=False)
@@ -61,7 +57,7 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 
         # determine starting time as an integer value
         time = target.str_cfg.time_probe
-        start_time_int = int(round(start_time/dt_scale))
+        start_time_int = int(round(start_time/pcfg.cfg.dt_scale))
 
         # export the decimation ratio, starting time, and time signal name to the template
         self.time_name = time.name
