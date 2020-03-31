@@ -85,7 +85,7 @@ class StructureConfig():
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
         self.reset_ctrl.i_addr = self._assign_i_addr()
 
-        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ration for capturing probe samples
+        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ratio for capturing probe samples
         self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
         self.dec_thr_ctrl.i_addr = self._assign_i_addr()
 

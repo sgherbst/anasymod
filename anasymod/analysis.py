@@ -312,17 +312,21 @@ class Analysis():
             mkdir_p(os.path.dirname(target.result_path_raw))
 
         # run the emulation
-        VivadoEmulation(target=target).run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
+        VivadoEmulation(target=target).run_FPGA(
+            start_time=self.args.start_time, stop_time=self.args.stop_time,
+            server_addr=server_addr
+        )
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-
-        ConvertWaveform(result_path_raw=target.result_path_raw,
-                        result_type_raw=target.cfg.result_type_raw,
-                        result_path=target.cfg.vcd_path,
-                        str_cfg=target.str_cfg,
-                        float_type=self.float_type,
-                        dt_scale=target.cfg.dt_scale)
+        ConvertWaveform(
+            result_path_raw=target.result_path_raw,
+            result_type_raw=target.cfg.result_type_raw,
+            result_path=target.cfg.vcd_path,
+            str_cfg=target.str_cfg,
+            float_type=self.float_type,
+            dt_scale=target.cfg.dt_scale
+        )
 
     def launch(self, server_addr=None, debug=False):
         """

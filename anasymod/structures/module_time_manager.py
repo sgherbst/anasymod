@@ -21,37 +21,66 @@ class ModuleTimeManager(JinjaTempl):
         module.add_input(scfg.reset_ctrl)
         module.add_output(scfg.time_probe)
 
-        dt_req_sig_names = []
-        if scfg.num_dt_reqs > 0:
-            module.add_output(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True))
-            for derived_clk in scfg.clk_derived:
-                if derived_clk.abspath_dt_req is not None:
-                    dt_req_sig_names.append(derived_clk.name)
+        module.add_output(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=False))
 
-        for dt_req_sig_name in dt_req_sig_names:
-            module.add_input(DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
+        # determine all of the timestep request signal names
+        dt_req_sig_names = []
+
+        # add inputs for external timestep requests
+        for derived_clk in scfg.clk_derived:
+            if derived_clk.abspath_dt_req is not None:
+                module.add_input(
+                    DigitalSignal(
+                        name=f'dt_req_{derived_clk.name}', abspath='',
+                        width=pcfg.cfg.dt_width, signed=False
+                    )
+                )
+                dt_req_sig_names.append(derived_clk.name)
 
         module.generate_header()
 
-        #####################################################
-        # Behaviour if num_dt_req > 0
-        #####################################################
+        # generate a bit of code to take the minimum of the timestep requests
+        self.codegen = SVAPI()
+        self.codegen.indent()
 
-        if dt_req_sig_names:
-            self.signal_gen = SVAPI()
-            for dt_req_sig_name in dt_req_sig_names:
-                self.signal_gen.gen_signal(DigitalSignal(name=f'dt_arr_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
+        # add a default timestep request if none are specified
+        if scfg.num_dt_reqs == 0:
+            # name and value for default timestep request
+            dt_def_req_name = 'dt_def_req'
+            dt_def_req = int(round(pcfg.cfg.dt / pcfg.cfg.dt_scale))
+            # add signal and assign value
+            self.codegen.writeln(f'// Using a fixed timestep {pcfg.cfg.dt} with scale factor {pcfg.cfg.dt_scale}')
+            self.codegen.writeln(f'logic [((`DT_WIDTH)-1):0] {dt_def_req_name};')
+            self.codegen.writeln(f'assign {dt_def_req_name} = {dt_def_req};')
+            # append signal to list of timestep requests
+            dt_req_sig_names.append(dt_def_req_name)
 
-            self.assign_ends = SVAPI()
-            self.assign_ends.indent()
-            self.assign_ends.writeln(f'assign dt_arr_{dt_req_sig_names[0]} = dt_req_{dt_req_sig_names[0]};')
-            self.assign_ends.writeln(f'assign emu_dt = dt_arr_{dt_req_sig_names[-1]};')
+        # take minimum of the timestep requests
+        if len(dt_req_sig_names) == 0:
+            raise Exception('There should always be at least one timestep request.')
+        else:
+            prev_min = None
+            for k, curr_sig in enumerate(dt_req_sig_names):
+                if k == 0:
+                    prev_min = curr_sig
+                else:
+                    # create a signal to hold temporary min result
+                    curr_min = f'__dt_req_min_{k-1}'
+                    self.codegen.writeln(f'logic [((`DT_WIDTH)-1):0] {curr_min};')
+                    # take the minimum of the previous minimum and the current signal
+                    curr_min_val = self.vlog_min(curr_sig, prev_min)
+                    self.codegen.writeln(f'assign {curr_min} = {curr_min_val};')
+                    # mark the current minimum as the previous minimum for the next
+                    # iteration of the loop
+                    prev_min = curr_min
+            # assign to the emulator timestep output
+            self.codegen.writeln(f'assign emu_dt = {prev_min};')
 
-            self.assign_intermediates = SVAPI()
-            for k in range(1, len(dt_req_sig_names)):
-                self.assign_intermediates.writeln(f'assign dt_arr_{dt_req_sig_names[k]} = dt_req_{dt_req_sig_names[k]} < dt_arr_{dt_req_sig_names[k-1]} ? dt_req_{dt_req_sig_names[k]} : dt_arr_{dt_req_sig_names[k-1]};')
+    @staticmethod
+    def vlog_min(a, b):
+        return f'((({a}) < ({b})) ? ({a}) : ({b}))'
 
-    TEMPLATE_TEXT = '''
+    TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
 `include "msdsl.sv"
@@ -59,43 +88,19 @@ class ModuleTimeManager(JinjaTempl):
 `default_nettype none
 
 {{subst.module_ifc.text}}
-
-{% if subst.num_dt_reqs == 0 %}
+{{subst.codegen.text}}
     // assign internal state variable to output
     logic [((`TIME_WIDTH)-1):0] emu_time_state;
     assign emu_time = emu_time_state;
     
     // update emulation time on each clock cycle
-    localparam longint const_dt = ({{subst.dt_value}})/(`DT_SCALE);
     always @(posedge emu_clk) begin
         if (emu_rst==1'b1) begin
             emu_time_state <= 0;
         end else begin
-            emu_time_state <= emu_time_state + const_dt;
+            emu_time_state <= emu_time_state + emu_dt;
         end
     end
-{% else %}
-
-    logic emu_time_sig;
-    
-    // create array of intermediate results and assign the endpoints
-    {{subst.signal_gen.text}}
-{{subst.assign_ends.text}}
-    
-    // assign intermediate results
-    {{subst.assign_intermediates.text}}
-    
-    // calculate emulation time
-    always @(posedge emu_clk) begin
-        if (emu_rst == 1'b1) begin
-            emu_time_sig <= '0;
-        end else begin
-            emu_time_sig <= emu_time_sig + emu_dt;
-        end
-    end
-    
-    assign emu_time = emu_time_sig;
-{% endif %}
 endmodule
 
 `default_nettype wire
