@@ -111,7 +111,7 @@ class VivadoTCLGenerator(CodeGenerator):
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
-    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False):
+    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False, err_str=None):
         # write the TCL script
         tcl_script = os.path.join(self.target.prj_cfg.build_root, filename)
         self.write_to_file(tcl_script)
@@ -124,4 +124,4 @@ class VivadoTCLGenerator(CodeGenerator):
             cmd.append('-nojournal')
 
         # run the script
-        call(args=cmd, cwd=self.target.prj_cfg.build_root)
+        call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)

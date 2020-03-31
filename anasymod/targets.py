@@ -52,8 +52,8 @@ class Target():
         """
         Add define statement to specify tstop
         """
-        self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
-        self.str_cfg.time_probe.range = 1.1 * float(self.cfg.tstop)
+        if self.cfg.tstop is not None:
+            self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
 
     def assign_fileset(self, fileset: dict):
         """

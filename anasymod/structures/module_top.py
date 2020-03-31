@@ -2,7 +2,6 @@ from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
-from anasymod.structures.structure_config import StructureConfig
 from anasymod.util import back2fwd
 
 class ModuleTop(JinjaTempl):
@@ -212,6 +211,9 @@ class ModuleTop(JinjaTempl):
 
         time_manager_inst.generate_instantiation()
 
+        # indicate whether TSTOP_MSDSL should be used
+        self.use_tstop = target.cfg.tstop is not None
+
         #####################################################
         # Instantiate testbench
         #####################################################
@@ -308,12 +310,16 @@ mem_digital #(
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL
-    // stop simulation after some time
-    initial begin
-        #((`TSTOP_MSDSL)*1s);
-        $finish;
+    {% if subst.use_tstop %}
+    // stop simulation after a predefined amount of emulation time
+    localparam longint tstop_uint = (`TSTOP_MSDSL) / (`DT_SCALE);
+    always @(emu_time) begin
+        if (emu_time >= tstop_uint) begin
+            $display("Ending simulation at emu_time=%e", emu_time*(`DT_SCALE));
+            $finish;
+        end
     end
-
+    {% endif %}
     // dump waveforms to a specified VCD file
     initial begin
         $dumpfile("{{subst.result_path_raw}}");
