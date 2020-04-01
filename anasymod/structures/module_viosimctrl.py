@@ -102,9 +102,9 @@ class ModuleVIOSimCtrl(JinjaTempl):
     assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
 
     // stall / run / sleep controls
-    logic [((`TIME_WIDTH)-1):0] emu_time_tgt_state;
-    logic [1:0] emu_ctrl_mode_state;
-    assign emu_time_tgt = emu_time_tgt_state;
+    logic [((`TIME_WIDTH)-1):0] emu_ctrl_data_state;
+    logic [3:0] emu_ctrl_mode_state;
+    assign emu_ctrl_data = emu_ctrl_data_state;
     assign emu_ctrl_mode = emu_ctrl_mode_state;
 
     // module for custom vio handling

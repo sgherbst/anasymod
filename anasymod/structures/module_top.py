@@ -257,7 +257,7 @@ class ModuleTop(JinjaTempl):
         )
 
         ctrl_anasymod_inst.add_input(scfg.emu_ctrl_mode, connection=scfg.emu_ctrl_mode)
-        ctrl_anasymod_inst.add_input(scfg.emu_time_tgt, connection=scfg.emu_time_tgt)
+        ctrl_anasymod_inst.add_input(scfg.emu_ctrl_data, connection=scfg.emu_ctrl_data)
         ctrl_anasymod_inst.add_input(scfg.time_probe, connection=scfg.time_probe)
         ctrl_anasymod_inst.add_input(scfg.dec_thr_ctrl, connection=scfg.dec_thr_ctrl)
         ctrl_anasymod_inst.add_output(scfg.dec_cmp, connection=scfg.dec_cmp)

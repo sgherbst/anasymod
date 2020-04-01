@@ -121,25 +121,35 @@ class StructureConfig():
 
         # Add DigitalCtrlInput for control signal 'emu_time_tgt' to run for
         # a specific amount of time
-        self.emu_time_tgt = DigitalCtrlInput(
-            name='emu_time_tgt',
+        self.emu_ctrl_data = DigitalCtrlInput(
+            name='emu_ctrl_data',
             width=int(prj_cfg.cfg.time_width),
             abspath = None
         )
-        self.emu_time_tgt.i_addr = self._assign_i_addr()
-        self.digital_ctrl_inputs += [self.emu_time_tgt]
-        self.special_ctrl_ios.add(self.emu_time_tgt.name)
+        self.emu_ctrl_data.i_addr = self._assign_i_addr()
+        self.digital_ctrl_inputs += [self.emu_ctrl_data]
+        self.special_ctrl_ios.add(self.emu_ctrl_data.name)
 
         # Add DigitalCtrlInput for control signal 'emu_ctrl_mode' to run for
         # a specific amount of time
         self.emu_ctrl_mode = DigitalCtrlInput(
             name='emu_ctrl_mode',
-            width=2,
+            width=4,
             abspath = None
         )
         self.emu_ctrl_mode.i_addr = self._assign_i_addr()
         self.digital_ctrl_inputs += [self.emu_ctrl_mode]
         self.special_ctrl_ios.add(self.emu_ctrl_mode.name)
+
+        # Add DigitalCtrlOutput for reading the emulation time
+        self.emu_time_vio = DigitalCtrlOutput(
+            name='emu_time_vio',
+            width=prj_cfg.cfg.time_width,
+            abspath = 'emu_time'
+        )
+        self.emu_time_vio.i_addr = self._assign_o_addr()
+        self.digital_ctrl_outputs += [self.emu_time_vio]
+        self.special_ctrl_ios.add(self.emu_time_vio.name)
 
         # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling
         # for the ila depending on 'emu_dec_thr'

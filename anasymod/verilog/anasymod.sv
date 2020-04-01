@@ -23,7 +23,7 @@ task sleep_emu(input real t);
     longint tgt;
     tgt = top.emu_time + longint'(t/(`DT_SCALE));
 
-    force top.sim_ctrl_gen_i.emu_time_tgt_state = tgt;
+    force top.sim_ctrl_gen_i.emu_ctrl_data_state = tgt;
     force top.sim_ctrl_gen_i.emu_ctrl_mode_state = 2;
 
     wait_emu_cycle();

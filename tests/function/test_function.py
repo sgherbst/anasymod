@@ -1,7 +1,6 @@
 import os
 import pytest
 
-from time import sleep
 import numpy as np
 
 from ..common import run_simulation, run_emulation, CommonArgParser, DEFAULT_SIMULATOR
@@ -12,7 +11,7 @@ def test_func_sim(simulator_name=DEFAULT_SIMULATOR):
     run_simulation(root=root, simulator_name=simulator_name)
 
 @pytest.mark.skip(
-    reason="This test takes a long time to run and largely covers the same features as test_rc."
+   reason="This test takes a long time to run and largely covers the same features as test_rc."
 )
 def test_func_emu(gen_bitstream=True):
     run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun)
@@ -20,9 +19,7 @@ def test_func_emu(gen_bitstream=True):
 def emu_ctrl_fun(ctrl):
     # reset emulator
     ctrl.set_reset(1)
-    sleep(0.1)
     ctrl.set_reset(0)
-    sleep(0.1)
 
     # reset everything else
     ctrl.set_param(name='in_', value=0.0)
@@ -32,7 +29,6 @@ def emu_ctrl_fun(ctrl):
     apprx = np.zeros(shape=inpts.shape, dtype=float)
     for k, in_ in enumerate(inpts):
         ctrl.set_param(name='in_', value=in_)
-        sleep(1e-3)
         ctrl.refresh_param('vio_0_i')
         apprx[k] = ctrl.get_param('out')
 
@@ -45,7 +41,7 @@ def emu_ctrl_fun(ctrl):
     exact = myfunc(inpts)
 
     # check the result
-    err = np.linalg.norm(exact - apprx)
+    err = np.sqrt(np.mean((exact - apprx)**2))
     assert err <= 0.001
 
 if __name__ == '__main__':

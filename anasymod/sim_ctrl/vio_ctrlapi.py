@@ -221,8 +221,38 @@ class VIOCtrlApi(CtrlApi):
         :param value: Value of reset signal, 1 will set it to reset and 0 will release reset.
         :param timeout: Maximum time granted for operation to finish
         """
-        self.sendline(f'set_property OUTPUT_VALUE {value} ${self.scfg.reset_ctrl.name}', timeout=timeout)
-        self.sendline(f'commit_hw_vio ${self.scfg.reset_ctrl.name}')
+        self.set_param(name=self.scfg.reset_ctrl.name, value=value, timeout=timeout)
+
+    def set_ctrl_mode(self, value, timeout=30):
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
+
+    def set_ctrl_data(self, value, timeout=30):
+        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
+
+    def stall_emu(self, timeout=30):
+        self.set_ctrl_mode(1, timeout=timeout)
+
+    def get_emu_time_int(self, timeout=30):
+        self.refresh_param('vio_0_i')
+        emu_time_vio = self.get_param(name=self.scfg.emu_time_vio.name, timeout=timeout)
+        return int(emu_time_vio)
+
+    def get_emu_time(self, timeout=30):
+        return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
+
+    def sleep_emu(self, t, timeout=30):
+        # stall
+        self.stall_emu()
+
+        # set up in sleep mode
+        t_next = t + self.get_emu_time(timeout=timeout)
+        t_next_int = int(round(t_next / self.pcfg.cfg.dt_scale))
+        self.set_ctrl_data(t_next_int)
+        self.set_ctrl_mode(2)
+
+        # wait for enough time to pass
+        while(self.get_emu_time_int() < t_next_int):
+            pass
 
     ### Utility Functions
 
