@@ -18,8 +18,11 @@ def which(program, path=None):
 
 # working with packages
 
+def anasymod_root():
+    return Path(__file__).parent
+
 def get_from_anasymod(*args):
-    return os.path.join(str(Path(__file__).parent), *args)
+    return os.path.join(str(anasymod_root()), *args)
 
 # working with directories
 

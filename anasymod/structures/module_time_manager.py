@@ -23,19 +23,18 @@ class ModuleTimeManager(JinjaTempl):
 
         module.add_output(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=False))
 
-        # determine all of the timestep request signal names
-        dt_req_sig_names = []
-
         # add inputs for external timestep requests
+        dt_reqs = []
         for derived_clk in scfg.clk_derived:
             if derived_clk.abspath_dt_req is not None:
-                module.add_input(
-                    DigitalSignal(
-                        name=f'dt_req_{derived_clk.name}', abspath='',
-                        width=pcfg.cfg.dt_width, signed=False
-                    )
+                dt_req = DigitalSignal(
+                    name=f'dt_req_{derived_clk.name}',
+                    abspath='',
+                    width=pcfg.cfg.dt_width,
+                    signed=False
                 )
-                dt_req_sig_names.append(derived_clk.name)
+                module.add_input(dt_req)
+                dt_reqs.append(dt_req)
 
         module.generate_header()
 
@@ -43,32 +42,20 @@ class ModuleTimeManager(JinjaTempl):
         self.codegen = SVAPI()
         self.codegen.indent()
 
-        # add a default timestep request if none are specified
-        if scfg.num_dt_reqs == 0:
-            # name and value for default timestep request
-            dt_def_req_name = 'dt_def_req'
-            dt_def_req = int(round(pcfg.cfg.dt / pcfg.cfg.dt_scale))
-            # add signal and assign value
-            self.codegen.writeln(f'// Using a fixed timestep {pcfg.cfg.dt} with scale factor {pcfg.cfg.dt_scale}')
-            self.codegen.writeln(f'logic [((`DT_WIDTH)-1):0] {dt_def_req_name};')
-            self.codegen.writeln(f'assign {dt_def_req_name} = {dt_def_req};')
-            # append signal to list of timestep requests
-            dt_req_sig_names.append(dt_def_req_name)
-
         # take minimum of the timestep requests
-        if len(dt_req_sig_names) == 0:
-            raise Exception('There should always be at least one timestep request.')
+        if len(dt_reqs) == 0:
+            raise Exception('The time manager requires that there is at least one timestep request.')
         else:
             prev_min = None
-            for k, curr_sig in enumerate(dt_req_sig_names):
+            for k, curr_sig in enumerate(dt_reqs):
                 if k == 0:
-                    prev_min = curr_sig
+                    prev_min = curr_sig.name
                 else:
                     # create a signal to hold temporary min result
                     curr_min = f'__dt_req_min_{k-1}'
                     self.codegen.writeln(f'logic [((`DT_WIDTH)-1):0] {curr_min};')
                     # take the minimum of the previous minimum and the current signal
-                    curr_min_val = self.vlog_min(curr_sig, prev_min)
+                    curr_min_val = self.vlog_min(curr_sig.name, prev_min)
                     self.codegen.writeln(f'assign {curr_min} = {curr_min_val};')
                     # mark the current minimum as the previous minimum for the next
                     # iteration of the loop

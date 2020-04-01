@@ -16,7 +16,7 @@ class StructureConfig():
     There is also a specific interface to flow plugins that allows modification due to some needs
     from the plugin side, e.g. additional clks, resets, ios to the host application or resources on the FPGA board.
     """
-    def __init__(self, prj_cfg: EmuConfig, tstop):
+    def __init__(self, prj_cfg: EmuConfig, tstop, can_use_default_oscillator=True):
         # Internal variables
         self.i_addr_counter = 0
         self.o_addr_counter = 0
@@ -64,6 +64,13 @@ class StructureConfig():
         self.num_dt_reqs = 0
 
         self._read_clksfile()
+
+        # add a default derived clock if needed
+        if (self.num_dt_reqs == 0) and can_use_default_oscillator:
+            self._add_default_oscillator()
+            self.use_default_oscillator = True
+        else:
+            self.use_default_oscillator = False
 
         #########################################################
         # Simulation control interfaces
@@ -289,6 +296,23 @@ class StructureConfig():
         else:
             print(f'No Analog Ctrl Outputs provided.')
 
+    def _add_default_oscillator(self):
+        # add derived clock
+        self.clk_derived.append(
+            ClkDerived(
+                name='def_osc',
+                abspath_emu_dt='def_osc_i.__emu_dt',
+                abspath_emu_clk='def_osc_i.__emu_clk',
+                abspath_emu_rst='def_osc_i.__emu_rst',
+                abspath_dt_req='def_osc_i.__emu_dt_req',
+                abspath_gated_clk='def_osc_i.__emu_clk_i',
+                abspath_gated_clk_req='def_osc_i.__emu_clk_val'
+            )
+        )
+
+        # update counts
+        self.num_dt_reqs += 1
+        self.num_gated_clks += 1
 
 class ClkIndependent(DigitalSignal):
     """

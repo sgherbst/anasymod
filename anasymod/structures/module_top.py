@@ -4,6 +4,16 @@ from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
 from anasymod.util import back2fwd
 
+def digsig(name, width=1, signed=False):
+    # convenience function to return a digital signal
+    return DigitalSignal(
+        name=f'{name}',
+        width=width,
+        signed=signed,
+        abspath=''
+    )
+
+
 class ModuleTop(JinjaTempl):
     """
     This is the generator for top.sv.
@@ -60,8 +70,6 @@ class ModuleTop(JinjaTempl):
         clk_gen.generate_instantiation()
 
         # Absolute path assignments for derived clks
-        dt_req_cnt = 0
-        gated_clks_cnt = 0
         self.derived_clk_assigns = SVAPI()
         for k, clk in enumerate(scfg.clk_derived):
             self.derived_clk_assigns.writeln(f'// derived clock: {clk.name}')
@@ -73,14 +81,12 @@ class ModuleTop(JinjaTempl):
                 self.derived_clk_assigns.writeln(f'assign {clk.abspath_emu_rst} = emu_rst;')
             if clk.abspath_dt_req is not None:
                 self.derived_clk_assigns.writeln(f'assign dt_req_{clk.name} = {clk.abspath_dt_req};')
-                dt_req_cnt += 1
             if clk.abspath_gated_clk is not None:
                 self.derived_clk_assigns.writeln(f'assign clk_val_{clk.name} = {clk.abspath_gated_clk_req};')
                 self.derived_clk_assigns.writeln(f'assign {clk.abspath_gated_clk} = clk_{clk.name};')
-                gated_clks_cnt += 1
 
-        self.num_dt_reqs = dt_req_cnt
-        self.num_gated_clks = gated_clks_cnt
+        self.num_dt_reqs = scfg.num_dt_reqs
+        self.num_gated_clks = scfg.num_gated_clks
 
         #####################################################
         # Manage Ctrl Module
@@ -90,8 +96,8 @@ class ModuleTop(JinjaTempl):
         self.dec_bits = target.prj_cfg.cfg.dec_bits
         self.dec_thr = target.str_cfg.dec_thr_ctrl.name
 
-        custom_ctrl_ios = scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs + scfg.digital_ctrl_inputs + \
-                          scfg.digital_ctrl_outputs
+        custom_ctrl_ios = (scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs +
+                           scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs)
 
         ctrl_ios = custom_ctrl_ios + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl]
 
@@ -103,13 +109,20 @@ class ModuleTop(JinjaTempl):
         ## Instantiate ctrl module
         self.sim_ctrl_inst_ifc = SVAPI()
         sim_ctrl_inst = ModuleInst(api=self.sim_ctrl_inst_ifc, name='sim_ctrl_gen')
-        sim_ctrl_inst.add_inputs(scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs,
-                                 connections=scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs)
-        sim_ctrl_inst.add_outputs(scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs + [scfg.dec_thr_ctrl] +
-                                  [scfg.reset_ctrl], connections=scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
-                                                                 [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
+        sim_ctrl_inst.add_inputs(
+            scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs,
+            connections=scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs
+        )
+        sim_ctrl_inst.add_outputs(
+            (scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
+             [scfg.dec_thr_ctrl] + [scfg.reset_ctrl]),
+            connections=(scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
+                         [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
+        )
+
         # add master clk to ctrl module
-        sim_ctrl_inst.add_input(DigitalSignal(name='emu_clk', width=1, abspath=None), connection=DigitalSignal(name='emu_clk', width=1, abspath=None))
+        emu_clk_sig = DigitalSignal(name='emu_clk', width=1, abspath=None)
+        sim_ctrl_inst.add_input(emu_clk_sig, emu_clk_sig)
         sim_ctrl_inst.generate_instantiation()
 
         ## Assign custom ctrl signals via abs paths into design
@@ -148,68 +161,94 @@ class ModuleTop(JinjaTempl):
         # Manage emulation clks Module
         ######################################################
 
-        gated_clk_sig_names = []
-
         ## Instantiate all emulation clk signals
+
         self.inst_emu_clk_sigs = SVAPI()
 
+        clk_io_pairs = []
         for derived_clk in scfg.clk_derived:
-            if derived_clk.abspath_gated_clk is not None:
-                gated_clk_sig_names.append(derived_clk.name)
-
-        for gated_clk_sig_name in gated_clk_sig_names:
-            self.inst_emu_clk_sigs.gen_signal(DigitalSignal(name=f'clk_val_{gated_clk_sig_name}', width=1, abspath=''))
-            self.inst_emu_clk_sigs.gen_signal(DigitalSignal(name=f'clk_{gated_clk_sig_name}', width=1, abspath=''))
+            if derived_clk.abspath_gated_clk is None:
+                continue
+            clk_val = digsig(f'clk_val_{derived_clk.name}')
+            clk = digsig(f'clk_{derived_clk.name}')
+            self.inst_emu_clk_sigs.gen_signal(clk_val)
+            self.inst_emu_clk_sigs.gen_signal(clk)
+            clk_io_pairs.append((clk_val, clk))
 
         ## Instantiate gen emulation clk module
+
         self.emu_clks_inst_ifc = SVAPI()
 
         emu_clks_inst = ModuleInst(api=self.emu_clks_inst_ifc, name="gen_emu_clks")
         emu_clks_inst.add_input(scfg.emu_clk_2x, connection=scfg.emu_clk_2x)
         emu_clks_inst.add_output(scfg.emu_clk, connection=scfg.emu_clk)
 
-        for gated_clk_sig_name in gated_clk_sig_names:
-            clk_val = DigitalSignal(name=f'clk_val_{gated_clk_sig_name}', width=1, abspath='')
-            clk = DigitalSignal(name=f'clk_{gated_clk_sig_name}', width=1, abspath='')
+        for clk_val, clk in clk_io_pairs:
             emu_clks_inst.add_input(clk_val, connection=clk_val)
             emu_clks_inst.add_output(clk, connection=clk)
 
         emu_clks_inst.generate_instantiation()
 
         ######################################################
-        # Manage time manager Module
+        # Manage default oscillator module
         ######################################################
 
-        dt_req_sig_names = []
+        if scfg.use_default_oscillator:
+            # instantiate API
+            self.def_osc_api = SVAPI()
+
+            # generate clock and reset signals
+            def_osc_clk = digsig('def_osc_clk')
+            def_osc_rst = digsig('def_osc_rst')
+            self.def_osc_api.gen_signal(def_osc_clk)
+            self.def_osc_api.gen_signal(def_osc_rst)
+
+            # instantiate the default oscillator
+            def_osc_inst = ModuleInst(
+                api=self.def_osc_api,
+                name='osc_model_anasymod',
+                inst_name='def_osc_i'
+            )
+            def_osc_inst.add_output(digsig('clk'), connection=def_osc_clk)
+            def_osc_inst.add_output(digsig('rst'), connection=def_osc_rst)
+            def_osc_inst.generate_instantiation()
+        else:
+            self.def_osc_api = None
+
+        ######################################################
+        # Manage time manager module
+        ######################################################
 
         ## Instantiate all time manager signals
-        self.inst_timemanager_sigs = SVAPI()
 
-        if scfg.num_dt_reqs > 0:
-            self.inst_timemanager_sigs.gen_signal(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True))
+        if self.num_dt_reqs > 0:
+            self.inst_timemanager_sigs = SVAPI()
+
+            emu_dt = digsig('emu_dt', width=pcfg.cfg.dt_width)
+            self.inst_timemanager_sigs.gen_signal(emu_dt)
+
+            dt_req_sigs = []
             for derived_clk in scfg.clk_derived:
-                if derived_clk.abspath_dt_req is not None:
-                    dt_req_sig_names.append(derived_clk.name)
+                if derived_clk.abspath_dt_req is None:
+                    continue
+                dt_req_sig = digsig(f'dt_req_{derived_clk.name}', width=pcfg.cfg.dt_width)
+                self.inst_timemanager_sigs.gen_signal(dt_req_sig)
+                dt_req_sigs.append(dt_req_sig)
 
-        for dt_req_sig_name in dt_req_sig_names:
-            self.inst_timemanager_sigs.gen_signal(DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
-
-        ## Instantiate time manager module
-        self.time_manager_inst_ifc = SVAPI()
-        time_manager_inst = ModuleInst(api=self.time_manager_inst_ifc, name='gen_time_manager')
-        time_manager_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
-        time_manager_inst.add_input(scfg.reset_ctrl, connection=scfg.reset_ctrl)
-        time_manager_inst.add_output(scfg.time_probe, scfg.time_probe)
-        if scfg.num_dt_reqs > 0:
-            # wire up the emu_dt signal if needed
-            # TODO: cleanup
-            emu_dt = DigitalSignal(name='emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True)
+            ## Instantiate time manager module
+            self.time_manager_inst_ifc = SVAPI()
+            time_manager_inst = ModuleInst(api=self.time_manager_inst_ifc, name='gen_time_manager')
+            time_manager_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
+            time_manager_inst.add_input(scfg.reset_ctrl, connection=scfg.reset_ctrl)
+            time_manager_inst.add_output(scfg.time_probe, scfg.time_probe)
             time_manager_inst.add_output(emu_dt, emu_dt)
-        for dt_req_sig_name in dt_req_sig_names:
-            dt_req_sig = DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True)
-            time_manager_inst.add_input(dt_req_sig, connection=dt_req_sig)
+            for dt_req_sig in dt_req_sigs:
+                time_manager_inst.add_input(dt_req_sig, connection=dt_req_sig)
 
-        time_manager_inst.generate_instantiation()
+            time_manager_inst.generate_instantiation()
+        else:
+            self.inst_timemanager_sigs = None
+            self.time_manager_inst_ifc = None
 
         # indicate whether TSTOP_MSDSL should be used
         self.use_tstop = target.cfg.tstop is not None
@@ -256,8 +295,10 @@ module top(
 // emulation clock declarations
 logic emu_clk, emu_clk_2x;
 
+{% if subst.inst_timemanager_sigs is not none %}
 // declarations for time manager
 {{subst.inst_timemanager_sigs.text}}
+{% endif %}
 
 // declarations for emu clock generator
 {{subst.inst_emu_clk_sigs.text}}
@@ -279,8 +320,15 @@ logic emu_clk, emu_clk_2x;
 // Emulation Clks Generator
 {{subst.emu_clks_inst_ifc.text}}
 
+{% if subst.def_osc_api is not none %}
+// Default oscillator
+{{subst.def_osc_api.text}}
+{% endif %}
+
+{% if subst.time_manager_inst_ifc.text is not none %}
 // Time manager
 {{subst.time_manager_inst_ifc.text}}
+{% endif %}
 
 // calculate decimation ctrl signal for trace port
 logic [{{subst.dec_bits|int-1}}:0] emu_dec_cnt, emu_dec_nxt;
@@ -292,8 +340,8 @@ mem_digital #(
 ) mem_digital_emu_dec_cnt_i (
     .in(emu_dec_nxt),
     .out(emu_dec_cnt),
-    .clk(`CLK_MSDSL),
-    .rst(`RST_MSDSL),
+    .clk(emu_clk),
+    .rst(emu_rst),
     .cke(1'b1)
 );
 

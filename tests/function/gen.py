@@ -19,15 +19,13 @@ def gen_model(order, numel, build_dir):
     m = MixedSignalModel('model', build_dir=build_dir)
     m.add_analog_input('in_')
     m.add_analog_output('out')
-    m.add_digital_input('clk')
-    m.add_digital_input('rst')
 
     # create function
     real_func = m.make_function(myfunc, domain=[-np.pi, +np.pi],
                                 order=order, numel=numel)
 
     # apply function
-    m.set_from_sync_func(m.out, real_func, m.in_, clk=m.clk, rst=m.rst)
+    m.set_from_sync_func(m.out, real_func, m.in_)
 
     # write the model
     return m.compile_to_file(VerilogGenerator())

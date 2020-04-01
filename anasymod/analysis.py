@@ -215,8 +215,10 @@ class Analysis():
                 top_module = 'top'
 
             print(f'Using top module {top_module} for fileset {fileset}.')
-            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
-            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
+
+            # TODO: can CLK_MSDSL and RST_MSDSL be defined only when needed?
+            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.def_osc_clk', fileset=fileset))
+            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.def_osc_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_SCALE', value=f'{self._prj_cfg.cfg.dt_scale}', fileset=fileset))
             self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))

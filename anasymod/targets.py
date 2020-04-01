@@ -7,7 +7,6 @@ from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
-from typing import Union
 from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
@@ -16,7 +15,7 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import get_from_anasymod
+from anasymod.files import anasymod_root
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -88,6 +87,11 @@ class Target():
             with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
                 ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
             self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'))]
+
+        # Include the source code for an oscillator if needed
+        if self.str_cfg.use_default_oscillator:
+            osc_model_anasymod = anasymod_root() / 'verilog' / 'osc_model_anasymod.sv'
+            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod))]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
