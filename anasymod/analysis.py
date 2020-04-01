@@ -118,7 +118,6 @@ class Analysis():
 
             # Finalize project setup, no more modifications of filesets and targets after that!!!
             self.setup_filesets()
-            #self._setup_targets()
 
             ###############################################################
             # Set options from to command line arguments
@@ -133,36 +132,30 @@ class Analysis():
             # generate bitstream
             if self.args.build:
                 self.set_target(self.act_fpga_target)
-                #self.args.active_target = self.act_fpga_target if self.args.active_target not in self.fpga_targets else self.args.active_target
                 self.build()
 
             # run FPGA if desired
             if self.args.emulate:
                 self.set_target(self.act_fpga_target)
-                #self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.emulate()
 
             # launch FPGA if desired
             if self.args.launch:
                 self.set_target(self.act_fpga_target)
-                #self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.launch()
 
             # run simulation if desired
             if self.args.sim or self.args.preprocess_only:
                 self.set_target(self.act_cpu_target)
-                #self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
                 self.simulate(unit=self.args.unit, id=self.args.id)
 
             # view results if desired
             if self.args.view and (self.args.sim or self.args.preprocess_only):
                 self.set_target(self.act_cpu_target)
-                #self.args.active_target = self.act_cpu_target if self.args.active_target is None else self.args.active_target
                 self.view()
 
             if self.args.view and self.args.emulate:
                 self.set_target(self.act_fpga_target)
-                #self.args.active_target = self.act_fpga_target if self.args.active_target is None else self.args.active_target
                 self.view()
 
 ##### Functions exposed for user to exercise on Analysis Object

@@ -7,7 +7,6 @@ from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
-from typing import Union
 from anasymod.sources import VerilogSource
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
@@ -17,6 +16,7 @@ from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
 from anasymod.files import get_from_anasymod
+from anasymod.util import expand_searchpaths
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -45,8 +45,11 @@ class Target():
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name, target_type=target_type)
 
+        # Update config options by reading from config file
+        self.cfg.update_config(subsection=self._name)
+
         # Initialize structure configuration
-        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop)
+        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop, simctrl_path= self.expanded_simctrl_path)
 
     def set_tstop(self):
         """
@@ -124,6 +127,15 @@ class Target():
     @property
     def result_path_raw(self):
         return os.path.join(self.prj_cfg.build_root, r"raw_results", self.result_name_raw)
+
+    @property
+    def expanded_simctrl_path(self):
+        """
+        Path used to load simctrl file. This allows to use a custom simctrl configuration for a target.
+
+        :return: str
+        """
+        return "".join(expand_searchpaths(paths=self.cfg.simctrl_path, rel_path_reference=self.prj_cfg.root))
 
 class CPUTarget(Target):
     def __init__(self, prj_cfg: EmuConfig, plugins: list, float_type:bool, name=r"sim"):
@@ -221,6 +233,9 @@ class Config(BaseConfig):
 
         self.fpga_sim_ctrl = FPGASimCtrl.VIVADO_VIO
         """ type(float) : FPGA simulation control interface used for this target. """
+
+        self.simctrl_path = os.path.join(prj_cfg.root, 'simctrl.yaml')
+        """ type(str) : Path used to load simctrl file. This allows to use a custom simctrl configuration for a target. """
 
 class Content():
     """
