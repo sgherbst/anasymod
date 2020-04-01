@@ -2,7 +2,7 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
-from anasymod.sim_ctrl.datatypes import DigitalSignal, AnalogProbe
+from anasymod.sim_ctrl.datatypes import DigitalSignal
 
 class ModuleTracePort(JinjaTempl):
     def __init__(self, scfg: StructureConfig):
@@ -31,9 +31,12 @@ class ModuleTracePort(JinjaTempl):
         self.probe_dumps.indent()
         self.probe_dumps.writeln(f'initial begin')
         self.probe_dumps.indent()
-        self.probe_dumps.writeln(f'#0')
-        for probe in probes:
-            self.probe_dumps.writeln(f'$dumpvars(0, {probe.name});')
+        self.probe_dumps.writeln('#0;')
+        if scfg.dump_debug:
+            self.probe_dumps.writeln('$dumpvars(0, top);')
+        else:
+            for probe in probes:
+                self.probe_dumps.writeln(f'$dumpvars(0, {probe.name});')
         self.probe_dumps.dedent()
         self.probe_dumps.writeln(f'end')
 

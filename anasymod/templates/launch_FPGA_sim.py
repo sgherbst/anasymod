@@ -26,13 +26,13 @@ class TemplLAUNCH_FPGA_SIM(JinjaTempl):
 
         # Set aliases for VIOs
         self.ctrl_io_aliases = SVAPI()
-        for io in [scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + scfg.digital_ctrl_inputs + \
-                  scfg.digital_ctrl_outputs + scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs:
+        for io in scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs + \
+                  scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs:
             self.ctrl_io_aliases.writeln(f'set {io.name} [get_hw_probes "sim_ctrl_gen_i/{io.name}" -of_objects $vio_0_i]')
 
         # Set radix for VIOs
         self.ctrl_io_radix = SVAPI()
-        for digital_in in [scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + scfg.digital_ctrl_inputs:
+        for digital_in in scfg.digital_ctrl_inputs:
             signed = 'SIGNED' if digital_in.signed else 'UNSIGNED'
             self.ctrl_io_radix.writeln(f'set_property OUTPUT_VALUE_RADIX {signed} ${digital_in.name}')
 

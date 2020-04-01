@@ -24,7 +24,7 @@ class TemplVIO(TemplGenericIp):
             props[f'CONFIG.C_PROBE_IN{k+0}_WIDTH'] = str(input.width)
 
         # handle output ports
-        for k, output in enumerate([scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + crtl_inputs):
+        for k, output in enumerate(crtl_inputs):
             # check that the signal type can be handled
             if not isinstance(output, (AnalogCtrlInput, DigitalCtrlInput)):
                 raise Exception(f"Provided signal type:{type(output)} is not supported!")
@@ -38,7 +38,7 @@ class TemplVIO(TemplGenericIp):
                 props[f'CONFIG.C_PROBE_OUT{k+0}_INIT_VAL'] = str(init_value)
 
         props['CONFIG.C_NUM_PROBE_IN'] = str(len(ctrl_outputs))
-        props['CONFIG.C_NUM_PROBE_OUT'] = str(len([scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + crtl_inputs))
+        props['CONFIG.C_NUM_PROBE_OUT'] = str(len(crtl_inputs))
 
         ####################################################
         # Prepare Template substitutions

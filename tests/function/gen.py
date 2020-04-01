@@ -25,7 +25,10 @@ def gen_model(order, numel, build_dir):
                                 order=order, numel=numel)
 
     # apply function
-    m.set_from_sync_func(m.out, real_func, m.in_)
+    # TODO: clean up with update to MSDSL
+    class ce:
+        name = '`CKE_MSDSL'
+    m.set_from_sync_func(m.out, real_func, m.in_, ce=ce)
 
     # write the model
     return m.compile_to_file(VerilogGenerator())

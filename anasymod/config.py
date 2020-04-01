@@ -253,7 +253,7 @@ class Config(BaseConfig):
         self.dt_width = 32
         """ type(int) : number of bits used for dt request and response signals """
 
-        self.time_width = 39
+        self.time_width = 64
         """ type(int) : number of bits used for emulation time signal.  TODO: explore issue with using
             values larger than 39 (related to ILA). """
 

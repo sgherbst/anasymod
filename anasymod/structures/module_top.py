@@ -96,10 +96,8 @@ class ModuleTop(JinjaTempl):
         self.dec_bits = target.prj_cfg.cfg.dec_bits
         self.dec_thr = target.str_cfg.dec_thr_ctrl.name
 
-        custom_ctrl_ios = (scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs +
-                           scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs)
-
-        ctrl_ios = custom_ctrl_ios + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl]
+        ctrl_ios = (scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs +
+                    scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs)
 
         ## Instantiate all ctrl signals
         self.inst_itl_ctlsigs = SVAPI()
@@ -114,10 +112,8 @@ class ModuleTop(JinjaTempl):
             connections=scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs
         )
         sim_ctrl_inst.add_outputs(
-            (scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
-             [scfg.dec_thr_ctrl] + [scfg.reset_ctrl]),
-            connections=(scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs +
-                         [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
+            scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs,
+            connections=scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         )
 
         # add master clk to ctrl module
@@ -128,7 +124,8 @@ class ModuleTop(JinjaTempl):
         ## Assign custom ctrl signals via abs paths into design
         self.assign_custom_ctlsigs = SVAPI()
         for ctrl_input in scfg.digital_ctrl_inputs + scfg.analog_ctrl_inputs:
-            self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_input.abs_path, exp=ctrl_input.name)
+            if ctrl_input.abs_path is not None:
+                self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_input.abs_path, exp=ctrl_input.name)
 
         for ctrl_output in scfg.digital_ctrl_outputs + scfg.analog_ctrl_outputs:
             self.assign_custom_ctlsigs.assign_to(io_obj=ctrl_output.name, exp=ctrl_output.abs_path)
@@ -198,10 +195,8 @@ class ModuleTop(JinjaTempl):
             self.def_osc_api = SVAPI()
 
             # generate clock and reset signals
-            def_osc_clk = digsig('def_osc_clk')
-            def_osc_rst = digsig('def_osc_rst')
-            self.def_osc_api.gen_signal(def_osc_clk)
-            self.def_osc_api.gen_signal(def_osc_rst)
+            emu_cke = digsig('emu_cke')
+            self.def_osc_api.gen_signal(emu_cke)
 
             # instantiate the default oscillator
             def_osc_inst = ModuleInst(
@@ -209,8 +204,7 @@ class ModuleTop(JinjaTempl):
                 name='osc_model_anasymod',
                 inst_name='def_osc_i'
             )
-            def_osc_inst.add_output(digsig('clk'), connection=def_osc_clk)
-            def_osc_inst.add_output(digsig('rst'), connection=def_osc_rst)
+            def_osc_inst.add_output(digsig('cke'), connection=emu_cke)
             def_osc_inst.generate_instantiation()
         else:
             self.def_osc_api = None
@@ -249,6 +243,26 @@ class ModuleTop(JinjaTempl):
         else:
             self.inst_timemanager_sigs = None
             self.time_manager_inst_ifc = None
+
+        ######################################################
+        # Control module
+        ######################################################
+
+        self.ctrl_anasymod_inst_ifc = SVAPI()
+
+        ctrl_anasymod_inst = ModuleInst(
+            api=self.ctrl_anasymod_inst_ifc,
+            name='ctrl_anasymod',
+            inst_name='ctrl_anasymod_i'
+        )
+
+        ctrl_anasymod_inst.add_input(scfg.emu_ctrl_mode, connection=scfg.emu_ctrl_mode)
+        ctrl_anasymod_inst.add_input(scfg.emu_time_tgt, connection=scfg.emu_time_tgt)
+        ctrl_anasymod_inst.add_input(scfg.time_probe, connection=scfg.time_probe)
+        ctrl_anasymod_inst.add_input(scfg.dec_thr_ctrl, connection=scfg.dec_thr_ctrl)
+        ctrl_anasymod_inst.add_output(scfg.dec_cmp, connection=scfg.dec_cmp)
+
+        ctrl_anasymod_inst.generate_instantiation()
 
         # indicate whether TSTOP_MSDSL should be used
         self.use_tstop = target.cfg.tstop is not None
@@ -330,20 +344,8 @@ logic emu_clk, emu_clk_2x;
 {{subst.time_manager_inst_ifc.text}}
 {% endif %}
 
-// calculate decimation ctrl signal for trace port
-logic [{{subst.dec_bits|int-1}}:0] emu_dec_cnt, emu_dec_nxt;
-assign emu_dec_cmp = (emu_dec_cnt == {{subst.dec_thr}}) ? 1'b1 : 0;
-assign emu_dec_nxt = (emu_dec_cmp == 1'b1) ? 'd0 : (emu_dec_cnt + 'd1);
-mem_digital #(
-    .init('d0),
-    .width({{subst.dec_bits|int}})
-) mem_digital_emu_dec_cnt_i (
-    .in(emu_dec_nxt),
-    .out(emu_dec_cnt),
-    .clk(emu_clk),
-    .rst(emu_rst),
-    .cke(1'b1)
-);
+// control signals
+{{subst.ctrl_anasymod_inst_ifc.text}}
 
 // Assignment for derived clks
 {{subst.derived_clk_assigns.text}}

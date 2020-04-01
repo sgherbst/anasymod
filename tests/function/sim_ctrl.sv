@@ -1,5 +1,4 @@
 `include "svreal.sv"
-`include "anasymod.sv"
 
 module sim_ctrl #(
     `DECL_REAL(in_),
@@ -8,6 +7,8 @@ module sim_ctrl #(
     `OUTPUT_REAL(in_),
     `INPUT_REAL(out)
 );
+    `include "anasymod.sv"
+
     // parameters
     localparam real m_pi = 3.1415926535;
     localparam real err_tol = 0.001;
@@ -43,7 +44,7 @@ module sim_ctrl #(
         n_samp = 0;
         for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int = in_int + 0.05) begin
             // wait
-            wait_emu_cycles(3);
+            wait_emu_cycle();
             // compute expected output
             expct = $sin(clip(in_int, -m_pi, +m_pi));
             // print simulation state

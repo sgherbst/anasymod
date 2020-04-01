@@ -72,6 +72,9 @@ class StructureConfig():
         else:
             self.use_default_oscillator = False
 
+        # add control block
+        self._add_ctrl_anasymod()
+
         #########################################################
         # Simulation control interfaces
         #########################################################
@@ -84,21 +87,67 @@ class StructureConfig():
         self.analog_probes = []
         self.digital_probes = []
 
-        # ToDo: Dec Threshold behavior needs to be moved from macros to SV module
+        # annotate special control signals that should not
+        # be routed to sim_ctrl
+        self.special_ctrl_ios = set()
 
         # Add time signal representing current simulated time
-        self.time_probe = DigitalSignal(name='emu_time', abspath='', width=prj_cfg.cfg.time_width)
+        self.time_probe = DigitalSignal(
+            name='emu_time',
+            width=prj_cfg.cfg.time_width,
+            abspath=''
+        )
 
         # Add DigitalCtrlInput for reset
-        self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
+        self.reset_ctrl = DigitalCtrlInput(
+            name='emu_rst',
+            width=1,
+            abspath = None
+        )
         self.reset_ctrl.i_addr = self._assign_i_addr()
+        self.digital_ctrl_inputs += [self.reset_ctrl]
+        self.special_ctrl_ios.add(self.reset_ctrl.name)
 
-        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation ratio for capturing probe samples
-        self.dec_thr_ctrl = DigitalCtrlInput(abspath=None, name='emu_dec_thr', width=int(prj_cfg.cfg.dec_bits))
+        # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation
+        # ratio for capturing probe samples
+        self.dec_thr_ctrl = DigitalCtrlInput(
+            name='emu_dec_thr',
+            width=int(prj_cfg.cfg.dec_bits),
+            abspath = None
+        )
         self.dec_thr_ctrl.i_addr = self._assign_i_addr()
+        self.digital_ctrl_inputs += [self.dec_thr_ctrl]
+        self.special_ctrl_ios.add(self.dec_thr_ctrl.name)
 
-        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling for the ila depending on 'emu_dec_thr'
-        self.dec_cmp = DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1)
+        # Add DigitalCtrlInput for control signal 'emu_time_tgt' to run for
+        # a specific amount of time
+        self.emu_time_tgt = DigitalCtrlInput(
+            name='emu_time_tgt',
+            width=int(prj_cfg.cfg.time_width),
+            abspath = None
+        )
+        self.emu_time_tgt.i_addr = self._assign_i_addr()
+        self.digital_ctrl_inputs += [self.emu_time_tgt]
+        self.special_ctrl_ios.add(self.emu_time_tgt.name)
+
+        # Add DigitalCtrlInput for control signal 'emu_ctrl_mode' to run for
+        # a specific amount of time
+        self.emu_ctrl_mode = DigitalCtrlInput(
+            name='emu_ctrl_mode',
+            width=2,
+            abspath = None
+        )
+        self.emu_ctrl_mode.i_addr = self._assign_i_addr()
+        self.digital_ctrl_inputs += [self.emu_ctrl_mode]
+        self.special_ctrl_ios.add(self.emu_ctrl_mode.name)
+
+        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling
+        # for the ila depending on 'emu_dec_thr'
+        self.dec_cmp = DigitalSignal(
+            name='emu_dec_cmp',
+            abspath='emu_dec_cmp_probe',
+            width=1
+        )
 
         self._read_simctrlfile()
 
@@ -240,6 +289,12 @@ class StructureConfig():
             print('No signals specified in simctrl.yaml.')
             return
 
+        # debug waveform dumping (simulation only)
+        if 'dump_debug' in sigs:
+            self.dump_debug = True
+        else:
+            self.dump_debug = False
+
         # Add analog probes to structure config
         if 'analog_probes' in sigs:
             print(f'Analog Probes: {list(sigs["analog_probes"].keys())}')
@@ -297,22 +352,30 @@ class StructureConfig():
             print(f'No Analog Ctrl Outputs provided.')
 
     def _add_default_oscillator(self):
-        # add derived clock
         self.clk_derived.append(
             ClkDerived(
                 name='def_osc',
                 abspath_emu_dt='def_osc_i.__emu_dt',
                 abspath_emu_clk='def_osc_i.__emu_clk',
                 abspath_emu_rst='def_osc_i.__emu_rst',
-                abspath_dt_req='def_osc_i.__emu_dt_req',
-                abspath_gated_clk='def_osc_i.__emu_clk_i',
-                abspath_gated_clk_req='def_osc_i.__emu_clk_val'
+                abspath_dt_req='def_osc_i.__emu_dt_req'
             )
         )
 
         # update counts
         self.num_dt_reqs += 1
         self.num_gated_clks += 1
+
+    def _add_ctrl_anasymod(self):
+        self.clk_derived.append(
+            ClkDerived(
+                name='ctrl_blk',
+                abspath_emu_dt='ctrl_anasymod_i.__emu_dt',
+                abspath_emu_clk='ctrl_anasymod_i.__emu_clk',
+                abspath_emu_rst='ctrl_anasymod_i.__emu_rst',
+                abspath_dt_req='ctrl_anasymod_i.__emu_dt_req'
+            )
+        )
 
 class ClkIndependent(DigitalSignal):
     """
