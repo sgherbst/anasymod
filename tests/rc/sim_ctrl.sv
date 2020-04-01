@@ -5,9 +5,7 @@ module sim_ctrl #(
     `DECL_REAL(v_out)
 ) (
     `OUTPUT_REAL(v_in),
-    `INPUT_REAL(v_out),
-    output reg go_vio,
-    output reg rst_vio
+    `INPUT_REAL(v_out)
 );
     // test parameters
     localparam real tau=1e-6;
@@ -23,26 +21,12 @@ module sim_ctrl #(
 
     // control variables
     integer k;
-    real t_sim, expt_val, meas_val;
+    real expt_val, meas_val;
     initial begin
+
+
         // wait for emulator reset to complete
-        #(10us);
-
-        // initialize signals
-        go_vio = 1'b0;
-        rst_vio = 1'b1;
-        v_in_int = 1.0;
-        #(1us);
-
-        // pulse the clock
-        go_vio = 1'b1;
-        #(1us);
-        go_vio = 1'b0;
-        #(1us);
-
-        // release from reset
-        rst_vio = 1'b0;
-        #(1us);
+        `WAIT_EMU_RST;
 
         // walk through simulation values
         t_sim = 0.0;
@@ -62,9 +46,6 @@ module sim_ctrl #(
             #(0.5us);
             go_vio = 1'b0;
             #(0.5us);
-
-            // update the time variable
-            t_sim = t_sim + (`DT_MSDSL);
         end
 
         // end simulation

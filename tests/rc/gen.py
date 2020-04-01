@@ -16,10 +16,7 @@ def main():
     m = MixedSignalModel('model', dt=args.dt)
     m.add_analog_input('v_in')
     m.add_analog_output('v_out')
-    m.add_digital_input('clk')
-    m.add_digital_input('rst')
-    m.add_eqn_sys([Deriv(m.v_out) == (m.v_in - m.v_out)/args.tau],
-                  clk=m.clk, rst=m.rst)
+    m.add_eqn_sys([Deriv(m.v_out) == (m.v_in - m.v_out)/args.tau])
 
     # determine the output filename
     filename = Path(args.output).resolve() / f'{m.module_name}.sv'

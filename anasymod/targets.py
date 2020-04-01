@@ -7,7 +7,7 @@ from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
-from anasymod.sources import VerilogSource
+from anasymod.sources import VerilogSource, VerilogHeader
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
@@ -15,7 +15,7 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import anasymod_root
+from anasymod.files import anasymod_root, anasymod_header
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -72,6 +72,9 @@ class Target():
         """
         Generate toplevel, IPCore wrappers, debug infrastructure and clk manager.
         """
+
+        # Add anasymod header
+        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()))]
 
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')

@@ -1,6 +1,4 @@
 verilog_sources:
-  single_step_clk:
-    files: "single_step_clk.sv"
   sim_ctrl:
     files: "sim_ctrl.sv"
     fileset: "sim"

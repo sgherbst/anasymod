@@ -14,12 +14,3 @@ analog_ctrl_outputs:
   v_out:
     abspath: 'tb_i.v_out'
     range: 10
-digital_ctrl_inputs:
-  go_vio:
-    abspath: 'tb_i.go_vio'
-    width: 1
-    init_value: 0
-  rst_vio:
-    abspath: 'tb_i.rst_vio'
-    width: 1
-    init_value: 1

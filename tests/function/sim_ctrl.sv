@@ -1,4 +1,5 @@
 `include "svreal.sv"
+`include "anasymod.sv"
 
 module sim_ctrl #(
     `DECL_REAL(in_),
@@ -35,18 +36,14 @@ module sim_ctrl #(
     integer n_samp;
     initial begin
         // wait for emulator reset to complete
-        #(10us);
-
-        // initialize signals
-        in_int = 0.0;
-        #(1us);
+        wait_emu_reset();
 
         // walk through simulation values
         sum_err_sqrd = 0.0;
         n_samp = 0;
         for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int = in_int + 0.05) begin
             // wait
-            #(1us);
+            wait_emu_cycles(3);
             // compute expected output
             expct = $sin(clip(in_int, -m_pi, +m_pi));
             // print simulation state

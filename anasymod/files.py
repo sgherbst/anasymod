@@ -21,6 +21,9 @@ def which(program, path=None):
 def anasymod_root():
     return Path(__file__).parent
 
+def anasymod_header():
+    return anasymod_root() / 'verilog' / 'anasymod.sv'
+
 def get_from_anasymod(*args):
     return os.path.join(str(anasymod_root()), *args)
 
