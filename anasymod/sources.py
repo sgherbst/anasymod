@@ -1,8 +1,7 @@
 import os
 
-from glob import glob
 from anasymod.generators.codegen import CodeGenerator
-from anasymod.util import back2fwd
+from anasymod.util import back2fwd, expand_searchpaths
 from typing import Union
 
 class ConfigFileObj(CodeGenerator):
@@ -32,24 +31,8 @@ class ConfigFileObj(CodeGenerator):
         Check if path is absolute or relative, in case of a relative path, it will be expanded to an absolute path,
         whereas the folder of the config_file will be used to complete the path.
         """
-        abs_paths = []
-        if not isinstance(self.files, list):
-            raise TypeError(f"Wrong format used in config file {self.config_path}")
-        for file in self.files:
-            file = os.path.expandvars(str(file).strip('" '))
-            if not os.path.isabs(file):
-                if self.config_path is not None:
-                    path_suffix = file.replace('\\', '/').replace('/', os.sep).split(os.sep)
-                    try:
-                        path_suffix.remove('.')
-                    except:
-                        pass
-                    file = os.path.join(os.path.dirname(self.config_path), *(path_suffix))
-                else:
-                    raise KeyError(f"No config path was provided, is set to:{self.config_path}")
-            abs_paths.append(file)
 
-        self.files = [file for p in abs_paths for file in glob(p)]
+        self.files = expand_searchpaths(paths=self.files, rel_path_reference=os.path.dirname(self.config_path))
 
 class SubConfig(ConfigFileObj):
     def __init__(self, files: Union[list, str], config_path=None):

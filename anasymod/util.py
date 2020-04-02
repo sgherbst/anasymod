@@ -8,6 +8,8 @@ from multiprocessing.pool import ThreadPool
 from math import ceil, log2
 from collections import namedtuple
 from argparse import ArgumentParser
+from glob import glob
+from typing import Union
 
 from msdsl.generator.verilog import VerilogGenerator
 
@@ -37,6 +39,31 @@ def call(args, cwd=None, wait=True):
 
 def next_pow_2(x):
     return 2**int(ceil(log2(x)))
+
+def expand_searchpaths(paths: Union[list, str], rel_path_reference: str):
+    abs_paths = []
+
+    if isinstance(paths, str):
+        paths = [paths]
+    elif isinstance(paths, list):
+        pass
+    else:
+        raise TypeError(f"Wrong format used for passing searchpaths, expecting list: {paths}")
+    for file in paths:
+        file = os.path.expandvars(str(file).strip('" '))
+        if not os.path.isabs(file):
+            if rel_path_reference is not None:
+                path_suffix = file.replace('\\', '/').replace('/', os.sep).split(os.sep)
+                try:
+                    path_suffix.remove('.')
+                except:
+                    pass
+                file = os.path.join(rel_path_reference, *(path_suffix))
+            else:
+                raise KeyError(f"No reference for expanding relative paths was provided for search paths: {paths}")
+        abs_paths.append(file)
+
+    return [file for p in abs_paths for file in glob(p)]
 
 ########################
 # parallel_scripts

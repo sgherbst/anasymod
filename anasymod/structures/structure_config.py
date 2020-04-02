@@ -13,7 +13,7 @@ class StructureConfig():
     There is also a specific interface to flow plugins that allows modification due to some needs
     from the plugin side, e.g. additional clks, resets, ios to the host application or resources on the FPGA board.
     """
-    def __init__(self, prj_cfg: EmuConfig, tstop):
+    def __init__(self, prj_cfg: EmuConfig, tstop, simctrl_path):
         # Internal variables
         self.i_addr_counter = 0
         self.o_addr_counter = 0
@@ -21,7 +21,7 @@ class StructureConfig():
         # Path to clks.yaml file
         self._clks_file_path = os.path.join(prj_cfg.root, 'clks.yaml')
         # Path to simctrl.yaml file
-        self._simctrl_file_path = os.path.join(prj_cfg.root, 'simctrl.yaml')
+        self._simctrl_file_path = simctrl_path
 
         self.cfg = Config(prj_cfg=prj_cfg)
         self.cfg.update_config()
@@ -77,7 +77,7 @@ class StructureConfig():
         # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
         # Add time signal representing current simulated time
-        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=(1.1 * tstop), width=prj_cfg.cfg.time_width)
+        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=(1.1 * float(tstop)), width=prj_cfg.cfg.time_width)
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
@@ -254,7 +254,7 @@ class StructureConfig():
                 else:
                     print(f'No Analog Ctrl Outputs provided.')
         else:
-            print(f"No simctrl.yaml file existing, no additional probes will be available for this simulation.")
+            print(f"No simulation control configfile existing, no additional probes will be available for this simulation.")
 
 class ClkIndependent(DigitalSignal):
     """
