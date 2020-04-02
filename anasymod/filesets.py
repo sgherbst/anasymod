@@ -1,5 +1,5 @@
 import os, yaml
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile, FunctionalModel
 from anasymod.defines import Define
 
 class Filesets():
@@ -33,6 +33,9 @@ class Filesets():
 
         self._bd_files = []
         """:type : List[BDFile]"""
+
+        self._functional_models = []
+        """:type : List[FunctionalModel]"""
 
         # init fileset_dict
         self.fileset_dict = {}
@@ -130,6 +133,12 @@ class Filesets():
                 self._bd_files.append(BDFile(files=cfg['bd_files'][bd_file]['files'],
                                              fileset=cfg['bd_files'][bd_file]['fileset'] if 'fileset' in cfg['bd_files'][bd_file].keys() else 'default',
                                              config_path=cfg_path))
+        if 'generator_sources' in cfg.keys():  # Add functional model to filesets
+            print(f'Functional Models: {[key for key in cfg["generator_sources"].keys()]}')
+            for functional_model in cfg['generator_sources'].keys():
+                self._bd_files.append(BDFile(files=cfg['generator_sources'][functional_model]['files'],
+                                             fileset=cfg['generator_sources'][functional_model]['fileset'] if 'fileset' in cfg['generator_sources'][functional_model].keys() else 'default',
+                                             config_path=cfg_path))
         if 'sub_configs' in cfg.keys():  # Add sub config files to filesets
             for sub_config in cfg['sub_configs'].keys():
                 self._sub_config_paths.append(SubConfig(files=cfg['sub_configs'][sub_config]['files'], config_path=cfg_path))
@@ -176,6 +185,9 @@ class Filesets():
         # Read in bd_files objects to fileset dict
         self._add_to_fileset_dict(name='bd_files', container=self._bd_files)
 
+        # Read in functional model objects to fileset dict
+        self._add_to_fileset_dict(name='generator_sources', container=self._functional_models)
+
     def _add_to_fileset_dict(self, name, container):
         """
         Adds a specified attribute to the fileset_dict, e.g. add the verilog sources or defines.
@@ -214,6 +226,9 @@ class Filesets():
 
     def add_bd_file(self, bd_file: BDFile):
         self._bd_files.append(bd_file)
+
+    def add_functional_model(self, functional_model: FunctionalModel):
+        self._functional_models.append(functional_model)
 
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")

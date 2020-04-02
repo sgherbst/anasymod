@@ -15,7 +15,7 @@ def main():
     ana = Analysis(input=root)                              # create analysis object to host prototyping project
 
     ana.msdsl.models()                                      # generate functional models
-    ana.setup_filesets()                                    # setup project's filesets
+    ana._setup_filesets()                                    # setup project's filesets
     ana.set_target(target_name='fpga')                      # set the active target to 'fpga'
 
     if args.gen_bitstream:

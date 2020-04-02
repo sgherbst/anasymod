@@ -124,3 +124,7 @@ class MEMFile(Sources):
 class BDFile(Sources):
     def __init__(self, files: str, fileset=r"default", config_path=None):
         super().__init__(files=[files], fileset=fileset, config_path=config_path)
+
+class FunctionalModel(Sources):
+    def __init__(self, files: str, fileset=r"default", config_path=None):
+        super().__init__(files=[files], fileset=fileset, config_path=config_path)
