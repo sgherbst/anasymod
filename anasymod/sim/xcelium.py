@@ -74,6 +74,11 @@ class XceliumSimulator(Simulator):
             for src in sources.files:
                 cmd.append(src)
 
+        # add HDL sources for functional models
+        for sources in self.target.content.functional_models:
+            for src in sources.gen_files:
+                cmd.append(src)
+
         # add VHDL source files
         # TODO: is it actually necessary to consolidate makelib commands together?  if subsequent makelib commands
         # append rather than replace files, then it should be OK (and simpler) to have a separate makelib for

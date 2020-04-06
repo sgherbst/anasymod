@@ -36,6 +36,9 @@ class VivadoTCLGenerator(CodeGenerator):
         # add verilog headers
         self.add_verilog_headers(ver_hdr=content.verilog_headers)
 
+        # add functional model HDL sources
+        self.add_functional_models(fm_src=content.functional_models)
+
         # add vhdl sources
         self.add_vhdl_sources(vhdl_src=content.vhdl_sources)
 
@@ -60,6 +63,14 @@ class VivadoTCLGenerator(CodeGenerator):
                 file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
                 self.set_property('file_type', '{Verilog Header}', f'[get_files {file_list}]')
 
+    def add_functional_models(self, fm_src):
+        for src in fm_src:
+            if src.gen_files:
+                files = []
+                for file in src.gen_files:
+                    files.append(file)
+                self.add_files(files)
+
     def add_vhdl_sources(self, vhdl_src):
         for src in vhdl_src:
             if src.files:
@@ -73,7 +84,7 @@ class VivadoTCLGenerator(CodeGenerator):
 
     def add_mem_file(self, mem_files: [MEMFile]):
         for mem_file in mem_files:
-            if src.files:
+            if mem_file.files:
                 self.add_files(mem_file.files)
 
     def add_bd_file(self, bd_files: [BDFile]):

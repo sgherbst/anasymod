@@ -21,6 +21,7 @@ from anasymod.targets import CPUTarget, FPGATarget
 from anasymod.enums import ConfigSections
 from anasymod.utils import statpro
 from anasymod.wave import ConvertWaveform
+from anasymod.plugins import Plugin
 from typing import Union
 from importlib import import_module
 
@@ -33,6 +34,10 @@ class Analysis():
         # Parse command line arguments
         self.args = None
         self._parse_args()
+
+        # Initialize attributes
+        self.float_type = False # Defines which data type is used for functional models; default is fixed-point
+        self._plugin_args = {} # Namespace object including all options set for generators
 
         # Overwrite input location in case it was provided when instantiation the Analysis class
         if input is not None:
@@ -115,24 +120,19 @@ class Analysis():
             # Process command line arguments for plugins
             ###############################################################
 
-            self._plugin_args = []
             for plugin in self._plugins:
                 # Parse command line arguments and execute all actions for each plugin
                 plugin._parse_args()
                 args = plugin._return_args()
-                self._plugin_args.append(args)
-                plugin.set_generator_options() # Set options for the generator according to commandline arguments
 
-                # Generate source code
-                if args.models:
-                    self.gen_sources()
+                for arg in args.__dict__:
+                    plugin.set_option(name=arg, value= args.__dict__[arg]) # Set options for the generator according to commandline arguments
+                    self._plugin_args[arg] = args.__dict__[arg]
 
             # Set float type to true, in case floating-point data types are used during simulation.
             # This is needed when converting result files.
-            self.float_type = True
-            for args in self._plugin_args:
-                if 'float' in args.__dict__.keys():
-                    self.float_type = args.float
+            if 'float' in self._plugin_args.keys():
+                self.float_type = self._plugin_args['float']
 
             ###############################################################
             # Set options from to command line arguments
@@ -143,6 +143,10 @@ class Analysis():
             ###############################################################
             # Execute actions according to command line arguments
             ###############################################################
+
+            # generate source code, e.g. functional models via msdsl
+            if self.args.models:
+                self.gen_sources()
 
             # generate bitstream
             if self.args.build:
@@ -202,6 +206,7 @@ class Analysis():
             elif isinstance(source, BDFile):
                 self.filesets._bd_files.append(source)
             elif isinstance(source, FunctionalModel):
+                source.set_gen_files_path(hdl_dir_root=self._prj_cfg.build_root_functional_models)
                 self.filesets._functional_models.append(source)
             else:
                 print(f'WARNING: Provided source:{source} does not have a valid type, skipping this command!')
@@ -224,6 +229,38 @@ class Analysis():
 
         self._prj_cfg._update_build_root(active_target=target_name)
 
+    def set_generator_option(self, generator, name, value):
+        """
+        Set an option for a source code generator that is added to the project, e.g. msdsl.
+
+        :param generator:   Name of the generator for which an option shall be set. The name needs to be identical to
+                            the one provided in the prj.yaml file.
+        :param name:        Option name that shall be set
+        :param value:       Value the option shall be set to
+        """
+
+        valid_plugin = None
+        """ : type : Plugin"""
+
+        for plugin in self._plugins:
+            if generator == plugin._name:
+                valid_plugin = plugin
+
+        # Check if any valid plugin was selected
+        if not valid_plugin:
+            raise Exception(f'ERROR: Provided plugin/s:{generator} were not registered in the project configuration!')
+
+        # Call the plugin set_option function to propagate the option change
+        valid_plugin.set_option(name=name, value=value)
+
+        # Store the option change in analysis object
+        self._plugin_args[name] = value
+
+        # In case the float option is set, also update the float_type instance attribute
+        # ToDo: A more generic approach how to deal with this kind of change might be needed -> querry self.plugin_args dict instead
+        if name == 'float':
+            self.float_type = value
+
     def gen_sources(self, plugins=None):
         """
         Run all plugin generators added to the project ro generate source code. If parameter plugin is set to None,
@@ -232,17 +269,38 @@ class Analysis():
         :param plugin: List of plugin generator names that shall be run.
         """
 
+        valid_plugins = []
         if plugins is None:
-            plugins = self._plugins
+            valid_plugins = self._plugins
+        elif isinstance(plugins, str):
+            for prj_plugin in self._plugins:
+                if plugins == prj_plugin._name:
+                    valid_plugins = [prj_plugin]
+
         elif isinstance(plugins, list):
-            pass
+            for prj_plugin in self._plugins:
+                for plugin in plugins:
+                    if plugin == prj_plugin._name:
+                        valid_plugins.append(prj_plugin)
         else:
             raise Exception(f'Provided data type for parameter plugins is not supported. Expects list, given:{type(plugins)}')
-        for plugin in plugins:
-            if plugin._name == 'msdsl':  # Pass generator inputs to plugin - note this is custom for each plugin
-                if self.filesets._functional_models:
-                    plugin._set_generator_sources(generator_sources=self.filesets._functional_models)
 
+        #Check if any valid plugin was selected
+        if not valid_plugins:
+            raise Exception(f'ERROR: Provided plugin/s:{plugins} were not registered in the project configuration!')
+
+        # ToDo: currently, the generator API is under construction, which is why this only works for msdsl right now
+        for plugin in valid_plugins:
+            if plugin._name == 'msdsl':  # Pass generator inputs to plugin - note this is custom for each plugin
+                if not self.filesets._functional_models:
+                    # Use default functional models object for generation
+                    func_model_default = FunctionalModel(files=os.path.join(self.args.input, 'gen.py'), config_path='',
+                                                         name='main')
+                    func_model_default.expand_paths()
+                    func_model_default.set_gen_files_path(hdl_dir_root=self._prj_cfg.build_root_functional_models)
+                    self.filesets._functional_models.append(func_model_default)
+
+            plugin._set_generator_sources(generator_sources=self.filesets._functional_models)
             plugin.models()
 
     def build(self):
@@ -592,6 +650,8 @@ class Analysis():
 
         --preprocess_only: For icarus only, this will nur run the simulation, but only compile the netlist.
 
+        --models: Generate functional models for selected project.
+
         """
 
         parser = ArgumentParser()
@@ -627,6 +687,7 @@ class Analysis():
         parser.add_argument('--server_addr', type=str, default=None)
         parser.add_argument('--stop_time', type=float, default=None)
         parser.add_argument('--preprocess_only', action='store_true')
+        parser.add_argument('--models', action='store_true')
 
         self.args, _ = parser.parse_known_args()
 
@@ -641,7 +702,9 @@ class Analysis():
 
         # Read source.yaml files and store in fileset object
         default_filesets = ['default'] + self.cpu_targets + self.fpga_targets
-        self.filesets = Filesets(root=self.args.input, default_filesets=default_filesets)
+        self.filesets = Filesets(root=self.args.input,
+                                 default_filesets=default_filesets,
+                                 root_func_models=self._prj_cfg.build_root_functional_models)
         self.filesets.read_filesets()
 
         # Add Defines and Sources from plugins
@@ -666,7 +729,10 @@ class Analysis():
 
             if not custom_top:
                 #ToDo: check if file inclusion should be target specific -> less for simulation only for example
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'),
+                                                              config_path=config_path,
+                                                              fileset=fileset,
+                                                              name='tb'))
                 get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture

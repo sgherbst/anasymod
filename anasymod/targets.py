@@ -81,7 +81,7 @@ class Target():
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
             top_file.write(ModuleTop(target=self).render())
-        self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
+        self.content.verilog_sources += [VerilogSource(files=toplevel_path, name='top')]
 
         # Build control structure and add all sources to project
         if self.ctrl is not None:
@@ -90,31 +90,36 @@ class Target():
             #ToDO: needs to be cleaned up, should have individual module for pc simulation control
             with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
                 ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
-            self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'))]
+            self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'),
+                                                           name='gen_ctrlwrap')]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
         with (open(clkmanagerwrapper_path, 'w')) as clkm_file:
             clkm_file.write(ModuleClkManager(scfg=self.str_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path)]
+        self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path,
+                                                       name='gen_clkmanager_wrap')]
 
         # Generate traceport wrapper and add to target sources
         trapwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_traceport_wrap.sv')
         with (open(trapwrapper_path, 'w')) as trap_file:
             trap_file.write(ModuleTracePort(scfg=self.str_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
+        self.content.verilog_sources += [VerilogSource(files=trapwrapper_path,
+                                                       name='gen_traceport_wrap')]
 
         # Generate emulation clk gen module and add to target sources
         gen_emu_clks_path = os.path.join(self.prj_cfg.build_root, 'gen_emu_clks.sv')
         with (open(gen_emu_clks_path, 'w')) as emu_clks_file:
             emu_clks_file.write(ModuleEmuClks(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=gen_emu_clks_path)]
+        self.content.verilog_sources += [VerilogSource(files=gen_emu_clks_path,
+                                                       name='gen_emu_clks')]
 
         # Generate time manager and add to target sources
         timemanager_path = os.path.join(self.prj_cfg.build_root, 'gen_time_manager.sv')
         with (open(timemanager_path, 'w')) as timemanager_file:
             timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=timemanager_path)]
+        self.content.verilog_sources += [VerilogSource(files=timemanager_path,
+                                                       name='gen_time_manager')]
 
     @property
     def project_root(self):
