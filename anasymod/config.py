@@ -20,6 +20,9 @@ class EmuConfig:
         # define and create build root
         self.build_root_base = build_root if build_root is not None else os.path.join(root, 'build')
 
+        # define build root for functional models
+        self.build_root_functional_models = os.path.join(self.build_root_base, 'models')
+
         self.build_root = os.path.join(self.build_root_base, active_target)
         if not os.path.exists(self.build_root):
             mkdir_p(self.build_root)

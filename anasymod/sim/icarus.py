@@ -35,6 +35,11 @@ class IcarusSimulator(Simulator):
             for src in sources.files:
                 cmd.append(src)
 
+        # add HDL files for functional models
+        for sources in self.target.content.functional_models:
+            for src in sources.gen_files:
+                cmd.append(src)
+
         # run iverilog
         call(cmd, cwd=self.cfg.build_root)
 

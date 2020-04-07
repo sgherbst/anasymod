@@ -23,7 +23,7 @@ def test_rc_sim(simulator_name='vivado'):
     # generate functional models
     ana.msdsl.models()
     # setup project's filesets
-    ana.setup_filesets()
+    ana._setup_filesets()
     # run the simulation
     ana.simulate()
 
@@ -32,7 +32,7 @@ def test_rc_emu(gen_bitstream=True):
     ana = Analysis(input=root)
     # generate functional models
     ana.msdsl.models()
-    ana.setup_filesets()
+    ana._setup_filesets()
     ana.set_target(target_name='fpga')      # set the active target to 'fpga'
 
     if gen_bitstream:

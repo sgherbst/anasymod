@@ -21,6 +21,7 @@ from anasymod.targets import CPUTarget, FPGATarget
 from anasymod.enums import ConfigSections
 from anasymod.utils import statpro
 from anasymod.wave import ConvertWaveform
+from anasymod.plugins import Plugin
 from typing import Union
 from importlib import import_module
 
@@ -33,6 +34,10 @@ class Analysis():
         # Parse command line arguments
         self.args = None
         self._parse_args()
+
+        # Initialize attributes
+        self.float_type = False # Defines which data type is used for functional models; default is fixed-point
+        self._plugin_args = {} # Namespace object including all options set for generators
 
         # Overwrite input location in case it was provided when instantiation the Analysis class
         if input is not None:
@@ -84,40 +89,50 @@ class Analysis():
         for target in self.cpu_targets + self.fpga_targets:
             self._setup_finished[target] = False
 
-        self.fileset_populated = False
+        self.project_sources_finalized = False
 
         # Initialize project config
         self._prj_cfg = EmuConfig(root=self.args.input, cfg_file=self.cfg_file, active_target=self.args.active_target, build_root=build_root)
 
         # Initialize Plugins
         self._plugins = []
-        self._plugin_args = []
         for plugin in self._prj_cfg.cfg.plugins:
             try:
                 i = import_module(f"{plugin}.plugin")
                 inst = i.CustomPlugin(prj_cfg=self._prj_cfg, cfg_file=self.cfg_file, prj_root=self.args.input)
                 self._plugins.append(inst)
                 setattr(self, inst._name, inst)
-                self._plugin_args.append(inst._return_args())
             except:
                 raise KeyError(f"Could not process plugin:{plugin} properly! Check spelling")
 
-        # Set float type to true, in case floating-point data types are used during simulation.
-        # This is needed when converting result files.
-        self.float_type = True
-        for args in self._plugin_args:
-            if 'float' in args.__dict__.keys():
-                self.float_type = args.float
-
         #Set active target
         self.set_target(self.args.active_target)
+
+        # Initialize filesets, those can later be modified via the add_sources function
+        self._setup_filesets()
 
         # Check which mode is used to run, in case of commandline mode, besides setting up the class, also argument will be processed and executed
         if op_mode in ['commandline']:
             print(f"Running in commandline mode.")
 
-            # Finalize project setup, no more modifications of filesets and targets after that!!!
-            self.setup_filesets()
+
+            ###############################################################
+            # Process command line arguments for plugins
+            ###############################################################
+
+            for plugin in self._plugins:
+                # Parse command line arguments and execute all actions for each plugin
+                plugin._parse_args()
+                args = plugin._return_args()
+
+                for arg in args.__dict__:
+                    plugin.set_option(name=arg, value= args.__dict__[arg]) # Set options for the generator according to commandline arguments
+                    self._plugin_args[arg] = args.__dict__[arg]
+
+            # Set float type to true, in case floating-point data types are used during simulation.
+            # This is needed when converting result files.
+            if 'float' in self._plugin_args.keys():
+                self.float_type = self._plugin_args['float']
 
             ###############################################################
             # Set options from to command line arguments
@@ -128,6 +143,10 @@ class Analysis():
             ###############################################################
             # Execute actions according to command line arguments
             ###############################################################
+
+            # generate source code, e.g. functional models via msdsl
+            if self.args.models:
+                self.gen_sources()
 
             # generate bitstream
             if self.args.build:
@@ -160,60 +179,6 @@ class Analysis():
 
 ##### Functions exposed for user to exercise on Analysis Object
 
-    def setup_filesets(self):
-        """
-        Finalize filesets for the project. Before this function is called, all sources should have been added to the
-        project, either via source.yaml files/plugin-specific includes, or interactively via the add_sources function.
-
-        Note: Do not add more sources to the project after this function has been run; They will only be considered,
-        if this function is executed again afterwards.
-        """
-
-        # Read source.yaml files and store in fileset object
-        default_filesets = ['default'] + self.cpu_targets + self.fpga_targets
-        self.filesets = Filesets(root=self.args.input, default_filesets=default_filesets)
-        self.filesets.read_filesets()
-
-        # Add Defines and Sources from plugins
-        for plugin in self._plugins:
-            plugin._setup_sources()
-            plugin._setup_defines()
-            self.filesets._defines += plugin._dump_defines()
-            self.filesets._verilog_sources += plugin._dump_verilog_sources()
-            self.filesets._verilog_headers += plugin._dump_verilog_headers()
-            self.filesets._vhdl_sources += plugin._dump_vhdl_sources()
-
-        # Add custom source and define objects here e.g.:
-        config_path = os.path.join(self.args.input, 'source.yaml')
-
-        # Add some default files depending on whether there is a custom top level
-        for fileset in self.cpu_targets + self.fpga_targets:
-            try:
-                custom_top = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['custom_top'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['custom_top']
-                print(f'Using custom top for fileset {fileset}.')
-            except:
-                custom_top = False
-
-            if not custom_top:
-                #ToDo: check if file inclusion should be target specific -> less for simulation only for example
-                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'), config_path=config_path, fileset=fileset))
-                get_from_anasymod('verilog', 'zynq_uart.bd')
-
-        # Set define variables specifying the emulator control architecture
-        # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
-        for fileset in self.cpu_targets + self.fpga_targets:
-            try:
-                top_module = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['top_module'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['top_module']
-            except:
-                top_module = 'top'
-
-            print(f'Using top module {top_module} for fileset {fileset}.')
-            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
-            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
-
     def add_sources(self, sources: Union[Sources, Define, list]):
         """
         Function to add sources or defines to filesets. This will also retrigger fileset dict population
@@ -240,10 +205,13 @@ class Analysis():
                 self.filesets._mem_files.append(source)
             elif isinstance(source, BDFile):
                 self.filesets._bd_files.append(source)
+            elif isinstance(source, FunctionalModel):
+                source.set_gen_files_path(hdl_dir_root=self._prj_cfg.build_root_functional_models)
+                self.filesets._functional_models.append(source)
             else:
                 print(f'WARNING: Provided source:{source} does not have a valid type, skipping this command!')
 
-        self.fileset_populated = False
+        self.project_sources_finalized = False
 
     def set_target(self, target_name):
         """
@@ -260,6 +228,80 @@ class Analysis():
             raise Exception(f'Active target:{self.args.active_target} is not available for project, please declare the target first in the project configuration.')
 
         self._prj_cfg._update_build_root(active_target=target_name)
+
+    def set_generator_option(self, generator, name, value):
+        """
+        Set an option for a source code generator that is added to the project, e.g. msdsl.
+
+        :param generator:   Name of the generator for which an option shall be set. The name needs to be identical to
+                            the one provided in the prj.yaml file.
+        :param name:        Option name that shall be set
+        :param value:       Value the option shall be set to
+        """
+
+        valid_plugin = None
+        """ : type : Plugin"""
+
+        for plugin in self._plugins:
+            if generator == plugin._name:
+                valid_plugin = plugin
+
+        # Check if any valid plugin was selected
+        if not valid_plugin:
+            raise Exception(f'ERROR: Provided plugin/s:{generator} were not registered in the project configuration!')
+
+        # Call the plugin set_option function to propagate the option change
+        valid_plugin.set_option(name=name, value=value)
+
+        # Store the option change in analysis object
+        self._plugin_args[name] = value
+
+        # In case the float option is set, also update the float_type instance attribute
+        # ToDo: A more generic approach how to deal with this kind of change might be needed -> querry self.plugin_args dict instead
+        if name == 'float':
+            self.float_type = value
+
+    def gen_sources(self, plugins=None):
+        """
+        Run all plugin generators added to the project ro generate source code. If parameter plugin is set to None,
+        all generators will be run. Otherwise only the list of plugins provided will be run.
+
+        :param plugin: List of plugin generator names that shall be run.
+        """
+
+        valid_plugins = []
+        if plugins is None:
+            valid_plugins = self._plugins
+        elif isinstance(plugins, str):
+            for prj_plugin in self._plugins:
+                if plugins == prj_plugin._name:
+                    valid_plugins = [prj_plugin]
+
+        elif isinstance(plugins, list):
+            for prj_plugin in self._plugins:
+                for plugin in plugins:
+                    if plugin == prj_plugin._name:
+                        valid_plugins.append(prj_plugin)
+        else:
+            raise Exception(f'Provided data type for parameter plugins is not supported. Expects list, given:{type(plugins)}')
+
+        #Check if any valid plugin was selected
+        if not valid_plugins:
+            raise Exception(f'ERROR: Provided plugin/s:{plugins} were not registered in the project configuration!')
+
+        # ToDo: currently, the generator API is under construction, which is why this only works for msdsl right now
+        for plugin in valid_plugins:
+            if plugin._name == 'msdsl':  # Pass generator inputs to plugin - note this is custom for each plugin
+                if not self.filesets._functional_models:
+                    # Use default functional models object for generation
+                    func_model_default = FunctionalModel(files=os.path.join(self.args.input, 'gen.py'), config_path='',
+                                                         name='main')
+                    func_model_default.expand_paths()
+                    func_model_default.set_gen_files_path(hdl_dir_root=self._prj_cfg.build_root_functional_models)
+                    self.filesets._functional_models.append(func_model_default)
+
+            plugin._set_generator_sources(generator_sources=self.filesets._functional_models)
+            plugin.models()
 
     def build(self):
         """
@@ -608,6 +650,8 @@ class Analysis():
 
         --preprocess_only: For icarus only, this will nur run the simulation, but only compile the netlist.
 
+        --models: Generate functional models for selected project.
+
         """
 
         parser = ArgumentParser()
@@ -643,8 +687,68 @@ class Analysis():
         parser.add_argument('--server_addr', type=str, default=None)
         parser.add_argument('--stop_time', type=float, default=None)
         parser.add_argument('--preprocess_only', action='store_true')
+        parser.add_argument('--models', action='store_true')
 
         self.args, _ = parser.parse_known_args()
+
+    def _setup_filesets(self):
+        """
+        Finalize filesets for the project. Before this function is called, all sources should have been added to the
+        project, either via source.yaml files/plugin-specific includes, or interactively via the add_sources function.
+
+        Note: Do not add more sources to the project after this function has been run; They will only be considered,
+        if this function is executed again afterwards.
+        """
+
+        # Read source.yaml files and store in fileset object
+        default_filesets = ['default'] + self.cpu_targets + self.fpga_targets
+        self.filesets = Filesets(root=self.args.input,
+                                 default_filesets=default_filesets,
+                                 root_func_models=self._prj_cfg.build_root_functional_models)
+        self.filesets.read_filesets()
+
+        # Add Defines and Sources from plugins
+        for plugin in self._plugins:
+            plugin._setup_sources()
+            plugin._setup_defines()
+            self.filesets._defines += plugin._dump_defines()
+            self.filesets._verilog_sources += plugin._dump_verilog_sources()
+            self.filesets._verilog_headers += plugin._dump_verilog_headers()
+            self.filesets._vhdl_sources += plugin._dump_vhdl_sources()
+
+        # Add custom source and define objects here e.g.:
+        config_path = os.path.join(self.args.input, 'source.yaml')
+
+        # Add some default files depending on whether there is a custom top level
+        for fileset in self.cpu_targets + self.fpga_targets:
+            try:
+                custom_top = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['custom_top'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['custom_top']
+                print(f'Using custom top for fileset {fileset}.')
+            except:
+                custom_top = False
+
+            if not custom_top:
+                #ToDo: check if file inclusion should be target specific -> less for simulation only for example
+                self.filesets.add_source(source=VerilogSource(files=os.path.join(self.args.input, 'tb.sv'),
+                                                              config_path=config_path,
+                                                              fileset=fileset,
+                                                              name='tb'))
+                get_from_anasymod('verilog', 'zynq_uart.bd')
+
+        # Set define variables specifying the emulator control architecture
+        # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
+        for fileset in self.cpu_targets + self.fpga_targets:
+            try:
+                top_module = self.cfg_file[ConfigSections.CPU_TARGET][fileset]['top_module'] if fileset in self.cpu_targets else self.cfg_file[ConfigSections.FPGA_TARGET][fileset]['top_module']
+            except:
+                top_module = 'top'
+
+            print(f'Using top module {top_module} for fileset {fileset}.')
+            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
+            self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
 
     def _setup_targets(self, target, gen_structures=False, debug=False):
         """
@@ -654,10 +758,10 @@ class Analysis():
         2. Assign filesets to all target objects of the project
         """
 
-        # Populate the fileset dict which will be used to copy data to target object and store in filesets variable
-        if not self.fileset_populated:
+        if not self.project_sources_finalized:
+            # Populate the fileset dict which will be used to copy data to target object and store in filesets variable
             self.filesets.populate_fileset_dict()
-            self.fileset_populated = True
+            self.project_sources_finalized = True
 
         filesets = self.filesets.fileset_dict
 
