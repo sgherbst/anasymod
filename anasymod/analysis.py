@@ -205,6 +205,8 @@ class Analysis():
                 self.filesets._mem_files.append(source)
             elif isinstance(source, BDFile):
                 self.filesets._bd_files.append(source)
+            elif isinstance(source, IPRepo):
+                self.filesets._ip_repos.append(source)
             elif isinstance(source, FunctionalModel):
                 source.set_gen_files_path(hdl_dir_root=self._prj_cfg.build_root_functional_models)
                 self.filesets._functional_models.append(source)

@@ -2,7 +2,7 @@ import os
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
-from anasymod.sources import VerilogSource, MEMFile, BDFile
+from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo
 from anasymod.targets import FPGATarget
 
 class VivadoTCLGenerator(CodeGenerator):
@@ -44,6 +44,9 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # add mem file
         self.add_mem_file(mem_files=content.mem_files)
+
+        # add ip repo
+        self.add_ip_repo(ip_repos=content.ip_repos)
 
         # add bd file
         self.add_bd_file(bd_files=content.bd_files)
@@ -94,6 +97,11 @@ class VivadoTCLGenerator(CodeGenerator):
                 cmd.append('{ ' + ' '.join('"' + back2fwd(file) + '"' for file in bd_file.files) + ' }')
                 self.writeln(' '.join(cmd))
 
+    def add_ip_repo(self, ip_repos: [IPRepo]):
+        for ip_repo in ip_repos:
+            if ip_repo.files:
+                self.set_property(name='ip_repo_paths', value='{ ' + ' '.join('"' + back2fwd(file) + '"' for file in ip_repo.files) + ' }', objects='[current_project]')
+        self.writeln('update_ip_catalog -rebuild')
 
     def add_project_defines(self, content, fileset):
         """

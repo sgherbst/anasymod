@@ -265,5 +265,7 @@ class Content():
         """:type : List[MEMFile]"""
         self.bd_files = []
         """:type : List[BDFile]"""
+        self.ip_repos = []
+        """:type : List[IPRepo]"""
         self.functional_models = []
         """:type : List[FunctionalModel]"""

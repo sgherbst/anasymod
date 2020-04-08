@@ -1,5 +1,5 @@
 import os, yaml
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile, FunctionalModel
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile, FunctionalModel, IPRepo
 from anasymod.defines import Define
 
 class Filesets():
@@ -34,6 +34,9 @@ class Filesets():
 
         self._bd_files = []
         """:type : List[BDFile]"""
+
+        self._ip_repos = []
+        """:type : List[IPRepo]"""
 
         self._functional_models = []
         """:type : List[FunctionalModel]"""
@@ -141,6 +144,13 @@ class Filesets():
                                              fileset=cfg['bd_files'][bd_file]['fileset'] if 'fileset' in cfg['bd_files'][bd_file].keys() else 'default',
                                              config_path=cfg_path,
                                              name=bd_file))
+        if 'ip_repos' in cfg.keys():  # Add IP repositories to filesets
+            print(f'IP Repos: {[key for key in cfg["ip_repos"].keys()]}')
+            for ip_repo in cfg['ip_repos'].keys():
+                self._ip_repos.append(IPRepo(files=cfg['ip_repos'][ip_repo]['files'],
+                                             fileset=cfg['ip_repos'][ip_repo]['fileset'] if 'fileset' in cfg['ip_repos'][ip_repo].keys() else 'default',
+                                             config_path=cfg_path,
+                                             name=ip_repo))
         if 'functional_models' in cfg.keys():  # Add functional model to filesets
             print(f'Functional Models: {[key for key in cfg["functional_models"].keys()]}')
             for functional_model in cfg['functional_models'].keys():
@@ -209,6 +219,9 @@ class Filesets():
         # Read in bd_files objects to fileset dict
         self._add_to_fileset_dict(name='bd_files', container=self._expand_source_paths(self._bd_files))
 
+        # Read in ip_repos objects to fileset dict
+        self._add_to_fileset_dict(name='ip_repos', container=self._expand_source_paths(self._ip_repos))
+
         # Read in functional model objects to fileset dict
         self._add_to_fileset_dict(name='functional_models', container=self._expand_source_paths(self._functional_models))
 
@@ -250,6 +263,9 @@ class Filesets():
 
     def add_bd_file(self, bd_file: BDFile):
         self._bd_files.append(bd_file)
+
+    def add_ip_repo(self, ip_repo: IPRepo):
+        self._ip_repos.append(ip_repo)
 
     def add_functional_model(self, functional_model: FunctionalModel):
         self._functional_models.append(functional_model)
