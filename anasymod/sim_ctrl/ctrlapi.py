@@ -27,10 +27,13 @@ class CtrlApi:
         """
         raise NotImplementedError("Base class was called to execute function")
 
-    def setup_trace_unit(self, trigger_name, trigger_operator, trigger_value):
+    def setup_trace_unit(self, trigger_name, trigger_operator, trigger_value, sample_decimation=None, sample_count=None):
         """
         Setup the trace unit. This involves defining the signal, that shall be used to start tracing and defining the
         comparison operator, which is used to monitor the trigger signal.
+
+        Note: In case the trigger value is set too high and an overflow occurs, the simulation will hang, as the trigger
+        condition will never be met.
 
         :param trigger_name:        Probe signal to be used as trigger signal.
         :param trigger_operator:    Comparison operator that is used when monitoring the trigger signal to detect,
@@ -42,6 +45,11 @@ class CtrlApi:
                                         lt (lesser than),
                                         lteq (lesser or equal than)
         :param trigger_value:       Value, the probe signal is compared to.
+        :param sample_decimation:   Number of samples to be skipped during recording. By default, every sample will
+                                    stored in the results file, adding a sample_decimation will allow to only record
+                                    every x sample.
+        :param sample_count:        Number of samples to be recorded. This number shall not exceed that maximum ILA
+                                    depth defined during project setup.
         """
         raise NotImplementedError("Base class was called to execute function")
 

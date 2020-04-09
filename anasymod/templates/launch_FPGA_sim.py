@@ -88,7 +88,7 @@ set rst_hw_probe [get_hw_probes *rst* -of_objects $vio_0_i]
 # ILA setup
 # set ila_0_i [get_hw_ilas] // this is how it was written beforehand
 set ila_0_i [get_hw_ilas -of_objects $my_hw_device -filter {CELL_NAME=~"trace_port_gen_i/ila_0_i"}]
-display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $ila_0_i]
+#display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $ila_0_i]
 
 ##############################################
 # Code related to interactive mode starts here

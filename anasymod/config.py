@@ -15,6 +15,8 @@ from anasymod.base_config import BaseConfig
 class EmuConfig:
     def __init__(self, root, cfg_file, active_target, build_root=None):
 
+        self._valid_ila_values = [1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
+
         self.root = root
 
         # define and create build root
@@ -68,7 +70,11 @@ class EmuConfig:
 
     @property
     def ila_depth(self):
-        return 4096
+        if self.cfg.ila_depth in self._valid_ila_values:
+            return self.cfg.ila_depth
+        else:
+            raise Exception(f'Provided value for ILA depth is not valid, allows values are:{self.cfg.ila_depth}, '
+                            f'given: {self.cfg.ila_depth}')
 
     def _update_build_root(self, active_target):
         self.build_root = os.path.join(self.build_root_base, active_target)
@@ -278,6 +284,13 @@ class Config(BaseConfig):
         self.lsf_opts = ''
         """ type(string) : LSF options which can be passed to our tool wrapper commands in the Inicio Flowpackage
             Execution handler options, e.g. '-eh_ncpu 8' can be used"""
+
+        self.ila_depth = 4096
+        """ type(int) : number of samples that can be stored in the ILA for each signal that is probed. Valid values are:
+            1,024, 2,048, 4,096, 8,192, 16,384, 32,768, 65,536, 131,072. Also when choosing this value keep in mind,
+            that this will consume Block Memory. Possible values are further limited by the number of signals to be 
+            stored, number of block memory cells available on the FPGA board and also block memory that was consumed 
+            already be the design itself. """
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
