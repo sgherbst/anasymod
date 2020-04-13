@@ -292,6 +292,15 @@ class Config(BaseConfig):
             stored, number of block memory cells available on the FPGA board and also block memory that was consumed 
             already be the design itself. """
 
+        self.cpu_debug_mode = False
+        """ type(bool) : Enables probing all signals for either everything below the testbench, or for modules 
+            provided in the cpu_debug_hierarchies attribute."""
+
+        self.cpu_debug_hierarchies = None
+        """ type(str, list) : Either tuple of depth and absolute path or list of tuples of depth and absolute path to 
+            design modules, for which all signals shall be stored in result file. e.g.:
+            [(0, top.tb_i.filter_i)]"""
+
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:

@@ -215,6 +215,29 @@ class ModuleTop(JinjaTempl):
         tb_inst.add_inputs(scfg.clk_independent, connections=scfg.clk_independent)
         tb_inst.generate_instantiation()
 
+        #####################################################
+        # CPU debug mode
+        #####################################################
+        self.dump_debug_signals = SVAPI()
+        if pcfg.cfg.cpu_debug_mode:
+            dbg_mods_list = pcfg.cfg.cpu_debug_hierarchies
+            if isinstance(dbg_mods_list, list):
+                for dbg_module in dbg_mods_list:
+                    if isinstance(dbg_module, list):
+                        self.dump_debug_signals.writeln(f'$dumpvars({dbg_module[0]}, {dbg_module[1]});')
+                    elif isinstance(dbg_module, int) and len(dbg_mods_list) == 2: # only one single debug module was provided
+                        self.dump_debug_signals.writeln(f'$dumpvars({dbg_mods_list[0]}, {dbg_mods_list[1]});')
+                        break
+                    else:
+                        raise Exception(f'ERROR: unexpected format for cpu_debug_hierarchies attribute of '
+                                        f'project_config: {dbg_mods_list}, expecting a list including <depth>, '
+                                        f'<path_to_module> or a lists of such a list.')
+            elif not dbg_mods_list:
+                self.dump_debug_signals.writeln(f'$dumpvars(0, top.tb_i);')
+            else:
+                raise Exception(f'ERROR: unexpected format for cpu_debug_hierarchies attribute of '
+                                f'project_config: {dbg_mods_list}, expecting tuple, list or None')
+
     TEMPLATE_TEXT = '''
 `timescale 1ns/1ps
 
@@ -313,6 +336,10 @@ mem_digital #(
     `define ADD_QUOTES_TO_MACRO(macro) `"macro`"
     initial begin
         $dumpfile(`ADD_QUOTES_TO_MACRO({{subst.result_path_raw}}));
+        
+        // Signals to be dumped as well for debug purposes
+        {{subst.dump_debug_signals.text}}
+        
     end
 `endif // `ifdef SIMULATION_MODE_MSDSL
 

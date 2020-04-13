@@ -14,7 +14,7 @@ class ConvertWaveform():
     Convert raw result files to vcd and also make sure fixed-point datatypes are properly converted to a floating point
     representation. Currently supported raw result datatypes are vcd and csv.
     """
-    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True):
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True, debug=False):
         """
 
         :param str_cfg: structure config object used in current project.
@@ -23,6 +23,8 @@ class ConvertWaveform():
         :param result_path: path to converted result file
         :param float_type: flag to indicate if real signal's data type is fixed-point or floating point
         :param emu_time_scaled: flag to indicate, if signals shall be displayed over cycle count or time
+        :param debug: if debug flag is set to true, all signals from result file will be kept, even if they are not a
+                        specified probe; keep in mind, that for those signals no fixed to float conversion can be done
         """
 
         # defaults
@@ -84,24 +86,24 @@ class ConvertWaveform():
                 with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
-                    for signal_full_name, scaled_data in probe_data.items():
+                    for sig, scaled_data in probe_data.items():
                         # determine signal scope and name
-                        signal_split = signal_full_name.split('/')
+                        signal_split = sig.split('/')
                         vcd_scope = '.'.join(signal_split[:-1])
                         vcd_name = signal_split[-1]
 
                         # determine signal type and size
-                        if signal_full_name in real_signals:
+                        if sig in real_signals:
                             vcd_var_type = 'real'
                             vcd_size = None
-                        elif signal_full_name in reg_widths:
+                        elif sig in reg_widths:
                             vcd_var_type = 'reg'
-                            vcd_size = reg_widths[signal_full_name]
+                            vcd_size = reg_widths[sig]
                         else:
                             raise Exception('Unknown signal type.')
 
                         # register the signal
-                        reg[signal_full_name] = writer.register_var(scope=vcd_scope, name=vcd_name,
+                        reg[sig] = writer.register_var(scope=vcd_scope, name=vcd_name,
                                                                     var_type=vcd_var_type,
                                                                     size=vcd_size)
 
@@ -112,8 +114,8 @@ class ConvertWaveform():
                             break
 
                         # iterate over all signals and log their change at this timestamp
-                        for signal_full_name, scaled_data in probe_data.items():
-                            writer.change(reg[signal_full_name], round(1e9 * timestamp), scaled_data[k])
+                        for sig, scaled_data in probe_data.items():
+                            writer.change(reg[sig], round(1e9 * timestamp), scaled_data[k])
 
         elif result_type_raw == ResultFileTypes.VCD:
             vcd_file_name = result_path_raw
@@ -121,19 +123,20 @@ class ConvertWaveform():
             signal_dict = vcd_handle.parse_vcd(update_data=False)
 
             # print signal names
-            signal_names = [(signal_dict[key]["nets"][0]["name"], key) for key in signal_dict.keys()]
+            signal_names = [(signal_dict[key]["nets"][0]["hier"] + '.' + signal_dict[key]["nets"][0]["name"], key) for key in signal_dict.keys()]
             print(f'Signals in result file: {[sig_name[0] for sig_name in signal_names]}')
 
             for analog_signal in scfg.analog_probes + [scfg.time_probe]:
-                if analog_signal.name in [sig[0] for sig in signal_names]:
+                analog_signal_path = 'top.trace_port_gen_i' + '.' + analog_signal.name
+                if analog_signal_path in [sig[0] for sig in signal_names]:
                     # add to set of probes with "real" data type
-                    real_signals.add(analog_signal.name)
+                    real_signals.add(analog_signal_path)
 
-                    probe_data[analog_signal.name] = {}
-                    probe_data[analog_signal.name]['index'] = 0
+                    probe_data[analog_signal_path] = {}
+                    probe_data[analog_signal_path]['index'] = 0
 
                     # get the signal identifier from analog_signal used in VCD file
-                    signal_identifier = signal_names[[y[0] for y in signal_names].index(analog_signal.name)][1]
+                    signal_identifier = signal_names[[y[0] for y in signal_names].index(analog_signal_path)][1]
                     data = []
                     for c,v in signal_dict[signal_identifier]['cv']:
                         if not isinstance(v, float):
@@ -146,61 +149,80 @@ class ConvertWaveform():
                         if not float_type:
                             v = 2 ** int(analog_signal.exponent) * v
                         data.append((c, v))
-                    probe_data[analog_signal.name]['data'] = np.asarray(data)
+                    probe_data[analog_signal_path]['data'] = np.asarray(data)
 
                     # convert data to native Python float type (rather than numpy float) this is required for PyVCD
-                    probe_data[analog_signal.name]['data'] = [(int(c), float(v)) for c, v in probe_data[analog_signal.name]['data']]
+                    probe_data[analog_signal_path]['data'] = [(int(c), float(v)) for c, v in probe_data[analog_signal_path]['data']]
 
             for digital_signal in scfg.digital_probes + [scfg.dec_cmp]:
-                if digital_signal.name in [sig[0] for sig in signal_names]:
+                digital_signal_path = 'top.trace_port_gen_i' + '.' + digital_signal.name
+                if digital_signal_path in [sig[0] for sig in signal_names]:
                     # define width for this probe
-                    reg_widths[digital_signal.name] = int(digital_signal.width)
+                    reg_widths[digital_signal_path] = int(digital_signal.width)
 
-                    probe_data[digital_signal.name] = {}
-                    probe_data[digital_signal.name]['index'] = 0
+                    probe_data[digital_signal_path] = {}
+                    probe_data[digital_signal_path]['index'] = 0
 
                     # get unscaled data
-                    probe_data[digital_signal.name]['data'] = np.asarray([(c, v) for c,v in signal_dict[signal_names[[y[0] for y in signal_names].index(digital_signal.name)][1]]['cv']])
+                    probe_data[digital_signal_path]['data'] = np.asarray([(c, v) for c,v in signal_dict[signal_names[[y[0] for y in signal_names].index(digital_signal_path)][1]]['cv']])
 
                     # convert data to native Python int type (rather than numpy int) this is required for PyVCD
                     data = []
-                    for c, v in probe_data[digital_signal.name]['data']:
+                    for c, v in probe_data[digital_signal_path]['data']:
                         try:
                             data.append((int(c), int(v, 2)))
                         except: # In case of an x or z value, a 0 will be added; this is necessary for PYVCD
                             data.append((int(c), int(0)))
 
-                    probe_data[digital_signal.name]['data'] = data
+                    probe_data[digital_signal_path]['data'] = data
 
             # Write data to VCD file
+
             with open(result_path, 'w') as vcd:
                 with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
-                    for signal_full_name, scaled_data in probe_data.items():
+                    for sig, scaled_data in probe_data.items():
                         # determine signal scope and name
-                        signal_split = signal_full_name.split('/')
+                        signal_split = sig.split('.')
                         vcd_scope = '.'.join(signal_split[:-1])
                         vcd_name = signal_split[-1]
 
                         # determine signal type and size
-                        if signal_full_name in real_signals:
+                        if sig in real_signals:
                             vcd_var_type = 'real'
                             vcd_size = None
-                        elif signal_full_name in reg_widths:
+                        elif sig in reg_widths:
                             vcd_var_type = 'reg'
-                            vcd_size = reg_widths[signal_full_name]
+                            vcd_size = reg_widths[sig]
                         else:
                             raise Exception('Unknown signal type.')
 
                         # register the signal
-                        reg[signal_full_name] = writer.register_var(scope=vcd_scope, name=vcd_name,
+                        reg[sig] = writer.register_var(scope=vcd_scope, name=vcd_name,
                                                                     var_type=vcd_var_type,
                                                                     size=vcd_size)
 
+                    # Add all other signals in case debug flag is set
+                    if debug:
+                        for signal in signal_names:
+                            if not signal[0] in probe_data.keys(): # signal was not listed yet
+                                var_type = signal_dict[signal[1]]['nets'][0]['type']
+                                if var_type != 'parameter':
+                                    name = signal_dict[signal[1]]['nets'][0]['name']
+                                    scope = signal_dict[signal[1]]['nets'][0]['hier']
+                                    path = scope + '.' + name
+                                    size = signal_dict[signal[1]]['nets'][0]['size']
+
+                                    # register the signal
+                                    reg[path] = writer.register_var(scope=scope, name=name, var_type=var_type, size=int(size))
+
+                    # time probe path
+                    time_path = 'top.trace_port_gen_i' + '.' + scfg.time_probe.name
+
                     # calculate emu_time offset
                     offset = 0
-                    for idx, (cycle_count, timestamp) in enumerate(probe_data[scfg.time_probe.name]['data']):
+                    for idx, (cycle_count, timestamp) in enumerate(probe_data[time_path]['data']):
                         # break if timestamp is less than zero since it means that wrapping has occurred
                         if timestamp < 0:
                             break
@@ -215,7 +237,12 @@ class ConvertWaveform():
                     #############################
 
                     if emu_time_scaled:
-                        for idx, (cycle_count, timestamp) in enumerate(probe_data[scfg.time_probe.name]['data']):
+                        # Add an index to all signals in signal dict, in case debug option was selected:
+                        if debug:
+                            for sig in signal_dict.keys():
+                                signal_dict[sig]['index'] = 0
+
+                        for idx, (cycle_count, timestamp) in enumerate(probe_data[time_path]['data']):
                             # break if timestamp is less than zero since it means that wrapping has occurred
                             if timestamp < 0:
                                 break
@@ -223,41 +250,65 @@ class ConvertWaveform():
                             # store all available signals in list, any signal, that is no longer in the list will be skipped
                             # signals, where the cycle_count is nop longer between current and next cycle count of the time
                             # signal will be removed from the list
-                            sigs_in_interval = list(probe_data.keys())
-                            """:type : list """
+                            sigs_in_interval = []
+                            for sig in probe_data.keys():
+                                sigs_in_interval.append((sig, None))
+
+                            # Add all other signals in case debug flag is set
+                            if debug:
+                                for signal in signal_names:
+                                    if not signal[0] in probe_data.keys() and not signal_dict[signal[1]]['nets'][0]['type'] == 'parameter':  # signal was not listed yet
+                                        sigs_in_interval.append((signal[0], signal[1]))
 
                             # list of all activities within time interval
                             timestep_events = []
 
                             # As soon as all signals are no longer in the interval, timestep will advance
                             while sigs_in_interval:
-                                for signal_full_name in sigs_in_interval:
-                                    sig_tuple = probe_data[signal_full_name]['data'][probe_data[signal_full_name]['index']]
+                                for sig in sigs_in_interval:
+                                    if sig[0] in probe_data.keys():
+                                        sig_tuple = probe_data[sig[0]]['data'][probe_data[sig[0]]['index']]
+                                    else: # debug signals
+                                        sig_tuple = signal_dict[sig[1]]['cv'][signal_dict[sig[1]]['index']]
+
                                     if cycle_count == sig_tuple[0]:
-                                        timestep_events.append([signal_full_name, timestamp, sig_tuple[1]])
+                                        timestep_events.append([sig, timestamp, sig_tuple[1]])
+
+                                        if sig[0] in probe_data.keys():
+                                            probe_data[sig[0]]['index'] += 1
+                                        else:
+                                            signal_dict[sig[1]]['index'] += 1
 
                                         # This signal no longer needs to be observed
-                                        probe_data[signal_full_name]['index'] += 1
-                                        sigs_in_interval.remove(signal_full_name)
-                                    elif round(probe_data[scfg.time_probe.name]['data'][idx + 1][0] - offset) > sig_tuple[0]:
-                                        # Note: There is always an offset between cycle count and timestamp  -> substract offset
-                                        # The cycle count from data signal does not have a match with emu_time signal's cycle count
-                                        # -> we need to apply interpolation in order to assign the timestamp properly
-                                        cycles_in_dt = probe_data[scfg.time_probe.name]['data'][idx+1][0] - cycle_count
-                                        dt = probe_data[scfg.time_probe.name]['data'][idx+1][1] - timestamp
-                                        interp_timestamp = dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp
-
-                                        timestep_events.append([signal_full_name, interp_timestamp, sig_tuple[1]])
-
-                                        probe_data[signal_full_name]['index'] += 1
+                                        sigs_in_interval.remove(sig)
                                     else:
-                                        # This signal no longer needs to be observed
-                                        sigs_in_interval.remove(signal_full_name)
+                                        try: # Check if time signal is already at the end
+                                            next_timestamp = probe_data[time_path]['data'][idx + 1][0]
+                                        except: # Time signal has finished the end, finish conversion
+                                            sigs_in_interval = []
+                                            break
+                                        if round(next_timestamp - offset) > sig_tuple[0]:
+                                            # Note: There is always an offset between cycle count and timestamp  -> substract offset
+                                            # The cycle count from data signal does not have a match with emu_time signal's cycle count
+                                            # -> we need to apply interpolation in order to assign the timestamp properly
+                                            cycles_in_dt = probe_data[time_path]['data'][idx+1][0] - cycle_count
+                                            dt = probe_data[time_path]['data'][idx+1][1] - timestamp
+                                            interp_timestamp = dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp
+
+                                            timestep_events.append([sig, interp_timestamp, sig_tuple[1]])
+
+                                            if sig[0] in probe_data.keys():
+                                                probe_data[sig[0]]['index'] += 1
+                                            else:
+                                                signal_dict[sig[1]]['index'] += 1
+                                        else:
+                                            # This signal no longer needs to be observed
+                                            sigs_in_interval.remove(sig)
 
                             # Register events in time interval in chronological order
                             timestep_events = sorted(timestep_events, key=self.sort_timestamp)
-                            for [sig_name, timestamp, value] in timestep_events:
-                                writer.change(reg[sig_name], round(1e9 * timestamp), value)
+                            for [name, timestamp, value] in timestep_events:
+                                writer.change(reg[name[0]], round(1e9 * timestamp), value)
 
                     ####################################
                     # Represent signals over cycle count
@@ -268,6 +319,16 @@ class ConvertWaveform():
                         for signal in probe_data.keys():
                             for sig_tuple in probe_data[signal]['data']:
                                 time_events.append([signal, sig_tuple[0], sig_tuple[1]])
+
+                        # Add all other signals in case debug flag is set
+                        if debug:
+                            for signal in signal_names:
+                                if not signal[0] in probe_data.keys() and not signal_dict[signal[1]]['nets'][0]['type'] == 'parameter':  # signal was not listed yet
+                                    name = signal_dict[signal[1]]['nets'][0]['name']
+                                    hier = signal_dict[signal[1]]['nets'][0]['hier']
+                                    path = hier + '.' + name
+                                    for sig_tuple in signal_dict[signal[1]]['cv']:
+                                        time_events.append([path, sig_tuple[0], sig_tuple[1]])
 
                         # Register events in chronological order
                         time_events = sorted(time_events, key=self.sort_timestamp)

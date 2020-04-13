@@ -1,11 +1,13 @@
 PROJECT:
-    dt:                 0.1e-6
+    dt:                     0.1e-6
+    cpu_debug_mode:         1
+    cpu_debug_hierarchies:  [[0, 'top.tb_i.filter_i']]
 CPU_TARGET:
     sim:
-        tstop:          10e-6
-        simctrl_path: './my_custom_simctrl.yaml'
+        tstop:              10e-6
+        simctrl_path:       './my_custom_simctrl.yaml'
 FPGA_TARGET:
     fpga:
-        fpga_sim_ctrl:  'VIVADO_VIO'
-        tstop:          10e-6
-        simctrl_path: './my_custom_simctrl.yaml'
+        fpga_sim_ctrl:      'VIVADO_VIO'
+        tstop:              10e-6
+        simctrl_path:       './my_custom_simctrl.yaml'

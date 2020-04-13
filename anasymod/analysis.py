@@ -436,7 +436,8 @@ class Analysis():
                         result_type_raw=target.cfg.result_type_raw,
                         result_path=target.cfg.vcd_path,
                         str_cfg=target.str_cfg,
-                        float_type=self.float_type)
+                        float_type=self.float_type,
+                        debug=self._prj_cfg.cfg.cpu_debug_mode)
 
     def probe(self, name, emu_time=False):
         """
