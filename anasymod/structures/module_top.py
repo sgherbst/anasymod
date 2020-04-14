@@ -201,6 +201,11 @@ class ModuleTop(JinjaTempl):
         time_manager_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
         time_manager_inst.add_input(scfg.reset_ctrl, connection=scfg.reset_ctrl)
         time_manager_inst.add_output(scfg.time_probe, scfg.time_probe)
+        if scfg.num_dt_reqs > 0:
+            # wire up the emu_dt signal if needed
+            # TODO: cleanup
+            emu_dt = DigitalSignal(name='emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True)
+            time_manager_inst.add_output(emu_dt, emu_dt)
         for dt_req_sig_name in dt_req_sig_names:
             dt_req_sig = DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True)
             time_manager_inst.add_input(dt_req_sig, connection=dt_req_sig)

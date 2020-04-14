@@ -56,8 +56,8 @@ class ModuleEmuClks(JinjaTempl):
             self.generated_clks.writeln(f'')
             self.generated_clks.writeln(f'`ifndef SIMULATION_MODE_MSDSL')
             self.generated_clks.indent()
-            for gated_clk_sig_name in gated_clk_sig_names:
-                self.generated_clks.writeln(f'BUFG buf_i (.I(clk_unbuf_{gated_clk_sig_name}), .O(clk_{gated_clk_sig_name}));')
+            for k, gated_clk_sig_name in enumerate(gated_clk_sig_names):
+                self.generated_clks.writeln(f'BUFG buf_{k} (.I(clk_unbuf_{gated_clk_sig_name}), .O(clk_{gated_clk_sig_name}));')
             self.generated_clks.dedent()
             self.generated_clks.writeln(f'`else')
             self.generated_clks.indent()
