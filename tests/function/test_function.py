@@ -1,4 +1,6 @@
 import os
+import pytest
+import importlib
 import numpy as np
 from argparse import ArgumentParser
 from time import sleep
@@ -13,23 +15,23 @@ def myfunc(x):
     # apply function
     return np.sin(x)
 
+@pytest.mark.skipif(not importlib.util.find_spec("cvxpy"), reason="cvxpy is not available in python distribution")
 def test_func_sim(simulator_name='vivado'):
     # create analysis object
     ana = Analysis(input=root,
                    simulator_name=simulator_name)
     # generate functional models
-    ana.msdsl.models()
-    # setup project's filesets
-    ana.setup_filesets()
+    ana.gen_sources()
     # run the simulation
     ana.simulate()
 
+@pytest.mark.skipif(not importlib.util.find_spec("cvxpy"), reason="cvxpy is not available in python distribution")
 def test_func_emu(gen_bitstream=True):
     # create analysis object
     ana = Analysis(input=root)
     # generate functional models
-    ana.msdsl.models()
-    ana.setup_filesets()
+    ana.gen_sources()
+
     ana.set_target(target_name='fpga')      # set the active target to 'fpga'
 
     if gen_bitstream:
