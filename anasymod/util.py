@@ -1,43 +1,86 @@
+# general imports
 import os
 import os.path
-import subprocess
 import sys
 import json
+import shlex
+import re
 
 from multiprocessing.pool import ThreadPool
 from math import ceil, log2
 from collections import namedtuple
 from argparse import ArgumentParser
+from subprocess import Popen, PIPE, STDOUT
 from glob import glob
-from typing import Union
+from typing import Union, Pattern
 
+# msdsl imports
 from msdsl.generator.verilog import VerilogGenerator
 
 def back2fwd(path: str):
     return path.replace('\\', '/')
 
-def call(args, cwd=None, wait=True):
-    # set defaults
-    if cwd is None:
-        cwd = os.getcwd()
-
-    # remember starting directory and change to cwd
-    start_dir = os.getcwd()
-    os.chdir(cwd)
-
-    # run the command
-    kwargs = dict(args=args, stdout=sys.stdout, stderr=sys.stdout)
-    if wait:
-        print(f"Checking return code of subprocess call: {args}")
-        result = subprocess.run(**kwargs)
-        assert result.returncode == 0, f"Exited with error code: {result.returncode}"
+def error_detected(text, err_str):
+    # Returns True if the error pattern "err_str" is detected in "text"
+    # "err_str" can be a one of several things:
+    # 1. A single string.
+    # 2. A list of strings.  The error is considered to be found if any of the
+    #    strings appear in the given text.
+    # 3. A regular expression Pattern (re.Pattern).  The given text is searched
+    #    for any occurrence of this pattern.
+    # from: https://github.com/leonardt/fault/blob/master/fault/subprocess_run.py
+    if isinstance(err_str, str):
+        return err_str in text
+    elif isinstance(err_str, list):
+        return any(elem in text for elem in err_str)
+    elif isinstance(err_str, Pattern):
+        return err_str.match(text) is not None
     else:
-        subprocess.Popen(**kwargs)
+        raise Exception(f'Invalid err_str: {err_str}.')
 
-    # change back to the starting directory
-    os.chdir(start_dir)
+def tee_output(fd, err_str=None):
+    # prints lines from the given file descriptor while checking for errors
+    # returns a flag indicating whether an error was detected
+    # modified from: https://github.com/leonardt/fault/blob/master/fault/subprocess_run.py
+    found_err = False
+    for line in fd:
+        # display line
+        print(line, end='')
+        # check line for errors
+        if err_str is not None:
+            if error_detected(text=line, err_str=err_str):
+                found_err = True
+    # Return flag indicating whether an error was found
+    return found_err
+
+def call(args, cwd=None, wait=True, err_str=None):
+    # run a command and optionally check for error strings in the output
+    # modified from: https://github.com/leonardt/fault/blob/master/fault/subprocess_run.py
+    # print command string with proper escaping so that
+    # a user can simply copy and paste the command to re-run it
+    cmd_str = ' '.join(shlex.quote(arg) for arg in args)
+    print(f"Checking return code of subprocess call: {cmd_str}")
+    # run the command
+    if wait:
+        with Popen(args, cwd=cwd, stdout=PIPE, stderr=STDOUT, bufsize=1,
+                   universal_newlines=True) as p:
+            # print output while checking for errors
+            found_err = tee_output(fd=p.stdout, err_str=err_str)
+            # get return code and check result if desired
+            returncode = p.wait()
+            # check return code
+            assert returncode == 0, f'Exited with non-zero code: {returncode}'
+            # check for an error in the output text
+            if found_err:
+                raise Exception(f'Found {err_str} in output of subprocess.')
+    else:
+        Popen(args=args, cwd=cwd, stdout=sys.stdout, stderr=sys.stdout)
+
 
 def next_pow_2(x):
+    '''
+    Return y such that 2**y >= x
+    '''
     return 2**int(ceil(log2(x)))
 
 def expand_searchpaths(paths: Union[list, str], rel_path_reference: str):
@@ -79,8 +122,6 @@ def parallel_calls(calls, num=None):
     tp.join()
 
 ########################
-
-########################
 # file_len: modified from https://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
 
 def file_len(fname):
@@ -91,41 +132,15 @@ def file_len(fname):
             pass
 
         return i
-########################
 
 def vivado_search_key(dir_):
+    '''
+    Determine the year and version of a Vivado install directory.
+    '''
     year, version = os.path.basename(dir_).split('.')
     year, version = int(year), int(version)
 
     return -year, -version
-
-########################
-# parallel_scripts
-# ref: https://stackoverflow.com/questions/26774781/python-multiple-subprocess-with-a-pool-queue-recover-output-as-soon-as-one-finis
-
-def parallel_calls(calls, num=None):
-    tp = ThreadPool(num)
-
-    for arg_list in calls:
-        tp.apply_async(call, (arg_list,))
-
-    tp.close()
-    tp.join()
-
-########################
-
-########################
-# file_len: modified from https://stackoverflow.com/questions/845058/how-to-get-line-count-cheaply-in-python
-
-def file_len(fname):
-    with open(fname, encoding='utf-8') as f:
-        i = 0
-
-        for i, l in enumerate(f, 1):
-            pass
-
-        return i
-########################
 
 ########################
 # JSON to object: from https://stackoverflow.com/questions/6578986/how-to-convert-json-data-into-a-python-object

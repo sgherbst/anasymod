@@ -1,3 +1,5 @@
+import re
+
 from anasymod.sim.sim import Simulator
 from anasymod.generators.vivado import VivadoTCLGenerator
 
@@ -25,4 +27,4 @@ class VivadoSimulator(Simulator):
         v.writeln('launch_simulation')
 
         # run the simulation
-        v.run(filename='vivado_sim.tcl')
+        v.run(filename='vivado_sim.tcl', err_str=re.compile('^(Error|Fatal):'))

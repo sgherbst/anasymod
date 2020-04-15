@@ -28,6 +28,9 @@ weekend = pytest.mark.skipif(
 nocplusplus = pytest.mark.skipif(RunTimeEnvs.nocplusplus not in pytest.config.getoption("--rtenv"),
                                  reason="need nocplusplus as argument for --rtenv")
 
+sim_icarus_vivado = pytest.mark.skipif(pytest.config.getoption("--target") not in ['sim_icarus', 'sim_vivado'],
+                                 reason="test works for iverilog only")
+
 
 anasymod_test_root = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'tests')
 smoke_test_root = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '..', 'smoketests')
@@ -151,6 +154,17 @@ def probe_signals(ana):
 @pytest.mark.usefixtures("cleanup_test_env")
 @nocplusplus
 class TestBasicSIM():
+    @sim_icarus_vivado
+    @basic
+    def test_error_recognition(self):
+        print("Running error_recognition test")
+        try:
+            signals = run_target('error_recognition')
+            """ :type : dict"""
+            raise Exception
+        except:
+            pass
+
     @basic
     def test_filter(self):
         print("Running filter sim")

@@ -1,0 +1,12 @@
+PROJECT:
+    dt:                     0.1e-6
+    plugins:                []
+CPU_TARGET:
+    sim:
+        tstop:              10e-6
+        simctrl_path:       './my_custom_simctrl.yaml'
+FPGA_TARGET:
+    fpga:
+        fpga_sim_ctrl:      'VIVADO_VIO'
+        tstop:              10e-6
+        simctrl_path:       './my_custom_simctrl.yaml'
