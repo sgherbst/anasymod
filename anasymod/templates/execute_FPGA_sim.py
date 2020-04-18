@@ -1,18 +1,20 @@
 from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
-#from anasymod.probe_config import ProbeConfig
 from anasymod.targets import FPGATarget
-from anasymod.sim_ctrl.datatypes import ProbeSignal
+
 
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
+        '''
+    `   :param start_time:  Point in time from which recording run data will start
+        :param stop_time:   Point in time where FPGA run will be stopped
+        :param server_addr: Hardware server address for hw server launched by Vivado
+        '''
+
         super().__init__(trim_blocks=False, lstrip_blocks=False)
         pcfg = target.prj_cfg
         scfg = target.str_cfg
-
-        self.analog_probes = scfg.analog_probes
-        self.digital_probes = scfg.digital_probes
 
         # set server address
         self.server_addr = server_addr
@@ -55,14 +57,33 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
 
         # determine starting time as an integer value
         time = target.str_cfg.time_probe
-        start_time_int = int(round(start_time*(2**(int(-time.exponent)))))
+        start_time_int = int(round(start_time/pcfg.cfg.dt_scale))
 
         # export the decimation ratio, starting time, and time signal name to the template
         self.time_name = time.name
         self.decimation_ratio_setting = str(decimation_ratio_setting)
         self.start_time_int = f"{int(time.width)}'u{start_time_int}"
 
-    TEMPLATE_TEXT = '''
+        # set display radix for analog probes
+        # TODO: is it necessary to wrap the commands in "catch"?
+        self.analog_probe_radix = []
+        for probe in scfg.analog_probes:
+            self.analog_probe_radix += [
+                f'catch {{set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{probe.name}]}}'
+            ]
+        self.analog_probe_radix = '\n'.join(self.analog_probe_radix)
+
+        # set display radix for digital probes
+        # TODO: is it necessary to wrap the commands in "catch"?
+        self.digital_probe_radix = []
+        for probe in (scfg.digital_probes + [scfg.time_probe]):
+            signed = 'SIGNED' if probe.signed else 'UNSIGNED'
+            self.digital_probe_radix += [
+                f'catch {{set_property DISPLAY_RADIX {signed} [get_hw_probes trace_port_gen_i/{probe.name}]}}'
+            ]
+        self.digital_probe_radix = '\n'.join(self.digital_probe_radix)
+
+    TEMPLATE_TEXT = '''\
 # Connect to hardware
 open_hw
 catch {disconnect_hw_server}
@@ -106,30 +127,23 @@ endgroup
 set_property TRIGGER_COMPARE_VALUE gt{{subst.start_time_int}} [get_hw_probes trace_port_gen_i/{{subst.time_name}} -of_objects $my_hw_ila]
 
 # Capture setup
-# TODO: use variable for emu_dec_cmp_probe
-# probably always be "2" because unfortunately "1" is not a valid option.
+# depth should always be "2" because unfortunately "1" is not a valid option
 set_property CONTROL.DATA_DEPTH 2 $my_hw_ila
 set_property CONTROL.WINDOW_COUNT {{subst.window_count}} $my_hw_ila
-set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes trace_port_gen_i/emu_dec_cmp -of_objects $my_hw_ila]
+set emu_dec_cmp_probe [get_hw_probes trace_port_gen_i/emu_dec_cmp -of_objects $my_hw_ila]
+set_property CAPTURE_COMPARE_VALUE eq1'b1 $emu_dec_cmp_probe
 
 # VIO: decimation ratio
-# TODO: use variable for emu_dec_thr
-set_property OUTPUT_VALUE_RADIX UNSIGNED [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
-set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
-commit_hw_vio [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
+set emu_dec_thr_vio [get_hw_probes sim_ctrl_gen_i/emu_dec_thr -of_objects $vio_0_i]
+set_property OUTPUT_VALUE_RADIX UNSIGNED $emu_dec_thr_vio
+set_property OUTPUT_VALUE {{subst.decimation_ratio_setting}} $emu_dec_thr_vio
+commit_hw_vio $emu_dec_thr_vio
 
-# Radix setup: real numbers
-{% for probe in subst.analog_probes %}
-catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{probe.name}}]{{'}'}}
-{% endfor %}
+# Radix setup: analog probes
+{{subst.analog_probe_radix}}
 
-catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{subst.time_name}}]{{'}'}}
-
-# Radix setup: unsigned digital values
-# TODO: handle both signed and unsigned digital values
-{% for probe in subst.digital_probes %}
-catch {{'{'}}set_property DISPLAY_RADIX UNSIGNED [get_hw_probes trace_port_gen_i/{{probe.name}}]{{'}'}}
-{% endfor %}
+# Radix setup: digital probes
+{{subst.digital_probe_radix}}
 
 # Put design in reset
 startgroup

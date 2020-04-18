@@ -2,84 +2,48 @@ import os
 import pytest
 import importlib
 import numpy as np
-from argparse import ArgumentParser
-from time import sleep
 
-from anasymod.analysis import Analysis
+from ..common import run_simulation, run_emulation, CommonArgParser, DEFAULT_SIMULATOR
 
 root = os.path.dirname(__file__)
 
-def myfunc(x):
-    # clip input
-    x = np.clip(x, -np.pi, +np.pi)
-    # apply function
-    return np.sin(x)
+def test_func_sim(simulator_name=DEFAULT_SIMULATOR):
+    run_simulation(root=root, simulator_name=simulator_name)
 
-@pytest.mark.skipif(not importlib.util.find_spec("cvxpy"), reason="cvxpy is not available in python distribution")
-def test_func_sim(simulator_name='vivado'):
-    # create analysis object
-    ana = Analysis(input=root,
-                   simulator_name=simulator_name)
-    # generate functional models
-    ana.gen_sources()
-    # run the simulation
-    ana.simulate()
-
+@pytest.mark.skip(
+   reason="This test takes a long time to run and largely covers the same features as test_rc."
+)
 @pytest.mark.skipif(not importlib.util.find_spec("cvxpy"), reason="cvxpy is not available in python distribution")
 def test_func_emu(gen_bitstream=True):
-    # create analysis object
-    ana = Analysis(input=root)
-    # generate functional models
-    ana.gen_sources()
+    run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun)
 
-    ana.set_target(target_name='fpga')      # set the active target to 'fpga'
-
-    if gen_bitstream:
-        ana.build()                         # generate bitstream for project
-
-    ctrl = ana.launch(debug=True)           # start interactive control
-
+def emu_ctrl_fun(ctrl):
     # reset emulator
     ctrl.set_reset(1)
-    sleep(0.1)
     ctrl.set_reset(0)
-    sleep(0.1)
 
     # reset everything else
     ctrl.set_param(name='in_', value=0.0)
 
     # save the outputs
-    inpts = np.random.uniform(-1.2*np.pi, +1.2*np.pi, 100)
+    inpts = np.random.uniform(-1.2 * np.pi, +1.2 * np.pi, 100)
     apprx = np.zeros(shape=inpts.shape, dtype=float)
     for k, in_ in enumerate(inpts):
         ctrl.set_param(name='in_', value=in_)
-        sleep(1e-3)
         ctrl.refresh_param('vio_0_i')
         apprx[k] = ctrl.get_param('out')
 
     # compute the exact response to inputs
+    def myfunc(x):
+        # clip input
+        x = np.clip(x, -np.pi, +np.pi)
+        # apply function
+        return np.sin(x)
     exact = myfunc(inpts)
 
     # check the result
-    err = np.linalg.norm(exact-apprx)
+    err = np.sqrt(np.mean((exact - apprx)**2))
     assert err <= 0.001
 
-    # declare success
-    print('Success!')
-
-if __name__ == "__main__":
-    # parse command-line arguments
-    parser = ArgumentParser()
-    parser.add_argument('--sim', action='store_true')
-    parser.add_argument('--emulate', action='store_true')
-    parser.add_argument('--gen_bitstream', action='store_true')
-    parser.add_argument('--simulator_name', type=str, default=None)
-    args = parser.parse_args()
-
-    # run actions as requested
-    if args.sim:
-        print('Running simulation...')
-        test_func_sim(simulator_name=args.simulator_name)
-    if args.emulate:
-        print('Running emulation...')
-        test_func_emu(gen_bitstream=args.gen_bitstream)
+if __name__ == '__main__':
+    CommonArgParser(sim_fun=test_func_sim, emu_fun=test_func_emu)

@@ -7,7 +7,7 @@ from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
-from anasymod.sources import VerilogSource
+from anasymod.sources import VerilogSource, VerilogHeader
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
@@ -15,7 +15,7 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import get_from_anasymod
+from anasymod.files import anasymod_root, anasymod_header
 from anasymod.util import expand_searchpaths
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
@@ -55,8 +55,8 @@ class Target():
         """
         Add define statement to specify tstop
         """
-        self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
-        self.str_cfg.time_probe.range = 1.1 * float(self.cfg.tstop)
+        if self.cfg.tstop is not None:
+            self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
 
     def assign_fileset(self, fileset: dict):
         """
@@ -77,6 +77,9 @@ class Target():
         Generate toplevel, IPCore wrappers, debug infrastructure and clk manager.
         """
 
+        # Add anasymod header
+        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()))]
+
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
@@ -92,6 +95,15 @@ class Target():
                 ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
             self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'),
                                                            name='gen_ctrlwrap')]
+
+        # Include the source code for an oscillator if needed
+        if self.str_cfg.use_default_oscillator:
+            osc_model_anasymod = anasymod_root() / 'verilog' / 'osc_model_anasymod.sv'
+            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod))]
+
+        # Include the source code for the anasymod control block
+        ctrl_anasymod = anasymod_root() / 'verilog' / 'ctrl_anasymod.sv'
+        self.content.verilog_sources += [VerilogSource(files=str(ctrl_anasymod))]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')

@@ -1,11 +1,17 @@
 import numpy as np
 
 try:
+    from si_prefix import si_format
+except:
+    print('ERROR: Could not load si-prefix package!')
+
+try:
     from vcd import VCDWriter
 except:
     print('ERROR: Could not load pyvcd package!')
 
 import datetime
+
 from anasymod.utils.VCD_parser import ParseVCD
 from anasymod.enums import ResultFileTypes
 
@@ -57,7 +63,7 @@ class ConvertWaveform():
             # print keys
             print(f'Signals in result file: {[key for key in self.signal_lookup.keys()]}')
 
-            for analog_signal in scfg.analog_probes + [scfg.time_probe]:
+            for analog_signal in scfg.analog_probes:
                 name = 'trace_port_gen_i/' + analog_signal.name
                 if (name) in self.signal_lookup:
                     # add to set of probes with "real" data type
@@ -66,10 +72,11 @@ class ConvertWaveform():
                     # get unscaled data and apply scaling factor
                     probe_data[name] = (2 ** int(analog_signal.exponent)) * self.get_csv_col(name)
 
-                    # convert data to native Python float type (rather than numpy float) this is required for PyVCD
+                    # convert data to native Python float type (rather than numpy float)
+                    # this is required for PyVCD
                     probe_data[name] = [float(x) for x in probe_data[name]]
 
-            for digital_signal in scfg.digital_probes + [scfg.dec_cmp]:
+            for digital_signal in scfg.digital_probes + [scfg.dec_cmp] + [scfg.time_probe]:
                 name = 'trace_port_gen_i/' + digital_signal.name
                 if name in self.signal_lookup:
                     # define width for this probe
@@ -78,12 +85,14 @@ class ConvertWaveform():
                     # get unscaled data
                     probe_data[name] = self.get_csv_col(name)
 
-                    # convert data to native Python int type (rather than numpy int) this is required for PyVCD
+                    # convert data to native Python int type (rather than numpy int)
+                    # this is required for PyVCD
                     probe_data[name] = [int(x) for x in probe_data[name]]
 
             # Write data to VCD file
             with open(result_path, 'w') as vcd:
-                with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
+                timescale = self.get_pyvcd_timescale(dt_scale)
+                with VCDWriter(vcd, timescale=timescale, date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
                     for sig, scaled_data in probe_data.items():
@@ -108,14 +117,17 @@ class ConvertWaveform():
                                                                     size=vcd_size)
 
                     # iterate over all timesteps
+                    prev_timestep = float('-inf')
                     for k, timestamp in enumerate(probe_data['trace_port_gen_i/' + scfg.time_probe.name]):
-                        # break if timestamp is less than zero since it means that wrapping has occurred
-                        if timestamp < 0:
+                        # break if the current timestep is less than the previous one, since that means
+                        # wrapping has occurred
+                        if timestamp < prev_timestep:
                             break
+                        prev_timestep = timestamp
 
                         # iterate over all signals and log their change at this timestamp
                         for sig, scaled_data in probe_data.items():
-                            writer.change(reg[sig], round(1e9 * timestamp), scaled_data[k])
+                            writer.change(reg[sig], timestamp, scaled_data[k])
 
         elif result_type_raw == ResultFileTypes.VCD:
             vcd_file_name = result_path_raw
@@ -126,7 +138,7 @@ class ConvertWaveform():
             signal_names = [(signal_dict[key]["nets"][0]["hier"] + '.' + signal_dict[key]["nets"][0]["name"], key) for key in signal_dict.keys()]
             print(f'Signals in result file: {[sig_name[0] for sig_name in signal_names]}')
 
-            for analog_signal in scfg.analog_probes + [scfg.time_probe]:
+            for analog_signal in scfg.analog_probes:
                 analog_signal_path = 'top.trace_port_gen_i' + '.' + analog_signal.name
                 if analog_signal_path in [sig[0] for sig in signal_names]:
                     # add to set of probes with "real" data type
@@ -154,7 +166,7 @@ class ConvertWaveform():
                     # convert data to native Python float type (rather than numpy float) this is required for PyVCD
                     probe_data[analog_signal_path]['data'] = [(int(c), float(v)) for c, v in probe_data[analog_signal_path]['data']]
 
-            for digital_signal in scfg.digital_probes + [scfg.dec_cmp]:
+            for digital_signal in scfg.digital_probes + [scfg.dec_cmp] + [scfg.time_probe]:
                 digital_signal_path = 'top.trace_port_gen_i' + '.' + digital_signal.name
                 if digital_signal_path in [sig[0] for sig in signal_names]:
                     # define width for this probe
@@ -179,7 +191,8 @@ class ConvertWaveform():
             # Write data to VCD file
 
             with open(result_path, 'w') as vcd:
-                with VCDWriter(vcd, timescale='1 ns', date=str(datetime.datetime.today())) as writer:
+                timescale = self.get_pyvcd_timescale(dt_scale)
+                with VCDWriter(vcd, timescale=timescale, date=str(datetime.datetime.today())) as writer:
                     # register all of the signals that will be written to VCD
                     reg = {}
                     for sig, scaled_data in probe_data.items():
@@ -203,6 +216,7 @@ class ConvertWaveform():
                                                                     var_type=vcd_var_type,
                                                                     size=vcd_size)
 
+                    prev_timestep = float('-inf')
                     # Add all other signals in case debug flag is set
                     if debug:
                         for signal in signal_names:
@@ -223,9 +237,11 @@ class ConvertWaveform():
                     # calculate emu_time offset
                     offset = 0
                     for idx, (cycle_count, timestamp) in enumerate(probe_data[time_path]['data']):
-                        # break if timestamp is less than zero since it means that wrapping has occurred
-                        if timestamp < 0:
+                        # break if the current timestep is less than the previous one, since that means
+                        # wrapping has occurred
+                        if timestamp < prev_timestep:
                             break
+                        prev_timestep = timestamp
 
                         if timestamp > 0:
                             break
@@ -308,7 +324,7 @@ class ConvertWaveform():
                             # Register events in time interval in chronological order
                             timestep_events = sorted(timestep_events, key=self.sort_timestamp)
                             for [name, timestamp, value] in timestep_events:
-                                writer.change(reg[name[0]], round(1e9 * timestamp), value)
+                                writer.change(reg[name[0]], timestamp, value)
 
                     ####################################
                     # Represent signals over cycle count
@@ -340,8 +356,6 @@ class ConvertWaveform():
         else:
             raise Exception(f'ERROR: No supported Result file format selected:{result_type_raw}')
 
-
-
     def get_csv_col(self, name):
         """
         Getting unscaled data from csv file column
@@ -351,3 +365,5 @@ class ConvertWaveform():
 
     def sort_timestamp(self, element):
         return element[1]
+    def get_pyvcd_timescale(self, val):
+        return si_format(val, precision=0) + 's'

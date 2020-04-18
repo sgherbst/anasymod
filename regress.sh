@@ -1,3 +1,10 @@
+# create virtual environment
+$ANASYMOD_PYTHON -m venv venv
+source venv/bin/activate
+
+# upgrade pip
+python -m pip install --upgrade pip
+
 # install various python dependencies
 pip install wheel
 pip install pytest pytest-cov

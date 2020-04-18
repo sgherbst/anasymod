@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 name = 'anasymod'
-version = '0.2.2'
+version = '0.2.3'
 
 DESCRIPTION = '''\
 Tool for running mixed-signal emulations on FPGAs\
@@ -33,8 +33,9 @@ setup(
         'pyvcd',
         'pyserial',
         'pexpect',
-        'wexpect>=3.3.0'
-        'PyYAML'
+        'wexpect>=3.3.0',
+        'PyYAML',
+        'si-prefix'
     ],
     license='BSD 3-Clause "New" or "Revised" License',
     url=f'https://github.com/sgherbst/{name}',

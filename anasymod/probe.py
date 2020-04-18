@@ -1,13 +1,13 @@
+# general imports
 import numpy as np
 import os
 import csv
-import time
-
-
-from anasymod.utils.VCD_parser import ParseVCD
 from typing import Union
 
+# anasymod imports
 from anasymod.targets import CPUTarget, FPGATarget
+from anasymod.utils.VCD_parser import ParseVCD
+
 
 class Probe():
     """

@@ -1,5 +1,4 @@
 import re
-
 from anasymod.sim.sim import Simulator
 from anasymod.generators.vivado import VivadoTCLGenerator
 

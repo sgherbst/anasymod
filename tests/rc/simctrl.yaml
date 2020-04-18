@@ -1,3 +1,10 @@
+analog_probes:
+  v_in_probe:
+    abspath:    'tb_i.v_in'
+    range:      10.0
+  v_out_probe:
+    abspath:    'tb_i.v_out'
+    range:      10.0
 analog_ctrl_inputs:
   v_in:
     abspath: 'tb_i.v_in'
@@ -7,12 +14,3 @@ analog_ctrl_outputs:
   v_out:
     abspath: 'tb_i.v_out'
     range: 10
-digital_ctrl_inputs:
-  go_vio:
-    abspath: 'tb_i.go_vio'
-    width: 1
-    init_value: 0
-  rst_vio:
-    abspath: 'tb_i.rst_vio'
-    width: 1
-    init_value: 1

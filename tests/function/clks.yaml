@@ -1,4 +1,0 @@
-derived_clks:
-  tb_clk:
-    abspath: 'tb_i.clk_route_i'
-    preset: fixed_timestep

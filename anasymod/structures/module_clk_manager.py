@@ -48,7 +48,7 @@ class ModuleClkManager(JinjaTempl):
         self.emu_clk = scfg.emu_clk
         self.independent_clks = scfg.clk_independent
 
-    TEMPLATE_TEXT = '''
+    TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
 `default_nettype none
@@ -64,17 +64,20 @@ class ModuleClkManager(JinjaTempl):
 	initial begin
 		// since the reset signal is initially "1", this delay+posedge will
 		// cause the MSDSL templates to be reset
-	    #((0.25*`DT_MSDSL)*1s);
+	    #((0.25/(`EMU_CLK_FREQ))*1s);
 	    emu_clk_2x_state = 1'b1;
 
 	    // clock runs forever
 	    forever begin
-	        #((0.25*`DT_MSDSL)*1s);
+	        #((0.25/(`EMU_CLK_FREQ))*1s);
 	        emu_clk_2x_state = ~emu_clk_2x_state;
 	    end
 	    
-{% for clk in subst.independent_clks %}	    
+{% for clk in subst.independent_clks %}
 	    forever begin
+	        // TODO: investigate whether these clocks periods should be
+	        // related to `EMU_CLK_FREQ / `DT_MSDSL or not (since they are
+	        // independent)
 	        #(({{0.50 * (subst.emu_clk.freq / clk.freq)}}*`DT_MSDSL)*1s);
 	        {{clk.name}}_state = ~{{clk.name}}_state;
 	    end
@@ -88,9 +91,7 @@ class ModuleClkManager(JinjaTempl):
 {% endfor %}	
 `else
 	logic locked;
-
     {{subst.clk_wiz_inst.text}}
-
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule

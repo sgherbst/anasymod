@@ -5,7 +5,6 @@ import sys
 import json
 import shlex
 import re
-
 from multiprocessing.pool import ThreadPool
 from math import ceil, log2
 from collections import namedtuple
@@ -16,6 +15,7 @@ from typing import Union, Pattern
 
 # msdsl imports
 from msdsl.generator.verilog import VerilogGenerator
+
 
 def back2fwd(path: str):
     return path.replace('\\', '/')
@@ -66,10 +66,13 @@ def call(args, cwd=None, wait=True, err_str=None):
                    universal_newlines=True) as p:
             # print output while checking for errors
             found_err = tee_output(fd=p.stdout, err_str=err_str)
+
             # get return code and check result if desired
             returncode = p.wait()
+
             # check return code
             assert returncode == 0, f'Exited with non-zero code: {returncode}'
+
             # check for an error in the output text
             if found_err:
                 raise Exception(f'Found {err_str} in output of subprocess.')
@@ -133,6 +136,7 @@ def file_len(fname):
 
         return i
 
+
 def vivado_search_key(dir_):
     '''
     Determine the year and version of a Vivado install directory.
@@ -150,6 +154,7 @@ def _json_object_hook(d):
 def json2obj(data):
     return json.loads(data, object_hook=_json_object_hook)
 ########################
+
 
 # Argument parser for the examples
 class ExampleControl:
@@ -176,10 +181,12 @@ class ExampleControl:
         # write the model to a file
         model.compile_to_file(VerilogGenerator(), filename)
 
+
 def main():
     print(next_pow_2(15))
     print(next_pow_2(16))
     print(next_pow_2(17))
+
 
 if __name__ == '__main__':
     main()
