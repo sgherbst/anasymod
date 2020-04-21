@@ -1,4 +1,5 @@
 import os.path
+import pathlib
 
 from anasymod.generators.vivado import VivadoTCLGenerator
 from anasymod.generators.codegen import CodeGenerator
@@ -26,9 +27,23 @@ class VivadoEmulation(VivadoTCLGenerator):
         scfg = self.target.str_cfg
         """ type : StructureConfig """
 
+        project_root = self.target.project_root
+        project_name = self.target.prj_cfg.vivado_config.project_name
+        drive = 'V:'
+        old_subst = None
+
+        if len(back2fwd(self.target.project_root)) > 80:
+            if os.path.exists(drive):
+                print(drive, " already exists, saving copy of existing subst path")
+                old_subst = str(pathlib.Path(drive).resolve())
+                # deleting old subst
+                self.writeln('exec subst ' + drive + ' /d')
+            self.writeln('exec subst ' + drive + ' ' + back2fwd(os.path.dirname(project_root)))
+            project_root = drive + r"\\" + project_name
+
         # create a new project
-        self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
-                              project_directory=self.target.project_root,
+        self.create_project(project_name=project_name,
+                              project_directory=project_root,
                               full_part_name=self.target.prj_cfg.board.full_part_name,
                               force=True)
 
@@ -105,6 +120,11 @@ class VivadoEmulation(VivadoTCLGenerator):
                                      f"{self.target.cfg.top_module}.ltx")
         self.writeln('open_run impl_1')
         self.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
+
+        #remove and restore drive substitutions
+        self.writeln('exec subst ' + drive + ' /d')
+        if old_subst:
+            self.writeln('exec subst ' + drive + ' ' + old_subst)
 
         # run bitstream generation
         self.run(filename=r"bitstream.tcl")

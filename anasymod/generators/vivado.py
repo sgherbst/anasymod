@@ -1,4 +1,5 @@
 import os
+#import pathlib
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
@@ -15,6 +16,16 @@ class VivadoTCLGenerator(CodeGenerator):
         self.target = target
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):
+        # drive = 'V:'
+        # if len(back2fwd(project_directory))>80:
+        #     if os.path.exists(drive):
+        #         print(drive, " already exists, saving copy of existing subst path")
+        #         old_subst = pathlib.Path(drive).resolve()
+        #         # deleting old subst
+        #         self.writeln('exec subst ' + drive + '/d')
+        #     self.writeln('exec subst ' + drive + ' ' + back2fwd(os.path.dirname(project_directory)))
+        #     project_directory = drive + r"\\" + project_name
+
         cmd = ['create_project']
         if force:
             cmd.append('-force')
