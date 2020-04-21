@@ -26,23 +26,17 @@ class VivadoEmulation(VivadoTCLGenerator):
     def build(self):
         scfg = self.target.str_cfg
         """ type : StructureConfig """
-
+        subst = None
         project_root = self.target.project_root
-        project_name = self.target.prj_cfg.vivado_config.project_name
-        drive = 'V:'
-        old_subst = None
-
-        if len(back2fwd(self.target.project_root)) > 80:
-            if os.path.exists(drive):
-                print(drive, " already exists, saving copy of existing subst path")
-                old_subst = str(pathlib.Path(drive).resolve())
-                # deleting old subst
-                self.writeln('exec subst ' + drive + ' /d')
-            self.writeln('exec subst ' + drive + ' ' + back2fwd(os.path.dirname(project_root)))
-            project_root = drive + r"\\" + project_name
+        # under Windows there is the problem with path length more than 146 characters, that's why we have to use
+        # subst command to substitute project directory to a drive letter
+        if os.name == 'nt':
+            if len(back2fwd(self.target.project_root)) > 80:
+                subst = 'V:'
+                project_root, old_subst = self.subst_path(drive=subst)
 
         # create a new project
-        self.create_project(project_name=project_name,
+        self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
                               project_directory=project_root,
                               full_part_name=self.target.prj_cfg.board.full_part_name,
                               force=True)
@@ -115,16 +109,17 @@ class VivadoEmulation(VivadoTCLGenerator):
 
         # re-generate the LTX file
         # without this step, the ILA probes are sometimes split into individual bits
-        ltx_file_path = os.path.join(self.target.project_root, f'{self.target.prj_cfg.vivado_config.project_name}.runs',
+        ltx_file_path = os.path.join(project_root, f'{self.target.prj_cfg.vivado_config.project_name}.runs',
                                      'impl_1',
                                      f"{self.target.cfg.top_module}.ltx")
         self.writeln('open_run impl_1')
         self.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         #remove and restore drive substitutions
-        self.writeln('exec subst ' + drive + ' /d')
-        if old_subst:
-            self.writeln('exec subst ' + drive + ' ' + old_subst)
+        if subst:
+            self.writeln('exec subst ' + subst + ' /d')
+            if old_subst:
+                self.writeln('exec subst ' + subst + ' ' + old_subst)
 
         # run bitstream generation
         self.run(filename=r"bitstream.tcl")

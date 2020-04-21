@@ -1,5 +1,4 @@
 import os
-#import pathlib
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
@@ -16,16 +15,6 @@ class VivadoTCLGenerator(CodeGenerator):
         self.target = target
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None):
-        # drive = 'V:'
-        # if len(back2fwd(project_directory))>80:
-        #     if os.path.exists(drive):
-        #         print(drive, " already exists, saving copy of existing subst path")
-        #         old_subst = pathlib.Path(drive).resolve()
-        #         # deleting old subst
-        #         self.writeln('exec subst ' + drive + '/d')
-        #     self.writeln('exec subst ' + drive + ' ' + back2fwd(os.path.dirname(project_directory)))
-        #     project_directory = drive + r"\\" + project_name
-
         cmd = ['create_project']
         if force:
             cmd.append('-force')
@@ -145,6 +134,17 @@ class VivadoTCLGenerator(CodeGenerator):
 
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
+
+    def subst_path(self, drive):
+        old_subst = None
+        if os.path.exists(drive):
+            print(drive, " already exists, saving copy of existing subst path")
+            old_subst = back2fwd(str(pathlib.Path(drive).resolve()))
+            # deleting old subst
+            self.writeln('exec subst ' + drive + ' /d')
+        self.writeln('exec subst ' + drive + ' ' + back2fwd(os.path.dirname(self.target.project_root)))
+        project_root = drive + r"\\" + self.target.prj_cfg.vivado_config.project_name
+        return project_root, old_subst
 
     def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False, err_str=None):
         # write the TCL script
