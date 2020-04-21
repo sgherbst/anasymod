@@ -26,14 +26,12 @@ class VivadoEmulation(VivadoTCLGenerator):
     def build(self):
         scfg = self.target.str_cfg
         """ type : StructureConfig """
-        subst = None
         project_root = self.target.project_root
         # under Windows there is the problem with path length more than 146 characters, that's why we have to use
         # subst command to substitute project directory to a drive letter
         if os.name == 'nt':
             if len(back2fwd(self.target.project_root)) > 80:
-                subst = 'V:'
-                project_root, old_subst = self.subst_path(drive=subst)
+                project_root = self.subst_path(drive='V:')
 
         # create a new project
         self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
@@ -116,10 +114,10 @@ class VivadoEmulation(VivadoTCLGenerator):
         self.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         #remove and restore drive substitutions
-        if subst:
-            self.writeln('exec subst ' + subst + ' /d')
-            if old_subst:
-                self.writeln('exec subst ' + subst + ' ' + old_subst)
+        if self.subst:
+            self.writeln('exec subst ' + self.subst + ' /d')
+            if self.old_subst:
+                self.writeln('exec subst ' + self.subst + ' ' + self.old_subst)
 
         # run bitstream generation
         self.run(filename=r"bitstream.tcl")
