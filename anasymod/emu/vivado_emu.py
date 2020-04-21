@@ -1,5 +1,4 @@
 import os.path
-import pathlib
 
 from anasymod.generators.vivado import VivadoTCLGenerator
 from anasymod.generators.codegen import CodeGenerator
@@ -34,10 +33,11 @@ class VivadoEmulation(VivadoTCLGenerator):
                 project_root = self.subst_path(drive='V:')
 
         # create a new project
-        self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
-                              project_directory=project_root,
-                              full_part_name=self.target.prj_cfg.board.full_part_name,
-                              force=True)
+        self.create_project(
+            project_name=self.target.prj_cfg.vivado_config.project_name,
+            project_directory=project_root,
+            full_part_name=self.target.prj_cfg.board.full_part_name,
+            force=True)
 
         # add all source files to the project (including header files)
         self.add_project_sources(content=self.target.content)
