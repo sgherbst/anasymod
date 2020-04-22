@@ -13,7 +13,7 @@ module ctrl_anasymod (
 
     // comparison
     logic [((`DEC_WIDTH)-1):0] emu_dec_cnt;
-    assign dec_cmp = (emu_dec_cnt == emu_dec_thr);
+    assign emu_dec_cmp = (emu_dec_cnt == emu_dec_thr);
 
     // update count
     always @(posedge __emu_clk) begin

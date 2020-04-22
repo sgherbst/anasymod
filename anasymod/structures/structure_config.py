@@ -374,7 +374,7 @@ class StructureConfig():
 
         # update counts
         self.num_dt_reqs += 1
-        self.num_gated_clks += 1
+        #self.num_gated_clks += 1
 
     def _add_ctrl_anasymod(self):
         self.clk_derived.append(

@@ -30,8 +30,14 @@ class ModuleVIOSimCtrl(JinjaTempl):
         ## Custom control IOs for pc sim control module
         self.pc_sim_crtl_ifc = SVAPI()
 
-        # Only generate instantiation if there is any ctrl signal available
-        if len(ctrl_outputs + ctrl_inputs) != 0:
+        # Only generate instantiation if there is any custom ctrl signal available
+        ctrl_signals = ctrl_outputs + ctrl_inputs
+        custom_ctrl_signals = []
+        for ctrl_signal in ctrl_signals:
+            if not ctrl_signal.name in scfg.special_ctrl_ios:
+                custom_ctrl_signals.append(ctrl_signal)
+
+        if len(custom_ctrl_signals) != 0:
             sim_ctrl_module = ModuleInst(api=self.pc_sim_crtl_ifc, name="sim_ctrl")
             for ctrl_output in ctrl_outputs:
                 if ctrl_output.name not in scfg.special_ctrl_ios:

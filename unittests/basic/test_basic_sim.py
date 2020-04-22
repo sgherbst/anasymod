@@ -89,13 +89,13 @@ def run_target(test_name, test_root=anasymod_test_root):
             ana.set_target(target_name='sim')
             ana.simulate(unit="main", id="xrun")
             return probe_signals(ana)
-        elif pytest.config.getoption("--target") == Target.build_vivado:
+        elif pytest.config.getoption("--target") == Target.bld_vivado:
             ana = setup_target(test_name, test_root, synthesizer_name='vivado')
             """ :type : Analysis"""
             ana.set_target(target_name='fpga')
             ana.build()
             raise MyException
-        elif pytest.config.getoption("--target") == Target.emulate_vivado:
+        elif pytest.config.getoption("--target") == Target.emu_vivado:
             ana = setup_target(test_name, test_root, synthesizer_name='vivado')
             """ :type : Analysis"""
             ana.set_target(target_name='fpga')

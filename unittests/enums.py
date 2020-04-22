@@ -28,7 +28,7 @@ class Target:
 
     sim_icarus = "sim_icarus"
     sim_vivado = "sim_vivado"
-    build_vivado = "build_vivado"
-    emulate_vivado = "emulate_vivado"
+    bld_vivado = "bld_vivado"
+    emu_vivado = "emu_vivado"
     sim_xcelium = "sim_xcelium"
 

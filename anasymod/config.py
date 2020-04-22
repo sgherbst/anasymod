@@ -109,7 +109,7 @@ class VivadoConfig():
         self.parent = parent
 
         # set project name
-        self.project_name = 'project'
+        self.project_name = 'prj'
         # intermediate variables for generic Xilinx path
         if platform in {'win32', 'cygwin'}:
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']

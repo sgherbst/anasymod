@@ -32,11 +32,8 @@ class ModuleTracePort(JinjaTempl):
         self.probe_dumps.writeln(f'initial begin')
         self.probe_dumps.indent()
         self.probe_dumps.writeln('#0;')
-        if scfg.dump_debug:
-            self.probe_dumps.writeln('$dumpvars(0, top);')
-        else:
-            for probe in probes:
-                self.probe_dumps.writeln(f'$dumpvars(0, {probe.name});')
+        for probe in probes:
+            self.probe_dumps.writeln(f'$dumpvars(0, {probe.name});')
         self.probe_dumps.dedent()
         self.probe_dumps.writeln(f'end')
 

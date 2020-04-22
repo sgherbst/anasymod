@@ -20,7 +20,8 @@ class ConvertWaveform():
     Convert raw result files to vcd and also make sure fixed-point datatypes are properly converted to a floating point
     representation. Currently supported raw result datatypes are vcd and csv.
     """
-    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True, debug=False):
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True,
+                 debug=False, dt_scale=1e-15):
         """
 
         :param str_cfg: structure config object used in current project.
@@ -309,7 +310,7 @@ class ConvertWaveform():
                                             # -> we need to apply interpolation in order to assign the timestamp properly
                                             cycles_in_dt = probe_data[time_path]['data'][idx+1][0] - cycle_count
                                             dt = probe_data[time_path]['data'][idx+1][1] - timestamp
-                                            interp_timestamp = dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp
+                                            interp_timestamp = int(dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp)
 
                                             timestep_events.append([sig, interp_timestamp, sig_tuple[1]])
 
@@ -349,7 +350,7 @@ class ConvertWaveform():
                         # Register events in chronological order
                         time_events = sorted(time_events, key=self.sort_timestamp)
                         for [sig_name, timestamp, value] in time_events:
-                            writer.change(reg[sig_name], round(1e9 * timestamp), value)
+                            writer.change(reg[sig_name], timestamp, value)
 
 
 

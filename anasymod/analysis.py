@@ -481,7 +481,8 @@ class Analysis():
             temp_data = d[1]
 
         try:
-            return np.array(wave_step, dtype='float').transpose()
+            #return np.array(wave_step, dtype='float').transpose()
+            return np.array(wave_step, dtype='O').transpose()
         except:
             return np.array(wave_step, dtype='O').transpose()
 

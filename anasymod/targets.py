@@ -78,7 +78,7 @@ class Target():
         """
 
         # Add anasymod header
-        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()))]
+        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()), name='anasymod_header')]
 
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
@@ -99,11 +99,11 @@ class Target():
         # Include the source code for an oscillator if needed
         if self.str_cfg.use_default_oscillator:
             osc_model_anasymod = anasymod_root() / 'verilog' / 'osc_model_anasymod.sv'
-            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod))]
+            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod), name='osc_model_anasymod')]
 
         # Include the source code for the anasymod control block
         ctrl_anasymod = anasymod_root() / 'verilog' / 'ctrl_anasymod.sv'
-        self.content.verilog_sources += [VerilogSource(files=str(ctrl_anasymod))]
+        self.content.verilog_sources += [VerilogSource(files=str(ctrl_anasymod), name='ctrl_anasymod')]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
