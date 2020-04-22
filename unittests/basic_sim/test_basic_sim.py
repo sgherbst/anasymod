@@ -4,6 +4,7 @@
 
 from anasymod.analysis import Analysis
 from anasymod.targets import Target
+from anasymod.util import OutputError
 
 try:
     from pverify.postproc.signals import Waveform
@@ -162,7 +163,7 @@ class TestBasicSIM():
             signals = run_target('error_recognition')
             """ :type : dict"""
             raise Exception
-        except:
+        except OutputError:
             pass
 
     @basic

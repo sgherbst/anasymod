@@ -42,14 +42,14 @@ def tee_output(fd, err_str=None):
     # prints lines from the given file descriptor while checking for errors
     # returns a flag indicating whether an error was detected
     # modified from: https://github.com/leonardt/fault/blob/master/fault/subprocess_run.py
-    found_err = False
+    found_err = None
     for line in fd:
         # display line
         print(line, end='')
         # check line for errors
         if err_str is not None:
             if error_detected(text=line, err_str=err_str):
-                found_err = True
+                found_err = line
     # Return flag indicating whether an error was found
     return found_err
 
@@ -71,11 +71,15 @@ def call(args, cwd=None, wait=True, err_str=None):
             # check return code
             assert returncode == 0, f'Exited with non-zero code: {returncode}'
             # check for an error in the output text
-            if found_err:
-                raise Exception(f'Found {err_str} in output of subprocess.')
+            if found_err is not None:
+                raise OutputError(f'Found {err_str} in output of subprocess: {found_err}')
     else:
         Popen(args=args, cwd=cwd, stdout=sys.stdout, stderr=sys.stdout)
 
+
+class OutputError(Exception):
+    def __init__(self, *args, **kwargs):
+        pass
 
 def next_pow_2(x):
     '''
