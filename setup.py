@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages
 
 name = 'anasymod'
@@ -9,6 +10,20 @@ Tool for running mixed-signal emulations on FPGAs\
 
 with open('README.md', 'r') as fh:
     LONG_DESCRIPTION = fh.read()
+
+install_requires=[
+        'svreal>=0.2.2',
+        'msdsl>=0.2.5',
+        'jinja2',
+        'pyvcd',
+        'pyserial',
+        'PyYAML',
+        'si-prefix'
+]
+if os.name == 'nt':
+    install_requires += ['wexpect>=3.3.0']
+else:
+    install_requires += ['pexpect']
 
 setup(
     name=name,
@@ -26,17 +41,7 @@ setup(
             'anasymod=anasymod.analysis:main'
         ]
     },
-    install_requires=[
-        'svreal>=0.2.2',
-        'msdsl>=0.1.9',
-        'jinja2',
-        'pyvcd',
-        'pyserial',
-        'pexpect',
-        'wexpect>=3.3.0',
-        'PyYAML',
-        'si-prefix'
-    ],
+    install_requires=install_requires,
     license='BSD 3-Clause "New" or "Revised" License',
     url=f'https://github.com/sgherbst/{name}',
     author='Gabriel Rutsch, Steven Herbst, Shivani Saravanan',
