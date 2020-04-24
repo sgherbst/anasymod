@@ -14,8 +14,8 @@ def test_rc_sim(simulator_name=DEFAULT_SIMULATOR):
     'FPGA_SERVER' not in os.environ,
     reason='The FPGA_SERVER environment variable must be set to run this test.'
 )
-def test_rc_emu(gen_bitstream=True):
-    run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun)
+def test_rc_emu(gen_bitstream=True, emulate=True):
+    run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun, emulate=emulate)
 
 def emu_ctrl_fun(ctrl, v_in=1.0, n_steps=25, dt=0.1e-6, tau=1.0e-6, abs_tol=1e-3):
     # initialize values

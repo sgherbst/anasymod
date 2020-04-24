@@ -14,8 +14,8 @@ def test_func_sim(simulator_name=DEFAULT_SIMULATOR):
    reason="This test takes a long time to run and largely covers the same features as test_rc."
 )
 @pytest.mark.skipif(not importlib.util.find_spec("cvxpy"), reason="cvxpy is not available in python distribution")
-def test_func_emu(gen_bitstream=True):
-    run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun)
+def test_func_emu(gen_bitstream=True, emulate=True):
+    run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun, emulate=emulate)
 
 def emu_ctrl_fun(ctrl):
     # reset emulator
