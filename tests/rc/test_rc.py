@@ -1,11 +1,13 @@
 import os
 import pytest
-
+import sys
+from pathlib import Path
 from math import exp
 
-from ..common import run_simulation, run_emulation, CommonArgParser, DEFAULT_SIMULATOR
+root = Path(__file__).resolve().parent
 
-root = os.path.dirname(__file__)
+sys.path.append(str(root.parent))
+from common import run_simulation, run_emulation, CommonArgParser, DEFAULT_SIMULATOR
 
 def test_rc_sim(simulator_name=DEFAULT_SIMULATOR):
     run_simulation(root=root, simulator_name=simulator_name)
@@ -15,7 +17,8 @@ def test_rc_sim(simulator_name=DEFAULT_SIMULATOR):
     reason='The FPGA_SERVER environment variable must be set to run this test.'
 )
 def test_rc_emu(gen_bitstream=True, emulate=True):
-    run_emulation(root=root, gen_bitstream=gen_bitstream, emu_ctrl_fun=emu_ctrl_fun, emulate=emulate)
+    run_emulation(root=root, gen_bitstream=gen_bitstream,
+                  emu_ctrl_fun=emu_ctrl_fun, emulate=emulate)
 
 def emu_ctrl_fun(ctrl, v_in=1.0, n_steps=25, dt=0.1e-6, tau=1.0e-6, abs_tol=1e-3):
     # initialize values
@@ -39,7 +42,8 @@ def emu_ctrl_fun(ctrl, v_in=1.0, n_steps=25, dt=0.1e-6, tau=1.0e-6, abs_tol=1e-3
         # check results
         meas_val = v_out
         expt_val = v_in*(1 - exp(-t_sim/tau))
-        assert (expt_val - abs_tol) <= meas_val <= (expt_val + abs_tol), 'Measured value is out of range.'
+        assert (expt_val - abs_tol) <= meas_val <= (expt_val + abs_tol), \
+            'Measured value is out of range.'
 
         # wait a certain amount of time
         ctrl.sleep_emu(dt)
