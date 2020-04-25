@@ -119,7 +119,10 @@ class FunctionalModel(Sources):
 
         :param hdl_dir_root: Root directory for gen_files, this is usually set in emu config.
         """
-        self.gen_files = [os.path.join(hdl_dir_root, self.fileset, self.name, '*')]
+        # TODO: Have the model generator declare what files should be included in "gen_files"
+        # It is possible that not everything in the hdl_dir_root is an HDL source (e.g.,
+        # temporary files generated during processing, memory files that are included, etc.)
+        self.gen_files = [os.path.join(hdl_dir_root, self.fileset, self.name, '*.*v')]
 
     def expand_gen_files_path(self):
         """

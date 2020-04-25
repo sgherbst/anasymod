@@ -1,3 +1,4 @@
+`timescale 1s/1ns
 `include "svreal.sv"
 
 module sim_ctrl #(

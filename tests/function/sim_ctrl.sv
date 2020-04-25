@@ -1,3 +1,4 @@
+`timescale 1s/1ns
 `include "svreal.sv"
 
 module sim_ctrl #(
@@ -42,9 +43,10 @@ module sim_ctrl #(
         // walk through simulation values
         sum_err_sqrd = 0.0;
         n_samp = 0;
-        for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int = in_int + 0.05) begin
-            // wait
+        for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int=in_int+0.05) begin
+            // wait until next clock cycle (and then a little bit)
             wait_emu_cycle();
+
             // compute expected output
             expct = $sin(clip(in_int, -m_pi, +m_pi));
             // print simulation state
