@@ -1,9 +1,14 @@
 import os
+import numpy as np
+import scipy.interpolate
 from argparse import ArgumentParser
+
 
 from anasymod.analysis import Analysis
 
+
 DEFAULT_SIMULATOR = 'icarus' if 'FPGA_SERVER' not in os.environ else 'vivado'
+
 
 def run_simulation(root, simulator_name):
     # create analysis object
@@ -18,6 +23,7 @@ def run_simulation(root, simulator_name):
 
     # print string to indicate test is done
     print('Done.')
+
 
 def run_emulation(root, gen_bitstream=False, emu_ctrl_fun=None, emulate=False):
     # create analysis object
@@ -39,6 +45,7 @@ def run_emulation(root, gen_bitstream=False, emu_ctrl_fun=None, emulate=False):
     # print string to indicate test is done
     print('Done.')
 
+
 class CommonArgParser(ArgumentParser):
     def __init__(self, sim_fun, emu_fun, *args, **kwargs):
         # call the super constructor
@@ -58,3 +65,27 @@ class CommonArgParser(ArgumentParser):
         if args.gen_bitstream or args.emulate:
             print('Running emulation...')
             emu_fun(gen_bitstream=args.gen_bitstream, emulate=args.emulate)
+
+
+class Waveform:
+    def __init__(self, data, time):
+        self.data = np.array(data, dtype=float)
+        self.time = np.array(data, dtype=float)
+        self.interp = scipy.interpolate.interp1d(
+            data, time,
+            bounds_error=False, fill_value=(data[0], data[-1])
+        )
+
+    def check_in_limits(self, wave_lo, wave_hi):
+        # compute bounds
+        lo_bnds = wave_lo.interp(self.time)
+        hi_bnds = wave_hi.interp(self.time)
+
+        # find any point where the waveform is out of spec
+        in_spec = np.logical_and(lo_bnds <= self.data, self.data <= hi_bnds)
+        if np.all(in_spec):
+            pass
+        else:
+            indices = np.where(np.logical_not(in_spec))
+            times = self.time[indices]
+            raise Exception(f'Waveform is out of spec.  Check times: {times}')

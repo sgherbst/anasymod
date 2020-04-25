@@ -29,7 +29,9 @@ class Analysis():
     """
     This is the top user Class that shall be used to exercise anasymod.
     """
-    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None, op_mode=None, active_target=None):
+    def __init__(self, input=None, build_root=None, simulator_name=None,
+                 synthesizer_name=None, viewer_name=None, preprocess_only=None,
+                 op_mode=None, active_target=None):
 
         # Parse command line arguments
         self.args = None
