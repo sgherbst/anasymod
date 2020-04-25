@@ -3,7 +3,6 @@
 # NOTE: for interactive debug, add -s to py.test run in order to have stdout and stderr
 # no longer captured by py.test!
 
-import sys
 import pytest
 from pathlib import Path
 import numpy as np
@@ -11,12 +10,11 @@ import numpy as np
 from anasymod.analysis import Analysis
 
 # get files from "common.py"
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from common import DEFAULT_SIMULATOR, Waveform
+from ..common import DEFAULT_SIMULATOR, Waveform
 
 
 anasymod_test_root = Path(__file__).resolve().parent.parent
-build_root = Path(__file__).resolve().parent / 'build' / pytest.config.getoption("--target")
+build_root = Path(__file__).resolve().parent / 'build'
 
 
 def run_target(test_name, mode='simulate', simulator_name=DEFAULT_SIMULATOR):
@@ -74,10 +72,34 @@ def probe_signals(ana):
 
 
 def test_error_recognition():
+    # run_target is not used here because we want to catch an error
+    # at a specific point in time, rather than allowing an Exception
+    # anywhere to pass
+
     print("Running error_recognition test")
 
+    test_name = 'error_recognition'
+    mode = 'simulate'
+    simulator_name = DEFAULT_SIMULATOR
+
+    ana = Analysis(
+        input=anasymod_test_root / test_name,
+        build_root=build_root / f'test_{test_name}_{mode}_{simulator_name}',
+        simulator_name=simulator_name
+    )
+    ana.gen_sources()
+
+    # run
+    ana.set_target(target_name='sim')
+
+    # adjust arguments for xrun
+    kwargs = {}
+    if simulator_name in {'xrun'}:
+        kwargs['unit'] = 'main'
+        kwargs['id'] = 'xrun'
+
     with pytest.raises(Exception):
-        run_target('error_recognition')
+        ana.simulate(**kwargs)
 
 
 def test_filter():
@@ -88,8 +110,8 @@ def test_filter():
     wave_v_out = Waveform(
         data=signals['v_out_probe_strip_xz'][1],
         time=signals['v_out_probe_strip_xz'][0]
-
     )
+
     high_limit = [
         0.0,0.0,2.8413774247451245e-09,0.009945820794713432,9.309273070463006e-08,0.1916629730491373,
         2.7520940854679694e-07,0.35000637390135797,7.73390766604486e-07,0.616421190692346,
@@ -200,7 +222,7 @@ def test_multicase():
         5.122767511991505e-06, 0.18753511357117747, 5.620693668879983e-06, 0.5087013672813337,
         6.203175044552685e-06, 0.7446919992782245, 7.000617278766725e-06, 0.8635485949554907,
         7.606988984257434e-06, 0.4254601049960923, 8.418432899053952e-06, 0.1960129644726062,
-        8.90638533413989e-06, 0.539234044081612, 9.766686802670409e-06, 0.8038550900277232
+        8.90638533413989e-06, 0.539234044081612, 9.766686802670409e-06, 0.82
     ]
 
     low_limit = [

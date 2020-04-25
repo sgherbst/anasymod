@@ -1,13 +1,11 @@
 import os
 import pytest
-import sys
 from pathlib import Path
 from math import exp
 
 root = Path(__file__).resolve().parent
 
-sys.path.append(str(root.parent))
-from common import run_simulation, run_emulation, CommonArgParser, DEFAULT_SIMULATOR
+from ..common import run_simulation, run_emulation, CommonArgParser, DEFAULT_SIMULATOR
 
 def test_rc_sim(simulator_name=DEFAULT_SIMULATOR):
     run_simulation(root=root, simulator_name=simulator_name)

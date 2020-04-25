@@ -289,7 +289,8 @@ class Analysis():
         else:
             raise Exception(f'Provided data type for parameter plugins is not supported. Expects list, given:{type(plugins)}')
 
-        #Check if any valid plugin was selected
+        # Check if any valid plugin was selected
+        # TODO: does this need to be more selective? (What happens if we don't want any plugins?)
         if not valid_plugins:
             raise Exception(f'ERROR: Provided plugin/s:{plugins} were not registered in the project configuration!')
 

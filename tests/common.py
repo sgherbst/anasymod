@@ -70,9 +70,9 @@ class CommonArgParser(ArgumentParser):
 class Waveform:
     def __init__(self, data, time):
         self.data = np.array(data, dtype=float)
-        self.time = np.array(data, dtype=float)
+        self.time = np.array(time, dtype=float)
         self.interp = scipy.interpolate.interp1d(
-            data, time,
+            time, data,
             bounds_error=False, fill_value=(data[0], data[-1])
         )
 
@@ -80,6 +80,13 @@ class Waveform:
         # compute bounds
         lo_bnds = wave_lo.interp(self.time)
         hi_bnds = wave_hi.interp(self.time)
+
+        # import matplotlib.pyplot as plt
+        # plt.plot(self.time, lo_bnds)
+        # plt.plot(self.time, hi_bnds)
+        # plt.plot(self.time, self.data)
+        # plt.legend(['lo_bnds', 'hi_bnds', 'data'])
+        # plt.show()
 
         # find any point where the waveform is out of spec
         in_spec = np.logical_and(lo_bnds <= self.data, self.data <= hi_bnds)
