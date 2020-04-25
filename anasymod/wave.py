@@ -370,7 +370,24 @@ class ConvertWaveform():
         Getting unscaled data from csv file column
         :return:
         """
-        return np.genfromtxt(self.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)
+        # have to preview the first few lines
+        with open(self.result_path_raw, 'r') as f:
+            first_line = f.readline()
+            second_line = f.readline()
+
+        # determine how many lines to skip
+        if second_line.startswith('Radix'):
+            skip_header=2
+        else:
+            skip_header=1
+
+        # call a NumPy routine to read from the CSV file
+        return np.genfromtxt(
+            self.result_path_raw,
+            delimiter=',',
+            usecols=self.signal_lookup[name],
+            skip_header=skip_header
+        )
 
     def sort_timestamp(self, element):
         return element[1]
