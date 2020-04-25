@@ -88,7 +88,15 @@ class ConvertWaveform():
 
                     # convert data to native Python int type (rather than numpy int)
                     # this is required for PyVCD
-                    probe_data[name] = [int(x) for x in probe_data[name]]
+                    try:
+                        probe_data[name] = [int(x) for x in probe_data[name]]
+                    except ValueError:
+                        print(f'ValueError encountered when converting probe_data[{name}].')
+                        print(f'Contents of probe_data[{name}]:')
+                        print(f'{probe_data}')
+                        print(f'Contents of CSV file {self.result_path_raw}:')
+                        print(open(self.result_path_raw, 'r').read())
+                        raise
 
             # Write data to VCD file
             with open(result_path, 'w') as vcd:
