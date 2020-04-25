@@ -3,6 +3,7 @@
 # NOTE: for interactive debug, add -s to py.test run in order to have stdout and stderr
 # no longer captured by py.test!
 
+import os
 import pytest
 from pathlib import Path
 import numpy as np
@@ -38,10 +39,11 @@ def run_target(test_name, mode='simulate', simulator_name=DEFAULT_SIMULATOR):
         # run simulation and return results
         ana.simulate(**kwargs)
         return probe_signals(ana)
-    elif mode in {'build', 'emulate'}:
+    elif mode in {'build', 'emulate', 'build_and_emulate'}:
         ana.set_target(target_name='fpga')
-        ana.build()
-        if mode in {'emulate'}:
+        if mode in {'build_and_emulate', 'build'}:
+            ana.build()
+        if mode in {'build_and_emulate', 'emulate'}:
             ana.emulate()
             return probe_signals(ana)
         else:
@@ -101,11 +103,13 @@ def test_error_recognition():
     with pytest.raises(Exception):
         ana.simulate(**kwargs)
 
-
-def test_filter():
+@pytest.mark.parametrize('mode',
+    ['simulate'] + (['build_and_emulate'] if 'FPGA_SERVER' in os.environ else [])
+)
+def test_filter(mode):
     print("Running filter sim")
 
-    signals = run_target('filter')
+    signals = run_target('filter', mode=mode)
 
     wave_v_out = Waveform(
         data=signals['v_out_probe_strip_xz'][1],
@@ -113,14 +117,14 @@ def test_filter():
     )
 
     high_limit = [
-        0.0,0.0,2.8413774247451245e-09,0.009945820794713432,9.309273070463006e-08,0.1916629730491373,
+        0.0,0.01,2.8413774247451245e-09,0.009945820794713432,9.309273070463006e-08,0.1916629730491373,
         2.7520940854679694e-07,0.35000637390135797,7.73390766604486e-07,0.616421190692346,
         1.3234660161265176e-06,0.8162323032855869,2.2990711756561586e-06,0.9594302673107433,
         4.28637988667479e-06,1.0192001953843686,9.916080825508866e-06,1.025864273869302
     ]
 
     low_limit = [
-        0.0,0.0,1.281348876174954e-07,-0.0004285148373942369,3.136773684060609e-07,0.1774810568848922,
+        0.0,-0.01,1.281348876174954e-07,-0.01,3.136773684060609e-07,0.1,
         5.352261331899046e-07,0.3284088495207527,1.0495251394323723e-06,0.5900322492601223,
         1.707677070399699e-06,0.7792847235122319,2.4126785008224645e-06,0.8858316774454128,
         4.267059312253798e-06,0.9701267213345307,9.867283730842193e-06,0.9821452549545097

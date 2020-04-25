@@ -3,6 +3,7 @@ import numpy as np
 import scipy.interpolate
 from argparse import ArgumentParser
 
+import matplotlib.pyplot as plt
 
 from anasymod.analysis import Analysis
 
@@ -81,12 +82,11 @@ class Waveform:
         lo_bnds = wave_lo.interp(self.time)
         hi_bnds = wave_hi.interp(self.time)
 
-        # import matplotlib.pyplot as plt
-        # plt.plot(self.time, lo_bnds)
-        # plt.plot(self.time, hi_bnds)
-        # plt.plot(self.time, self.data)
-        # plt.legend(['lo_bnds', 'hi_bnds', 'data'])
-        # plt.show()
+        plt.plot(self.time, lo_bnds)
+        plt.plot(self.time, hi_bnds)
+        plt.plot(self.time, self.data)
+        plt.legend(['lo_bnds', 'hi_bnds', 'data'])
+        plt.show()
 
         # find any point where the waveform is out of spec
         in_spec = np.logical_and(lo_bnds <= self.data, self.data <= hi_bnds)

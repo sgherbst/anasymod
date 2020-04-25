@@ -363,7 +363,7 @@ class Analysis():
             result_path=target.cfg.vcd_path,
             str_cfg=target.str_cfg,
             float_type=self.float_type,
-            dt_scale=target.cfg.dt_scale
+            dt_scale=self._prj_cfg.cfg.dt_scale
         )
 
     def launch(self, server_addr=None, debug=False):
