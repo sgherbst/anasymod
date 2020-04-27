@@ -155,7 +155,6 @@ class SVAPI(GenAPI):
         :param io_obj: Signal to be assigned holds name of io_obj.name.
         :param exp: Expression to be assigned.
         """
-
         if isinstance(io_obj, AnalogSignal) and not isinstance(io_obj, (AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)):
             if isinstance(exp, AnalogSignal):
                 self.writeln(f"`ASSIGN_REAL({exp}, {io_obj.name});")

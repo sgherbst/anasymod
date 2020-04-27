@@ -19,7 +19,7 @@ class VIOControlInfrastructure(ControlInfrastructure):
         with (open(self._simctrlwrap_path, 'w')) as ctrl_file:
            ctrl_file.write(ModuleVIOSimCtrl(scfg=str_cfg).render())
 
-        content.verilog_sources += [VerilogSource(files=self._simctrlwrap_path)]
+        content.verilog_sources += [VerilogSource(files=self._simctrlwrap_path, name='simctrlwrap')]
 
     def gen_ctrl_infrastructure(self, str_cfg: StructureConfig, content):
         """

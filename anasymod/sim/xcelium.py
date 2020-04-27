@@ -22,6 +22,7 @@ class XceliumSimulator(Simulator):
         cmd = []
         cmd += [self.cfg.xcelium_config.xrun]
         if "ifxxcelium" in self.cfg.xcelium_config.xrun:
+            cmd += self.target.prj_cfg.xcelium_config.lsf_opts.split()
             cmd += ['inicio']
             if self.unit:
                 cmd += ["-unit", self.unit]
@@ -71,6 +72,11 @@ class XceliumSimulator(Simulator):
         # add Verilog source files
         for sources in self.target.content.verilog_sources:
             for src in sources.files:
+                cmd.append(src)
+
+        # add HDL sources for functional models
+        for sources in self.target.content.functional_models:
+            for src in sources.gen_files:
                 cmd.append(src)
 
         # add VHDL source files

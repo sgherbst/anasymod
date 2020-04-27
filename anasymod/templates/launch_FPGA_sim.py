@@ -26,17 +26,19 @@ class TemplLAUNCH_FPGA_SIM(JinjaTempl):
 
         # Set aliases for VIOs
         self.ctrl_io_aliases = SVAPI()
-        for io in [scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + scfg.digital_ctrl_inputs + \
-                  scfg.digital_ctrl_outputs + scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs:
+        for io in scfg.digital_ctrl_inputs + scfg.digital_ctrl_outputs + \
+                  scfg.analog_ctrl_inputs + scfg.analog_ctrl_outputs:
             self.ctrl_io_aliases.writeln(f'set {io.name} [get_hw_probes "sim_ctrl_gen_i/{io.name}" -of_objects $vio_0_i]')
 
         # Set radix for VIOs
         self.ctrl_io_radix = SVAPI()
-        for digital_in in [scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + scfg.digital_ctrl_inputs:
-            self.ctrl_io_radix.writeln(f'set_property OUTPUT_VALUE_RADIX UNSIGNED ${digital_in.name}')
+        for digital_in in scfg.digital_ctrl_inputs:
+            signed = 'SIGNED' if digital_in.signed else 'UNSIGNED'
+            self.ctrl_io_radix.writeln(f'set_property OUTPUT_VALUE_RADIX {signed} ${digital_in.name}')
 
         for digital_out in scfg.digital_ctrl_outputs:
-            self.ctrl_io_radix.writeln(f'set_property INPUT_VALUE_RADIX UNSIGNED ${digital_out.name}')
+            signed = 'SIGNED' if digital_out.signed else 'UNSIGNED'
+            self.ctrl_io_radix.writeln(f'set_property INPUT_VALUE_RADIX {signed} ${digital_out.name}')
 
         for analog_in in scfg.analog_ctrl_inputs:
             self.ctrl_io_radix.writeln(f'set_property OUTPUT_VALUE_RADIX SIGNED ${analog_in.name}')
@@ -51,13 +53,14 @@ class TemplLAUNCH_FPGA_SIM(JinjaTempl):
 
         # Set radix for probes
         self.probe_radix = SVAPI()
-        for digital_probe in scfg.digital_probes:
-            self.probe_radix.writeln(f'set_property DISPLAY_RADIX UNSIGNED ${digital_probe.name}')
+        for digital_probe in (scfg.digital_probes + [scfg.time_probe]):
+            signed = 'SIGNED' if digital_probe.signed else 'UNSIGNED'
+            self.probe_radix.writeln(f'set_property DISPLAY_RADIX {signed} ${digital_probe.name}')
 
-        for analog_probe in scfg.analog_probes + [scfg.time_probe]:
+        for analog_probe in scfg.analog_probes:
             self.probe_radix.writeln(f'set_property DISPLAY_RADIX SIGNED ${analog_probe.name}')
 
-    TEMPLATE_TEXT = '''
+    TEMPLATE_TEXT = '''\
 # Connect to hardware
 open_hw
 catch {disconnect_hw_server}
@@ -88,7 +91,7 @@ set rst_hw_probe [get_hw_probes *rst* -of_objects $vio_0_i]
 # ILA setup
 # set ila_0_i [get_hw_ilas] // this is how it was written beforehand
 set ila_0_i [get_hw_ilas -of_objects $my_hw_device -filter {CELL_NAME=~"trace_port_gen_i/ila_0_i"}]
-display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $ila_0_i]
+#display_hw_ila_data [get_hw_ila_data hw_ila_data_1 -of_objects $ila_0_i]
 
 ##############################################
 # Code related to interactive mode starts here
@@ -111,7 +114,6 @@ set_property CORE_REFRESH_RATE_MS 0 $ila_0_i
 
 # configure radix for ILA probes
 {{subst.probe_radix.text}}
-
 '''
 
 def main():

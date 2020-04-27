@@ -1,11 +1,12 @@
 import os, yaml
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile
+from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile, FunctionalModel, IPRepo
 from anasymod.defines import Define
 
 class Filesets():
-    def __init__(self, root, default_filesets):
+    def __init__(self, root, default_filesets, root_func_models):
         self._master_cfg_path = os.path.join(root, 'source.yaml')
         self.default_filesets = default_filesets
+        self.root_func_models = root_func_models
 
         # Store all config file paths in list for packing purposes
         self._config_paths = [self._master_cfg_path]
@@ -33,6 +34,12 @@ class Filesets():
 
         self._bd_files = []
         """:type : List[BDFile]"""
+
+        self._ip_repos = []
+        """:type : List[IPRepo]"""
+
+        self._functional_models = []
+        """:type : List[FunctionalModel]"""
 
         # init fileset_dict
         self.fileset_dict = {}
@@ -91,13 +98,15 @@ class Filesets():
                 self._verilog_sources.append(VerilogSource(files=cfg['verilog_sources'][verilog_source]['files'],
                                                            fileset=cfg['verilog_sources'][verilog_source]['fileset'] if 'fileset' in cfg['verilog_sources'][verilog_source].keys() else 'default',
                                                            config_path=cfg_path,
-                                                           version=cfg['verilog_sources'][verilog_source]['version'] if 'verilog_version' in cfg['verilog_sources'][verilog_source].keys() else None))
+                                                           version=cfg['verilog_sources'][verilog_source]['version'] if 'version' in cfg['verilog_sources'][verilog_source].keys() else None,
+                                                           name=verilog_source))
         if 'verilog_headers' in cfg.keys(): # Add verilog headers to filesets
             print(f'Verilog Headers: {[key for key in cfg["verilog_headers"].keys()]}')
             for verilog_header in cfg['verilog_headers'].keys():
                 self._verilog_headers.append(VerilogHeader(files=cfg['verilog_headers'][verilog_header]['files'],
                                                            fileset=cfg['verilog_headers'][verilog_header]['fileset'] if 'fileset' in cfg['verilog_headers'][verilog_header].keys() else 'default',
-                                                           config_path=cfg_path))
+                                                           config_path=cfg_path,
+                                                           name=verilog_header))
         if 'vhdl_sources' in cfg.keys(): # Add VHDL sources to filesets
             print(f'VHDL Sources: {[key for key in cfg["vhdl_sources"].keys()]}')
             for vhdl_source in cfg['vhdl_sources'].keys():
@@ -105,40 +114,74 @@ class Filesets():
                                                      fileset=cfg['vhdl_sources'][vhdl_source]['fileset'] if 'fileset' in cfg['vhdl_sources'][vhdl_source].keys() else 'default',
                                                      config_path=cfg_path,
                                                      library=cfg['vhdl_sources'][vhdl_source]['library'] if 'library' in cfg['vhdl_sources'][vhdl_source].keys() else None,
-                                                     version = cfg['vhdl_sources'][vhdl_source]['version'] if 'version' in cfg['vhdl_sources'][vhdl_source].keys() else None))
+                                                     version = cfg['vhdl_sources'][vhdl_source]['version'] if 'version' in cfg['vhdl_sources'][vhdl_source].keys() else None,
+                                                     name=vhdl_source))
         if 'xci_files' in cfg.keys(): # Add xci files to filesets
             print(f'XCI Files: {[key for key in cfg["xci_files"].keys()]}')
             for xci_file in cfg['xci_files'].keys():
                 self._xci_files.append(XCIFile(files=cfg['xci_files'][xci_file]['files'],
                                                fileset=cfg['xci_files'][xci_file]['fileset'] if 'fileset' in cfg['xci_files'][xci_file].keys() else 'default',
-                                               config_path=cfg_path))
+                                               config_path=cfg_path,
+                                               name=xci_file))
         if 'xdc_files' in cfg.keys(): # Add constraint files to filesets
             print(f'XDC Files: {[key for key in cfg["xdc_files"].keys()]}')
             for xdc_file in cfg['xdc_files'].keys():
                 self._xdc_files.append(XDCFile(files=cfg['xdc_files'][xdc_file]['files'],
                                                fileset=cfg['xdc_files'][xdc_file]['fileset'] if 'fileset' in cfg['xdc_files'][xdc_file].keys() else 'default',
-                                               config_path=cfg_path))
+                                               config_path=cfg_path,
+                                               name=xdc_file))
         if 'mem_files' in cfg.keys():  # Add mem files to filesets
             print(f'Mem Files: {[key for key in cfg["mem_files"].keys()]}')
             for mem_file in cfg['mem_files'].keys():
                 self._mem_files.append(MEMFile(files=cfg['mem_files'][mem_file]['files'],
                                                fileset=cfg['mem_files'][mem_file]['fileset'] if 'fileset' in cfg['mem_files'][mem_file].keys() else 'default',
-                                               config_path=cfg_path))
+                                               config_path=cfg_path,
+                                               name=mem_file))
         if 'bd_files' in cfg.keys():  # Add block diagram files to filesets
             print(f'Block Diagram Files: {[key for key in cfg["bd_files"].keys()]}')
             for bd_file in cfg['bd_files'].keys():
                 self._bd_files.append(BDFile(files=cfg['bd_files'][bd_file]['files'],
                                              fileset=cfg['bd_files'][bd_file]['fileset'] if 'fileset' in cfg['bd_files'][bd_file].keys() else 'default',
-                                             config_path=cfg_path))
+                                             config_path=cfg_path,
+                                             name=bd_file))
+        if 'ip_repos' in cfg.keys():  # Add IP repositories to filesets
+            print(f'IP Repos: {[key for key in cfg["ip_repos"].keys()]}')
+            for ip_repo in cfg['ip_repos'].keys():
+                self._ip_repos.append(IPRepo(files=cfg['ip_repos'][ip_repo]['files'],
+                                             fileset=cfg['ip_repos'][ip_repo]['fileset'] if 'fileset' in cfg['ip_repos'][ip_repo].keys() else 'default',
+                                             config_path=cfg_path,
+                                             name=ip_repo))
+        if 'functional_models' in cfg.keys():  # Add functional model to filesets
+            print(f'Functional Models: {[key for key in cfg["functional_models"].keys()]}')
+            for functional_model in cfg['functional_models'].keys():
+                func_model = FunctionalModel(files=cfg['functional_models'][functional_model]['files'],
+                                             fileset=cfg['functional_models'][functional_model]['fileset'] if 'fileset' in cfg['functional_models'][functional_model].keys() else 'default',
+                                             config_path=cfg_path,
+                                             name=functional_model)
+                func_model.set_gen_files_path(hdl_dir_root=self.root_func_models)
+                self._functional_models.append(func_model)
         if 'sub_configs' in cfg.keys():  # Add sub config files to filesets
             for sub_config in cfg['sub_configs'].keys():
-                self._sub_config_paths.append(SubConfig(files=cfg['sub_configs'][sub_config]['files'], config_path=cfg_path))
+                self._sub_config_paths.append(SubConfig(files=cfg['sub_configs'][sub_config]['files'], config_path=cfg_path, name=sub_config))
         if 'defines' in cfg.keys():  # Add defines to filesets
             print(f'Defines: {[key for key in cfg["defines"].keys()]}')
             for define in cfg['defines'].keys():
                 self._defines.append(Define(name=cfg['defines'][define]['name'],
                                             value=cfg['defines'][define]['value'] if 'value' in cfg['defines'][define].keys() else None,
                                             fileset=cfg['defines'][define]['fileset'] if 'fileset' in cfg['defines'][define].keys() else 'default'))
+
+    def _expand_source_paths(self, sources: list):
+        for source in sources:
+            source.expand_paths()
+            # Expand paths for generated files as well, if possible
+            try:
+                expand_gen_files_path = getattr(source, 'expand_gen_files_path')
+            except:
+                expand_gen_files_path = None
+
+            if expand_gen_files_path:
+                source.expand_gen_files_path()
+        return sources
 
     def populate_fileset_dict(self):
         """
@@ -153,28 +196,34 @@ class Filesets():
                 self.fileset_dict[fileset] = {}
 
         # Read in verilog source objects to fileset dict
-        self._add_to_fileset_dict(name='verilog_sources', container=self._verilog_sources)
+        self._add_to_fileset_dict(name='verilog_sources', container=self._expand_source_paths(self._verilog_sources))
 
         # Read in verilog header objects to fileset dict
-        self._add_to_fileset_dict(name='verilog_headers', container=self._verilog_headers)
+        self._add_to_fileset_dict(name='verilog_headers', container=self._expand_source_paths(self._verilog_headers))
 
         # Read in vhdlsource objects to fileset dict
-        self._add_to_fileset_dict(name='vhdl_sources', container=self._vhdl_sources)
+        self._add_to_fileset_dict(name='vhdl_sources', container=self._expand_source_paths(self._vhdl_sources))
 
         # Read in xcifile objects to fileset dict
-        self._add_to_fileset_dict(name='xci_files', container=self._xci_files)
+        self._add_to_fileset_dict(name='xci_files', container=self._expand_source_paths(self._xci_files))
 
         # Read in xdcfile objects to fileset dict
-        self._add_to_fileset_dict(name='xdc_files', container=self._xdc_files)
+        self._add_to_fileset_dict(name='xdc_files', container=self._expand_source_paths(self._xdc_files))
 
         # Read in define objects to fileset dict
         self._add_to_fileset_dict(name='defines', container=self._defines)
 
         # Read in mem_files objects to fileset dict
-        self._add_to_fileset_dict(name='mem_files', container=self._mem_files)
+        self._add_to_fileset_dict(name='mem_files', container=self._expand_source_paths(self._mem_files))
 
         # Read in bd_files objects to fileset dict
-        self._add_to_fileset_dict(name='bd_files', container=self._bd_files)
+        self._add_to_fileset_dict(name='bd_files', container=self._expand_source_paths(self._bd_files))
+
+        # Read in ip_repos objects to fileset dict
+        self._add_to_fileset_dict(name='ip_repos', container=self._expand_source_paths(self._ip_repos))
+
+        # Read in functional model objects to fileset dict
+        self._add_to_fileset_dict(name='functional_models', container=self._expand_source_paths(self._functional_models))
 
     def _add_to_fileset_dict(self, name, container):
         """
@@ -214,6 +263,12 @@ class Filesets():
 
     def add_bd_file(self, bd_file: BDFile):
         self._bd_files.append(bd_file)
+
+    def add_ip_repo(self, ip_repo: IPRepo):
+        self._ip_repos.append(ip_repo)
+
+    def add_functional_model(self, functional_model: FunctionalModel):
+        self._functional_models.append(functional_model)
 
 def main():
     fileset = Filesets(root=r"C:\Inicio_dev\anasymod\tests\filter")

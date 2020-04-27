@@ -15,10 +15,15 @@ from anasymod.base_config import BaseConfig
 class EmuConfig:
     def __init__(self, root, cfg_file, active_target, build_root=None):
 
+        self._valid_ila_values = [1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
+
         self.root = root
 
         # define and create build root
         self.build_root_base = build_root if build_root is not None else os.path.join(root, 'build')
+
+        # define build root for functional models
+        self.build_root_functional_models = os.path.join(self.build_root_base, 'models')
 
         self.build_root = os.path.join(self.build_root_base, active_target)
         if not os.path.exists(self.build_root):
@@ -65,7 +70,11 @@ class EmuConfig:
 
     @property
     def ila_depth(self):
-        return 4096
+        if self.cfg.ila_depth in self._valid_ila_values:
+            return self.cfg.ila_depth
+        else:
+            raise Exception(f'Provided value for ILA depth is not valid, allows values are:{self.cfg.ila_depth}, '
+                            f'given: {self.cfg.ila_depth}')
 
     def _update_build_root(self, active_target):
         self.build_root = os.path.join(self.build_root_base, active_target)
@@ -100,7 +109,7 @@ class VivadoConfig():
         self.parent = parent
 
         # set project name
-        self.project_name = 'project'
+        self.project_name = 'prj'
         # intermediate variables for generic Xilinx path
         if platform in {'win32', 'cygwin'}:
             xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
@@ -108,10 +117,15 @@ class VivadoConfig():
         # set path to vivado binary
         self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
-
+        # lsf options for tcl mode of Vivado
+        self.lsf_opts_ls = ''
+        self.lsf_opts = parent.cfg.lsf_opts
         if platform in {'linux', 'linux2'}:
             sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
             self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
+            if 'CAMINO' in os.environ:
+                self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
+                self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
 
         self._vivado = vivado
         # set various project options
@@ -132,7 +146,7 @@ class XceliumConfig():
     def __init__(self, parent: EmuConfig, xrun=None):
         # save reference to parent config
         self.parent = parent
-
+        self.lsf_opts = parent.cfg.lsf_opts
         # set path to xrun binary
         self.hints = [lambda: os.path.join(env['XCELIUM_INSTALL_PATH'], 'bin')]
         self._xrun = xrun
@@ -140,11 +154,14 @@ class XceliumConfig():
         # name of TCL file
         self.tcl_input = 'input.tcl'
 
+
+
     @property
     def xrun(self):
         if self._xrun is None:
             try:
                 self._xrun = find_tool(name='ifxxcelium', hints=self.hints)
+                self.lsf_opts = "-eh_ncpu 4"
                 #self._xrun += " execute"
             except:
                 self._xrun = find_tool(name='xrun', hints=self.hints)
@@ -194,6 +211,9 @@ class GtkWaveConfig():
                       lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], parent.cfg_dict['TOOLS_gtkwave'], 'bin')]
         self._gtkwave = gtkwave
         self.gtkw_config = None
+        self.lsf_opts = parent.cfg.lsf_opts
+        if 'CAMINO' in os.environ:
+            self.lsf_opts = "-eh_ram 7000"
 
     @property
     def gtkwave(self):
@@ -210,6 +230,9 @@ class SimVisionConfig():
         self.hints = [lambda: os.path.join(env['SIMVISION_INSTALL_PATH'], 'bin')]
         self._simvision = simvision
         self.svcf_config = None
+        self.lsf_opts = parent.cfg.lsf_opts
+        if 'CAMINO' in os.environ:
+            self.lsf_opts = "-eh_ram 7000"
 
     @property
     def simvision(self):
@@ -247,16 +270,35 @@ class Config(BaseConfig):
         self.dt = 0.1e-6
         """ type(float) : globally used dt value for projects, that strictly use fixed-timestep-based models. """
 
-        self.dt_exponent = -46
-        """ type(int) : currently not is use, as exponent for dt is calculated using macros in time_manager. """
+        self.dt_scale = 1e-15
+        """ type(float) : resolution for dt request and response signals (e.g., "1e-15" means 1fs resolution). """
 
-        self.dt_width = 27
-        """ type(int) : number of bits used for dt signal; this signal is used to transport the global dt signal through
-            the design. """
+        self.dt_width = 32
+        """ type(int) : number of bits used for dt request and response signals """
 
-        self.time_width = 39
-        """ type(int) : number of bits used for emulation time signal.
-            Any value above 39 does not work with the current vivado ILA core version. """
+        self.time_width = 64
+        """ type(int) : number of bits used for emulation time signal.  TODO: explore issue with using
+            values larger than 39 (related to ILA). """
+        
+        self.lsf_opts = ''
+        """ type(string) : LSF options which can be passed to our tool wrapper commands in the Inicio Flowpackage
+            Execution handler options, e.g. '-eh_ncpu 8' can be used"""
+
+        self.ila_depth = 4096
+        """ type(int) : number of samples that can be stored in the ILA for each signal that is probed. Valid values are:
+            1,024, 2,048, 4,096, 8,192, 16,384, 32,768, 65,536, 131,072. Also when choosing this value keep in mind,
+            that this will consume Block Memory. Possible values are further limited by the number of signals to be 
+            stored, number of block memory cells available on the FPGA board and also block memory that was consumed 
+            already be the design itself. """
+
+        self.cpu_debug_mode = False
+        """ type(bool) : Enables probing all signals for either everything below the testbench, or for modules 
+            provided in the cpu_debug_hierarchies attribute."""
+
+        self.cpu_debug_hierarchies = None
+        """ type(str, list) : Either tuple of depth and absolute path or list of tuples of depth and absolute path to 
+            design modules, for which all signals shall be stored in result file. e.g.:
+            [(0, top.tb_i.filter_i)]"""
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

@@ -1,3 +1,6 @@
 verilog_sources:
   sim_ctrl:
     files: './sim_ctrl.sv'
+functional_models:
+  filter:
+    files: './my_filter.py'

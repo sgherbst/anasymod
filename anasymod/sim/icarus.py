@@ -1,4 +1,5 @@
 import os
+import re
 
 from anasymod.sim.sim import Simulator
 from anasymod.util import call
@@ -35,11 +36,19 @@ class IcarusSimulator(Simulator):
             for src in sources.files:
                 cmd.append(src)
 
+        # add HDL files for functional models
+        for sources in self.target.content.functional_models:
+            for src in sources.gen_files:
+                cmd.append(src)
+
         # run iverilog
         call(cmd, cwd=self.cfg.build_root)
 
     def run(self):
-        call([self.cfg.icarus_config.vvp, self.cfg.icarus_config.output_file_path], cwd=self.cfg.build_root)
+        args = [self.cfg.icarus_config.vvp, self.cfg.icarus_config.output_file_path]
+        cwd = self.cfg.build_root
+        err_str = re.compile('^(ERROR|FATAL):')
+        call(args, cwd=cwd, err_str=err_str)
 
     def simulate(self):
         self.compile()

@@ -14,8 +14,13 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: Update pip
-      run: python -m pip install --upgrade pip
+    - name: Install dependencies
+      run: sudo apt-get install iverilog
+    - name: Run regression test
+      run: source regress.sh
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        ANASYMOD_PYTHON: python3.7
     - name: Build source distribution
       run: python setup.py sdist
     - name: Publish source distribution to PyPI

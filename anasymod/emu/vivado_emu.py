@@ -10,7 +10,6 @@ from anasymod.templates.clk_wiz import TemplClkWiz
 from anasymod.templates.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.templates.ila import TemplILA
 from anasymod.targets import FPGATarget
-from anasymod.structures.structure_config import StructureConfig
 
 
 class VivadoEmulation(VivadoTCLGenerator):
@@ -27,10 +26,12 @@ class VivadoEmulation(VivadoTCLGenerator):
         """ type : StructureConfig """
 
         # create a new project
-        self.create_project(project_name=self.target.prj_cfg.vivado_config.project_name,
-                              project_directory=self.target.project_root,
-                              full_part_name=self.target.prj_cfg.board.full_part_name,
-                              force=True)
+        self.create_project(
+            project_name=self.target.prj_cfg.vivado_config.project_name,
+            project_directory=self.target.project_root,
+            full_part_name=self.target.prj_cfg.board.full_part_name,
+            force=True
+        )
 
         # add all source files to the project (including header files)
         self.add_project_sources(content=self.target.content)
@@ -60,11 +61,8 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.use_templ(ip_core_template)
 
             ## Add constraints for additional generated emu_clks
-            # In case no timemanager is used, remove hierarchy from instantiated gen_emu_clks module
-            if scfg.num_gated_clks >= 1:
-                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
-            else:
-                constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins buf_emu_clk/I]')
+            constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
+
             for k in range(scfg.num_gated_clks):
                 constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
 
@@ -87,46 +85,50 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln(f'read_ip "{back2fwd(file)}"')
 
         # upgrade IPs as necessary
-        self.writeln('upgrade_ip [get_ips]')
+        self.writeln('if {[get_ips] ne ""} {')
+        self.writeln('    upgrade_ip [get_ips]')
+        self.writeln('}')
 
         # generate all IPs
         self.writeln('generate_target all [get_ips]')
 
         # launch the build and wait for it to finish
-        self.writeln(f'launch_runs impl_1 -to_step write_bitstream -jobs {min(int(self.target.prj_cfg.vivado_config.num_cores), 8)}')
+        num_cores = min(int(self.target.prj_cfg.vivado_config.num_cores), 8)
+        self.writeln(f'launch_runs impl_1 -to_step write_bitstream -jobs {num_cores}')
         self.writeln('wait_on_run impl_1')
 
         # re-generate the LTX file
         # without this step, the ILA probes are sometimes split into individual bits
-        ltx_file_path = os.path.join(self.target.project_root, f'{self.target.prj_cfg.vivado_config.project_name}.runs',
-                                     'impl_1',
-                                     f"{self.target.cfg.top_module}.ltx")
+        ltx_file_path = os.path.join(
+            self.target.project_root,
+            f'{self.target.prj_cfg.vivado_config.project_name}.runs',
+            'impl_1',
+            f'{self.target.cfg.top_module}.ltx'
+        )
         self.writeln('open_run impl_1')
         self.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         # run bitstream generation
         self.run(filename=r"bitstream.tcl")
 
-    def run_FPGA(self, start_time: float, stop_time: float, server_addr: str):
+    def run_FPGA(self, **kwargs):
         """
-        Run the FPGA in non-interactive mode. This means FPGA will run for specified duration, all specified signals
-        will be captured and dumped to a file.
+        Run the FPGA in non-interactive mode. This means FPGA will run for a specified
+        duration; all specified signals will be captured and dumped to a file.
 
-        :param start_time: Point in time from which recording run data will start
-        :param stop_time: Point in time where FPGA run will be stopped
-        :param dt: Update rate of analog behavior calculation
-        :param server_addr: Hardware server address for hw server launched by Vivado
+        See anasymod/templates/execute_FPGA_sim.py for keyword arguments.
         """
 
-        self.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, start_time=start_time, stop_time=stop_time, server_addr=server_addr))
-        self.run(filename=r"run_FPGA.tcl", interactive=False)
+        self.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, **kwargs))
+        self.run(filename='run_FPGA.tcl', interactive=False)
 
     def launch_FPGA(self, server_addr: str):
         """
-        Run the FPGA in interactive mode. This means FPGA will be programmed and control interfaces prepared. After that
-        interactive communication with FPGA is possible.
+        Run the FPGA in interactive mode. This means FPGA will be programmed and
+        control interfaces prepared. After that interactive communication with FPGA
+        is possible.
 
-        :param server_addr: Hardware server address for hw server launched by Vivado
+        :param server_addr: Hardware server address for HW server launched by Vivado
         """
 
         self.target.ctrl_api._initialize()

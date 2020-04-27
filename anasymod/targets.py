@@ -7,8 +7,7 @@ from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
-from typing import Union
-from anasymod.sources import VerilogSource
+from anasymod.sources import VerilogSource, VerilogHeader
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
@@ -16,7 +15,8 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import get_from_anasymod
+from anasymod.files import anasymod_root, anasymod_header
+from anasymod.util import expand_searchpaths
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -45,15 +45,18 @@ class Target():
         # Initialize target_config
         self.cfg = Config(cfg_file=self.prj_cfg.cfg_file, prj_cfg=self.prj_cfg, name=self._name, target_type=target_type)
 
+        # Update config options by reading from config file
+        self.cfg.update_config(subsection=self._name)
+
         # Initialize structure configuration
-        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop)
+        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop, simctrl_path= self.expanded_simctrl_path)
 
     def set_tstop(self):
         """
         Add define statement to specify tstop
         """
-        self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
-        self.str_cfg.time_probe.range = 1.1 * float(self.cfg.tstop)
+        if self.cfg.tstop is not None:
+            self.content.defines.append(Define(name='TSTOP_MSDSL', value=self.cfg.tstop))
 
     def assign_fileset(self, fileset: dict):
         """
@@ -74,11 +77,14 @@ class Target():
         Generate toplevel, IPCore wrappers, debug infrastructure and clk manager.
         """
 
+        # Add anasymod header
+        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()), name='anasymod_header')]
+
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
             top_file.write(ModuleTop(target=self).render())
-        self.content.verilog_sources += [VerilogSource(files=toplevel_path)]
+        self.content.verilog_sources += [VerilogSource(files=toplevel_path, name='top')]
 
         # Build control structure and add all sources to project
         if self.ctrl is not None:
@@ -87,31 +93,45 @@ class Target():
             #ToDO: needs to be cleaned up, should have individual module for pc simulation control
             with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
                 ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
-            self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'))]
+            self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'),
+                                                           name='gen_ctrlwrap')]
+
+        # Include the source code for an oscillator if needed
+        if self.str_cfg.use_default_oscillator:
+            osc_model_anasymod = anasymod_root() / 'verilog' / 'osc_model_anasymod.sv'
+            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod), name='osc_model_anasymod')]
+
+        # Include the source code for the anasymod control block
+        ctrl_anasymod = anasymod_root() / 'verilog' / 'ctrl_anasymod.sv'
+        self.content.verilog_sources += [VerilogSource(files=str(ctrl_anasymod), name='ctrl_anasymod')]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
         with (open(clkmanagerwrapper_path, 'w')) as clkm_file:
             clkm_file.write(ModuleClkManager(scfg=self.str_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path)]
+        self.content.verilog_sources += [VerilogSource(files=clkmanagerwrapper_path,
+                                                       name='gen_clkmanager_wrap')]
 
         # Generate traceport wrapper and add to target sources
         trapwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_traceport_wrap.sv')
         with (open(trapwrapper_path, 'w')) as trap_file:
             trap_file.write(ModuleTracePort(scfg=self.str_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=trapwrapper_path)]
+        self.content.verilog_sources += [VerilogSource(files=trapwrapper_path,
+                                                       name='gen_traceport_wrap')]
 
         # Generate emulation clk gen module and add to target sources
         gen_emu_clks_path = os.path.join(self.prj_cfg.build_root, 'gen_emu_clks.sv')
         with (open(gen_emu_clks_path, 'w')) as emu_clks_file:
             emu_clks_file.write(ModuleEmuClks(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=gen_emu_clks_path)]
+        self.content.verilog_sources += [VerilogSource(files=gen_emu_clks_path,
+                                                       name='gen_emu_clks')]
 
         # Generate time manager and add to target sources
         timemanager_path = os.path.join(self.prj_cfg.build_root, 'gen_time_manager.sv')
         with (open(timemanager_path, 'w')) as timemanager_file:
             timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
-        self.content.verilog_sources += [VerilogSource(files=timemanager_path)]
+        self.content.verilog_sources += [VerilogSource(files=timemanager_path,
+                                                       name='gen_time_manager')]
 
     @property
     def project_root(self):
@@ -124,6 +144,15 @@ class Target():
     @property
     def result_path_raw(self):
         return os.path.join(self.prj_cfg.build_root, r"raw_results", self.result_name_raw)
+
+    @property
+    def expanded_simctrl_path(self):
+        """
+        Path used to load simctrl file. This allows to use a custom simctrl configuration for a target.
+
+        :return: str
+        """
+        return "".join(expand_searchpaths(paths=self.cfg.simctrl_path, rel_path_reference=self.prj_cfg.root))
 
 class CPUTarget(Target):
     def __init__(self, prj_cfg: EmuConfig, plugins: list, float_type:bool, name=r"sim"):
@@ -222,6 +251,9 @@ class Config(BaseConfig):
         self.fpga_sim_ctrl = FPGASimCtrl.VIVADO_VIO
         """ type(float) : FPGA simulation control interface used for this target. """
 
+        self.simctrl_path = os.path.join(prj_cfg.root, 'simctrl.yaml')
+        """ type(str) : Path used to load simctrl file. This allows to use a custom simctrl configuration for a target. """
+
 class Content():
     """
     Container storing all Project specific source files, such as RTL, eSW code, blockdiagrams, IP core configs,
@@ -245,3 +277,7 @@ class Content():
         """:type : List[MEMFile]"""
         self.bd_files = []
         """:type : List[BDFile]"""
+        self.ip_repos = []
+        """:type : List[IPRepo]"""
+        self.functional_models = []
+        """:type : List[FunctionalModel]"""

@@ -78,10 +78,13 @@ class VIOCtrlApi(CtrlApi):
         script = Path(script).resolve()
         res = self.sendline(f'source {script.as_posix()}', timeout=timeout)
 
-    def setup_trace_unit(self, trigger_name, trigger_operator, trigger_value):
+    def setup_trace_unit(self, trigger_name, trigger_operator, trigger_value, sample_decimation=None, sample_count=None):
         """
         Setup the trace unit. This involves defining the signal, that shall be used to start tracing and defining the
         comparison operator, which is used to monitor the trigger signal. Also arm the trace unit at the end.
+
+        Note: In case the trigger value is set too high and an overflow occurs, the simulation will hang, as the trigger
+        condition will never be met.
 
         :param trigger_name:        Probe signal to be used as trigger signal.
         :param trigger_operator:    Comparison operator that is used when monitoring the trigger signal to detect,
@@ -93,9 +96,17 @@ class VIOCtrlApi(CtrlApi):
                                         lt (lesser than),
                                         lteq (lesser or equal than)
         :param trigger_value:       Value, the probe signal is compared to.
+        :param sample_decimation:   Number of samples to be skipped during recording. By default, every sample will
+                                    stored in the results file, adding a sample_decimation will allow to only record
+                                    every x sample.
+        :param sample_count:        Number of samples to be recorded. This number shall not exceed that maximum ILA
+                                    depth defined during project setup.
         """
 
         trigger_obj = None
+
+        window_count = self.pcfg.ila_depth if sample_count is None else sample_count
+        window_count = window_count / 2
 
         # Check, if provided tirgger_signal is a valid signal connected to the ILA
         for probe in [self.scfg.time_probe] + self.scfg.analog_probes + self.scfg.digital_probes:
@@ -132,8 +143,23 @@ class VIOCtrlApi(CtrlApi):
         else:
             raise Exception(f'ERROR: No valid signal type for provided trigger signal:{trigger_name} Type:{type(trigger_obj)}')
 
+        self.sendline(f'set_property CONTROL.CAPTURE_MODE BASIC $ila_0_i')
         self.sendline(f'set_property CONTROL.TRIGGER_POSITION 0 $ila_0_i')
         self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_int} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
+
+        # Data depth is set to 2, as 1 is not supported by Vivado's ILA Core
+        self.sendline(f'set_property CONTROL.DATA_DEPTH 2 $ila_0_i')
+
+        # Window count is set to half of the selected ILA depth
+        self.sendline(f'set_property CONTROL.WINDOW_COUNT {int(window_count)} $ila_0_i')
+        self.sendline(f"set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes trace_port_gen_i/emu_dec_cmp -of_objects $ila_0_i]")
+
+        # Set decimation threshold signal to value defined in sample_decimation if set
+        if sample_decimation:
+            if isinstance(sample_decimation, int): # Check if sample_decimation is an integer
+                self.set_param(name=self.scfg.dec_thr_ctrl.name, value=sample_decimation, timeout=30)
+            else:
+                raise Exception(f'Provided sample_decimation value is of wrong type, expecting integer and got:{type(sample_decimation)}')
 
         self.arm_trace_unit()
 
@@ -156,8 +182,8 @@ class VIOCtrlApi(CtrlApi):
         self.sendline('wait_on_hw_ila $ila_0_i')
 
         # transmit and dump trace buffer data to a CSV file
-        self.sendline('upload_hw_ila_data $ila_0_i')
-        self.sendline(f'write_hw_ila_data -csv_file -force {{{self.result_path_raw if result_file is None else result_file}}} hw_ila_data_1')
+        self.sendline('current_hw_ila_data [upload_hw_ila_data $ila_0_i]')
+        self.sendline(f'write_hw_ila_data -csv_file -force {{{self.result_path_raw if result_file is None else result_file}}} [current_hw_ila_data]')
 
         # Convert to .vcd and from fixed-point to float
         ConvertWaveform(result_path_raw=self.result_path_raw,
@@ -221,8 +247,38 @@ class VIOCtrlApi(CtrlApi):
         :param value: Value of reset signal, 1 will set it to reset and 0 will release reset.
         :param timeout: Maximum time granted for operation to finish
         """
-        self.sendline(f'set_property OUTPUT_VALUE {value} ${self.scfg.reset_ctrl.name}', timeout=timeout)
-        self.sendline(f'commit_hw_vio ${self.scfg.reset_ctrl.name}')
+        self.set_param(name=self.scfg.reset_ctrl.name, value=value, timeout=timeout)
+
+    def set_ctrl_mode(self, value, timeout=30):
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
+
+    def set_ctrl_data(self, value, timeout=30):
+        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
+
+    def stall_emu(self, timeout=30):
+        self.set_ctrl_mode(1, timeout=timeout)
+
+    def get_emu_time_int(self, timeout=30):
+        self.refresh_param('vio_0_i')
+        emu_time_vio = self.get_param(name=self.scfg.emu_time_vio.name, timeout=timeout)
+        return int(emu_time_vio)
+
+    def get_emu_time(self, timeout=30):
+        return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
+
+    def sleep_emu(self, t, timeout=30):
+        # stall
+        self.stall_emu()
+
+        # set up in sleep mode
+        t_next = t + self.get_emu_time(timeout=timeout)
+        t_next_int = int(round(t_next / self.pcfg.cfg.dt_scale))
+        self.set_ctrl_data(t_next_int)
+        self.set_ctrl_mode(2)
+
+        # wait for enough time to pass
+        while(self.get_emu_time_int() < t_next_int):
+            pass
 
     ### Utility Functions
 
@@ -250,7 +306,9 @@ class VIOCtrlApi(CtrlApi):
         sys.stdout.flush()
 
         # construct the command to launch Vivado
-        cmd = 'vivado -nolog -nojournal -notrace -mode tcl'
+        cmd = 'vivado '
+        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
+        cmd += '-nolog -nojournal -notrace -mode tcl'
 
         # Use pexpect under linux for interactive vivado ctrl
         if os.name == 'posix':
@@ -268,9 +326,13 @@ class VIOCtrlApi(CtrlApi):
             # TODO: do this only if needed
             env = os.environ.copy()
             env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            os.environ['WEXPECT_SPAWN_CLASS'] = 'SpawnPipe'
             # Launch Vivado
-            # TODO: should this be spawnu instead?
-            from wexpect import spawn
+            try:
+                # import patched wexpect from Inicio installation
+                from site_pip_packages.wexpect import spawn
+            except:
+                from wexpect import spawn
             self.proc = spawn(command=cmd, cwd=self.cwd, env=env)
         else:
             raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')

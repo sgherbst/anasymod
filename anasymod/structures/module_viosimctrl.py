@@ -8,7 +8,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
     def __init__(self, scfg: StructureConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
 
-        crtl_inputs = scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
+        ctrl_inputs = scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         ctrl_outputs = scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs
 
         #####################################################
@@ -18,7 +18,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
 
         module = ModuleInst(api=self.module_ifc, name="sim_ctrl_gen")
         module.add_inputs(ctrl_outputs)
-        module.add_outputs(crtl_inputs + [scfg.dec_thr_ctrl] + [scfg.reset_ctrl])
+        module.add_outputs(ctrl_inputs)
         module.add_input(scfg.emu_clk)
 
         module.generate_header()
@@ -30,11 +30,21 @@ class ModuleVIOSimCtrl(JinjaTempl):
         ## Custom control IOs for pc sim control module
         self.pc_sim_crtl_ifc = SVAPI()
 
-        # Only generate instantiation if there is any ctrl signal available
-        if len(ctrl_outputs + crtl_inputs) != 0:
+        # Only generate instantiation if there is any custom ctrl signal available
+        ctrl_signals = ctrl_outputs + ctrl_inputs
+        custom_ctrl_signals = []
+        for ctrl_signal in ctrl_signals:
+            if not ctrl_signal.name in scfg.special_ctrl_ios:
+                custom_ctrl_signals.append(ctrl_signal)
+
+        if len(custom_ctrl_signals) != 0:
             sim_ctrl_module = ModuleInst(api=self.pc_sim_crtl_ifc, name="sim_ctrl")
-            sim_ctrl_module.add_inputs(ctrl_outputs, connections=ctrl_outputs)
-            sim_ctrl_module.add_outputs(crtl_inputs, connections=crtl_inputs)
+            for ctrl_output in ctrl_outputs:
+                if ctrl_output.name not in scfg.special_ctrl_ios:
+                    sim_ctrl_module.add_input(ctrl_output, connection=ctrl_output)
+            for ctrl_input in ctrl_inputs:
+                if ctrl_input.name not in scfg.special_ctrl_ios:
+                    sim_ctrl_module.add_output(ctrl_input, connection=ctrl_input)
 
             sim_ctrl_module.generate_instantiation()
 
@@ -59,7 +69,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
             vio_i = DigitalSignal(name=f'probe_in{k}', width=width, abspath=None)
             vio_wiz.add_input(io_obj=vio_i, connection=input)
 
-        for k, output in enumerate([scfg.reset_ctrl] + [scfg.dec_thr_ctrl] + crtl_inputs):
+        for k, output in enumerate(ctrl_inputs):
             if isinstance(output, AnalogCtrlInput):
                 width = '`LONG_WIDTH_REAL'
             elif isinstance(output, DigitalCtrlInput):
@@ -73,7 +83,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
         vio_wiz.add_input(io_obj=DigitalSignal(name='clk', width=1, abspath=None), connection=scfg.emu_clk)
         vio_wiz.generate_instantiation()
 
-    TEMPLATE_TEXT = '''
+    TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
 `include "svreal.sv"
@@ -83,24 +93,29 @@ class ModuleVIOSimCtrl(JinjaTempl):
 
 `ifdef SIMULATION_MODE_MSDSL
     // reset sequence
-    logic emu_rst_state = 1'b1;
+    logic emu_rst_state = 1'b1;    
+    assign emu_rst = emu_rst_state;
     initial begin
-        #((`DT_MSDSL)*{{subst.rst_clkcycles}}*1s);
+        @(posedge emu_clk);
+        #((0.1/(`EMU_CLK_FREQ))*1s);
         emu_rst_state = 1'b0;
     end
 
-    // output assignment
-    assign emu_rst = emu_rst_state;
+    // decimation threshold
     `ifndef DEC_THR_VAL_MSDSL
         `define DEC_THR_VAL_MSDSL 0
     `endif // `ifdef DEC_THR_VAL_MSDSL
     assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
 
-     
-    //module for custom vio handling
-    //NOTE: sim_ctrl module must be written and added to the project manually!!!
+    // stall / run / sleep controls
+    logic [((`TIME_WIDTH)-1):0] emu_ctrl_data_state;
+    logic [3:0] emu_ctrl_mode_state;
+    assign emu_ctrl_data = emu_ctrl_data_state;
+    assign emu_ctrl_mode = emu_ctrl_mode_state;
+
+    // module for custom vio handling
+    // NOTE: sim_ctrl module must be written and added to the project manually!!!
 {{subst.pc_sim_crtl_ifc.text}}
-    
 `else
 	// VIO instantiation
 {{subst.vio_wiz_inst.text}}
