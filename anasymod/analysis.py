@@ -20,6 +20,7 @@ from anasymod.defines import Define
 from anasymod.targets import CPUTarget, FPGATarget
 from anasymod.enums import ConfigSections
 from anasymod.utils import statpro
+from anasymod.util import expand_path
 from anasymod.wave import ConvertWaveform
 from anasymod.plugins import Plugin
 from typing import Union
@@ -480,10 +481,17 @@ class Analysis():
         except:
             return np.array(wave_step, dtype='O').transpose()
 
-    def view(self):
+    def view(self, result_file=None):
         """
         View results from selected target run.
+
+        :param result_file: Path to the result file that shall be opened
         """
+
+        root = self._prj_cfg.root
+
+        if result_file is not None:
+            result_file = expand_path(result_file, rel_path_reference=root)
 
         target = getattr(self, self.args.active_target)
 
@@ -504,7 +512,7 @@ class Analysis():
             gtkw_search_order = ['view.gtkw']
 
         for basename in gtkw_search_order:
-            candidate_path = os.path.join(self.args.input, basename)
+            candidate_path = os.path.join(root, basename)
             if os.path.isfile(candidate_path):
                 self._prj_cfg.gtkwave_config.gtkw_config = candidate_path
                 break
@@ -512,11 +520,11 @@ class Analysis():
             self._prj_cfg.gtkwave_config.gtkw_config = None
 
         # set config file location for SimVision
-        self._prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
+        self._prj_cfg.simvision_config.svcf_config = os.path.join(root, 'view.svcf')
 
         # run viewer
         viewer = viewer_cls(target=target)
-        viewer.view()
+        viewer.view(result_file=result_file)
 
     def pack_results(self, target=None):
         """

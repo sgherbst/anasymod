@@ -97,20 +97,24 @@ def expand_searchpaths(paths: Union[list, str], rel_path_reference: str):
     else:
         raise TypeError(f"Wrong format used for passing searchpaths, expecting list: {paths}")
     for file in paths:
-        file = os.path.expandvars(str(file).strip('" '))
-        if not os.path.isabs(file):
-            if rel_path_reference is not None:
-                path_suffix = file.replace('\\', '/').replace('/', os.sep).split(os.sep)
-                try:
-                    path_suffix.remove('.')
-                except:
-                    pass
-                file = os.path.join(rel_path_reference, *(path_suffix))
-            else:
-                raise KeyError(f"No reference for expanding relative paths was provided for search paths: {paths}")
+        file = expand_path(path=file, rel_path_reference=rel_path_reference)
         abs_paths.append(file)
 
     return [file for p in abs_paths for file in glob(p)]
+
+def expand_path(path, rel_path_reference):
+    path = os.path.expandvars(str(path).strip('" '))
+    if not os.path.isabs(path):
+        if rel_path_reference is not None:
+            path_suffix = path.replace('\\', '/').replace('/', os.sep).split(os.sep)
+            try:
+                path_suffix.remove('.')
+            except:
+                pass
+            path = os.path.join(rel_path_reference, *(path_suffix))
+        else:
+            raise KeyError(f"No reference for expanding relative paths was provided for path: {path}")
+    return path
 
 ########################
 # parallel_scripts

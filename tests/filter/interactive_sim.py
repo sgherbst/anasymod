@@ -11,6 +11,8 @@ def parse():
     return parser.parse_args()
 
 def main():
+    result_file = r'./results/dummy.vcd'
+
     args = parse()
     ana = Analysis(input=root)                              # create analysis object to host prototyping project
 
@@ -26,11 +28,11 @@ def main():
                                  trigger_operator='gt',
                                  trigger_value=1e-9,
                                  sample_decimation=8,
-                                 sample_count=10
+                                 sample_count=20
                                  )           # config & arm trace unit
     ctrl_handle.set_reset(0)                                # start simulation
-    ctrl_handle.wait_on_and_dump_trace()                    # wait till trace buffer is full and dump to result file
-    ana.view()                                              # view waveform
+    ctrl_handle.wait_on_and_dump_trace(result_file=result_file)                    # wait till trace buffer is full and dump to result file
+    ana.view(result_file=result_file)                                              # view waveform
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,8 @@ from anasymod.config import EmuConfig
 from anasymod.enums import TraceUnitOperators
 from anasymod.sim_ctrl.datatypes import AnalogProbe, DigitalSignal
 from anasymod.wave import ConvertWaveform
+from anasymod.util import expand_path
+from anasymod.files import mkdir_p
 
 SERVER_PORT = 57937
 
@@ -178,17 +180,37 @@ class VIOCtrlApi(CtrlApi):
         :param result_file: Optionally, it is possible to provide a custom result file path.
         """
 
+        if result_file is not None:
+            # Expand provided path, paths relative to project root are also supported
+            result_path = expand_path(result_file, rel_path_reference=self.pcfg.root)
+
+            # Create raw result path by adding _raw to the filename
+            result_path_raw = os.path.join(os.path.dirname(result_path),
+                                           os.path.basename(os.path.splitext(result_path)[0]) + '_raw' +
+                                           os.path.splitext(result_path)[1])
+            print(f'Simulation results will be stored in:{result_path}')
+        else:
+            result_path = self.result_path
+            result_path_raw = self.result_path_raw
+
+        if not result_path:
+            raise Exception(f'ERROR: provided result_file:{result_file} is not valid!')
+
         # wait until trace buffer is full
         self.sendline('wait_on_hw_ila $ila_0_i')
 
         # transmit and dump trace buffer data to a CSV file
         self.sendline('current_hw_ila_data [upload_hw_ila_data $ila_0_i]')
-        self.sendline(f'write_hw_ila_data -csv_file -force {{{self.result_path_raw if result_file is None else result_file}}} [current_hw_ila_data]')
+
+        if not os.path.isdir(os.path.dirname(result_path_raw)):
+            mkdir_p(os.path.dirname(result_path_raw))
+
+        self.sendline(f'write_hw_ila_data -csv_file -force {{{result_path_raw}}} [current_hw_ila_data]')
 
         # Convert to .vcd and from fixed-point to float
-        ConvertWaveform(result_path_raw=self.result_path_raw,
+        ConvertWaveform(result_path_raw=result_path_raw,
                         result_type_raw=self.result_type_raw,
-                        result_path=self.result_path,
+                        result_path=result_path,
                         str_cfg=self.scfg,
                         float_type=self.float_type)
 
