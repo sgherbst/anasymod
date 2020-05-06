@@ -102,13 +102,21 @@ class VIOCtrlApi(CtrlApi):
                                     stored in the results file, adding a sample_decimation will allow to only record
                                     every x sample.
         :param sample_count:        Number of samples to be recorded. This number shall not exceed that maximum ILA
-                                    depth defined during project setup.
+                                    depth defined during project setup AND needs to be a multiple of 2.
         """
 
         trigger_obj = None
 
-        window_count = self.pcfg.ila_depth if sample_count is None else sample_count
-        window_count = window_count / 2
+        if sample_count:
+            if not sample_count % 2:
+                depth = sample_count
+            else:
+                raise Exception(f'ERROR: Sample count needs to be a multiple of 2, but is set to:{sample_count}')
+        else:
+            depth = self.pcfg.ila_depth
+
+        #window_count = self.pcfg.ila_depth if sample_count is None else sample_count
+        #window_count = window_count / 2
 
         # Check, if provided tirgger_signal is a valid signal connected to the ILA
         for probe in [self.scfg.time_probe] + self.scfg.analog_probes + self.scfg.digital_probes:
@@ -150,10 +158,11 @@ class VIOCtrlApi(CtrlApi):
         self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_int} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
 
         # Data depth is set to 2, as 1 is not supported by Vivado's ILA Core
-        self.sendline(f'set_property CONTROL.DATA_DEPTH 2 $ila_0_i')
+        self.sendline(f'set_property CONTROL.DATA_DEPTH {depth} $ila_0_i')
 
         # Window count is set to half of the selected ILA depth
-        self.sendline(f'set_property CONTROL.WINDOW_COUNT {int(window_count)} $ila_0_i')
+        #self.sendline(f'set_property CONTROL.WINDOW_COUNT {int(window_count)} $ila_0_i')
+        self.sendline(f'set_property CONTROL.WINDOW_COUNT 1 $ila_0_i')
         self.sendline(f"set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes trace_port_gen_i/emu_dec_cmp -of_objects $ila_0_i]")
 
         # Set decimation threshold signal to value defined in sample_decimation if set

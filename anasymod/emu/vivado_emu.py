@@ -77,7 +77,7 @@ class VivadoEmulation(VivadoTCLGenerator):
 
             # Setup ILA for signal probing - only of at least one probe is defined
             if len(scfg.analog_probes + scfg.digital_probes + [scfg.time_probe]) != 0:
-                self.use_templ(TemplILA(target=self.target))
+                self.use_templ(TemplILA(target=self.target, depth=self.target.prj_cfg.ila_depth))
     
             # Setup Debug Hub
             constrs.use_templ(TemplDbgHub(target=self.target))

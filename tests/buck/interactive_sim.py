@@ -24,9 +24,10 @@ def main():
     ctrl_handle.set_reset(1)                                # reset simulation
     ctrl_handle.setup_trace_unit(trigger_name='time',
                                  trigger_operator='gt',
-                                 trigger_value=0.2,
-                                 sample_decimation=0,
-                                 sample_count=10
+                                 #trigger_value=0.000000001,
+                                 trigger_value=0.26,
+                                 sample_decimation=10,
+                                 sample_count=16384
                                  )           # config & arm trace unit
     ctrl_handle.set_reset(0)                                # start simulation
     ctrl_handle.wait_on_and_dump_trace()                    # wait till trace buffer is full and dump to result file
