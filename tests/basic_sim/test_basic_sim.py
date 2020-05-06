@@ -104,7 +104,7 @@ def test_error_recognition():
         ana.simulate(**kwargs)
 
 @pytest.mark.parametrize('mode',
-    ['simulate'] + (['build_and_emulate'] if 'FPGA_SERVER' in os.environ else [])
+    ['simulate'] + (['build_and_emulate'] if ('FPGA_SERVER' in os.environ or 'INICIO_INSTALL' in os.environ) else [])
 )
 def test_filter(mode):
     print("Running filter sim")
