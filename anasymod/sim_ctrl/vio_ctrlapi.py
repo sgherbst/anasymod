@@ -23,7 +23,8 @@ class VIOCtrlApi(CtrlApi):
     necessary in the targeted system must have already been programmed.
     """
     def __init__(self, result_path_raw, result_type_raw, result_path, scfg: StructureConfig, pcfg: EmuConfig,
-                 bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False, float_type=False):
+                 bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False, float_type=False,
+                 dt_scale=1e-15):
         super().__init__()
         # set defaults
         if err_strs is None:
@@ -48,6 +49,8 @@ class VIOCtrlApi(CtrlApi):
         # TODO: is there a better way to access this information?
         self.analog_ctrl_outputs = {elem.name: elem for elem in self.scfg.analog_ctrl_outputs}
         self.analog_ctrl_inputs = {elem.name: elem for elem in self.scfg.analog_ctrl_inputs}
+
+        self.record_timeout = 0.0
 
     ### User Functions
 
@@ -105,6 +108,10 @@ class VIOCtrlApi(CtrlApi):
                                     depth defined during project setup AND needs to be a multiple of 2.
         """
 
+        # Compute timeout, that needs to be set for ila recording. Due to a bug in the ILA core, recording does not
+        # return, unless a timeout is specified, for recordings exceeding 0.26 s
+        self.record_timeout = 0.0
+
         trigger_obj = None
 
         if sample_count:
@@ -115,10 +122,7 @@ class VIOCtrlApi(CtrlApi):
         else:
             depth = self.pcfg.ila_depth
 
-        #window_count = self.pcfg.ila_depth if sample_count is None else sample_count
-        #window_count = window_count / 2
-
-        # Check, if provided tirgger_signal is a valid signal connected to the ILA
+        # Check, if provided trigger_signal is a valid signal connected to the ILA
         for probe in [self.scfg.time_probe] + self.scfg.analog_probes + self.scfg.digital_probes:
             if trigger_name == probe.name:
                 trigger_obj = probe
@@ -137,16 +141,24 @@ class VIOCtrlApi(CtrlApi):
                 raise Exception(
                     f'ERROR: trigger_value type for an analog trigger signal shall ne float, it is instead:{type(trigger_value)}')
             value_int = int(round(trigger_value * (2 ** (int(-trigger_obj.exponent)))))
-            trigger_value_int = f"{int(trigger_obj.width)}'u{value_int}"
+            trigger_value_as_bin = f"{int(trigger_obj.width)}'u{value_int}"
         elif isinstance(trigger_obj, DigitalSignal):
-            if isinstance(trigger_value, int):
-                trigger_value_int = f"{trigger_obj.width}'u{trigger_value}"
+            # For the time signal, conversion from float to int is necessary
+            if trigger_name in ['time', self.scfg.time_probe.name]:
+                # Convert trigger value to integer considering dt_scale
+                trigger_value_as_int = int(float(trigger_value) / float(self.pcfg.cfg.dt_scale))
+                # Represent as binary and expand to time_width
+                trigger_value_as_bin = f"{trigger_obj.width}'b{bin(trigger_value_as_int).replace('b', '').zfill(self.pcfg.cfg.time_width)}"
+                # Extend record_timeout according to time trigger
+                self.record_timeout += float(trigger_value)
+            elif isinstance(trigger_value, int):
+                trigger_value_as_bin = f"{trigger_obj.width}'u{trigger_value}"
             else:
                 p = set(trigger_value)
                 s = {'0', '1'}
 
                 if s == p or p == {'0'} or p == {'1'}:
-                    trigger_value_int = f"{trigger_obj.width}'b{trigger_value}"
+                    trigger_value_as_bin = f"{trigger_obj.width}'b{trigger_value}"
                 else:
                     raise Exception(f'ERROR: Provided trigger value:{trigger_value} is not valid for a digital trigger '
                                     f'signal, either provide and interger or binary string!')
@@ -155,7 +167,7 @@ class VIOCtrlApi(CtrlApi):
 
         self.sendline(f'set_property CONTROL.CAPTURE_MODE BASIC $ila_0_i')
         self.sendline(f'set_property CONTROL.TRIGGER_POSITION 0 $ila_0_i')
-        self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_int} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
+        self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_as_bin} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
 
         # Data depth is set to 2, as 1 is not supported by Vivado's ILA Core
         self.sendline(f'set_property CONTROL.DATA_DEPTH {depth} $ila_0_i')
@@ -171,8 +183,16 @@ class VIOCtrlApi(CtrlApi):
                 self.set_param(name=self.scfg.dec_thr_ctrl.name, value=sample_decimation, timeout=30)
             else:
                 raise Exception(f'Provided sample_decimation value is of wrong type, expecting integer and got:{type(sample_decimation)}')
+        else:
+            sample_decimation = 0
 
         self.arm_trace_unit()
+
+        # conclude calculation of record_timeout by considering time needed to collect samples and representing
+        # over minutes
+
+        self.record_timeout += float(self.pcfg.cfg.dt) * depth * sample_decimation
+        self.record_timeout = self.record_timeout / 60
 
     def arm_trace_unit(self):
         """
@@ -206,7 +226,7 @@ class VIOCtrlApi(CtrlApi):
             raise Exception(f'ERROR: provided result_file:{result_file} is not valid!')
 
         # wait until trace buffer is full
-        self.sendline('wait_on_hw_ila $ila_0_i')
+        self.sendline(f'wait_on_hw_ila -timeout {self.record_timeout} $ila_0_i')
 
         # transmit and dump trace buffer data to a CSV file
         self.sendline('current_hw_ila_data [upload_hw_ila_data $ila_0_i]')
@@ -221,7 +241,8 @@ class VIOCtrlApi(CtrlApi):
                         result_type_raw=self.result_type_raw,
                         result_path=result_path,
                         str_cfg=self.scfg,
-                        float_type=self.float_type)
+                        float_type=self.float_type,
+                        dt_scale=self.pcfg.cfg.dt_scale)
 
     def refresh_param(self, name, timeout=30):
         """
@@ -280,6 +301,14 @@ class VIOCtrlApi(CtrlApi):
         """
 
         self.set_param(name=self.scfg.reset_ctrl.name, value=value, timeout=timeout)
+
+    def get_emu_time_int(self, timeout=30):
+        self.refresh_param('vio_0_i')
+        emu_time_vio = self.get_param(name=self.scfg.emu_time_vio.name, timeout=timeout)
+        return int(emu_time_vio)
+
+    def get_emu_time(self, timeout=30):
+        return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
 
     ### Utility Functions
 

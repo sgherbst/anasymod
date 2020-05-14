@@ -5,6 +5,15 @@ from anasymod.sim_ctrl.datatypes import DigitalSignal
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.util import back2fwd
 
+def digsig(name, width=1, signed=False):
+    # convenience function to return a digital signal
+    return DigitalSignal(
+        name=f'{name}',
+        width=width,
+        signed=signed,
+        abspath=''
+    )
+
 class ModuleTop(JinjaTempl):
     """
     This is the generator for top.sv.
@@ -181,19 +190,21 @@ class ModuleTop(JinjaTempl):
         # Manage time manager Module
         ######################################################
 
-        dt_req_sig_names = []
-
         ## Instantiate all time manager signals
+
+        #if self.num_dt_reqs > 0:
         self.inst_timemanager_sigs = SVAPI()
 
-        if scfg.num_dt_reqs > 0:
-            self.inst_timemanager_sigs.gen_signal(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True))
-            for derived_clk in scfg.clk_derived:
-                if derived_clk.abspath_dt_req is not None:
-                    dt_req_sig_names.append(derived_clk.name)
+        emu_dt = digsig('emu_dt', width=pcfg.cfg.dt_width)
+        self.inst_timemanager_sigs.gen_signal(emu_dt)
 
-        for dt_req_sig_name in dt_req_sig_names:
-            self.inst_timemanager_sigs.gen_signal(DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
+        dt_req_sigs = []
+        for derived_clk in scfg.clk_derived:
+            if derived_clk.abspath_dt_req is None:
+                continue
+            dt_req_sig = digsig(f'dt_req_{derived_clk.name}', width=pcfg.cfg.dt_width)
+            self.inst_timemanager_sigs.gen_signal(dt_req_sig)
+            dt_req_sigs.append(dt_req_sig)
 
         ## Instantiate time manager module
         self.time_manager_inst_ifc = SVAPI()
@@ -201,16 +212,21 @@ class ModuleTop(JinjaTempl):
         time_manager_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
         time_manager_inst.add_input(scfg.reset_ctrl, connection=scfg.reset_ctrl)
         time_manager_inst.add_output(scfg.time_probe, scfg.time_probe)
-        if scfg.num_dt_reqs > 0:
-            # wire up the emu_dt signal if needed
-            # TODO: cleanup
-            emu_dt = DigitalSignal(name='emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True)
-            time_manager_inst.add_output(emu_dt, emu_dt)
-        for dt_req_sig_name in dt_req_sig_names:
-            dt_req_sig = DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True)
+        time_manager_inst.add_output(emu_dt, emu_dt)
+        for dt_req_sig in dt_req_sigs:
             time_manager_inst.add_input(dt_req_sig, connection=dt_req_sig)
 
         time_manager_inst.generate_instantiation()
+        #else:
+        #    self.inst_timemanager_sigs = None
+        #    self.time_manager_inst_ifc = None
+
+        ######################################################
+        # Control module
+        ######################################################
+
+        # indicate whether TSTOP_MSDSL should be used
+        self.use_tstop = target.cfg.tstop is not None
 
         #####################################################
         # Instantiate testbench
@@ -277,8 +293,10 @@ module top(
 // emulation clock declarations
 logic emu_clk, emu_clk_2x;
 
+{% if subst.inst_timemanager_sigs is not none %}
 // declarations for time manager
 {{subst.inst_timemanager_sigs.text}}
+{% endif %}
 
 // declarations for emu clock generator
 {{subst.inst_emu_clk_sigs.text}}
@@ -300,8 +318,10 @@ logic emu_clk, emu_clk_2x;
 // Emulation Clks Generator
 {{subst.emu_clks_inst_ifc.text}}
 
+{% if subst.time_manager_inst_ifc.text is not none %}
 // Time manager
 {{subst.time_manager_inst_ifc.text}}
+{% endif %}
 
 // calculate decimation ctrl signal for trace port
 logic [{{subst.dec_bits|int-1}}:0] emu_dec_cnt, emu_dec_nxt;
@@ -331,12 +351,16 @@ mem_digital #(
 
 // simulation control
 `ifdef SIMULATION_MODE_MSDSL
-    // stop simulation after some time
-    initial begin
-        #((`TSTOP_MSDSL)*1s);
-        $finish;
+    {% if subst.use_tstop %}
+    // stop simulation after a predefined amount of emulation time
+    localparam longint tstop_uint = (`TSTOP_MSDSL) / (`DT_SCALE);
+    always @(emu_time) begin
+        if (emu_time >= tstop_uint) begin
+            $display("Ending simulation at emu_time=%e", emu_time*(`DT_SCALE));
+            $finish;
+        end
     end
-
+    {% endif %}
     // dump waveforms to a specified VCD file
     `define ADD_QUOTES_TO_MACRO(macro) `"macro`"
     initial begin
@@ -354,7 +378,8 @@ endmodule
 '''
 
 def main():
-    print(ModuleTop(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
+    pass
+    #print(ModuleTop(target=FPGATarget(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
 
 if __name__ == "__main__":
     main()

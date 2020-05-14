@@ -4,6 +4,7 @@ from anasymod.generators.gen_api import SVAPI, ModuleInst
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
 
+
 class ModuleTimeManager(JinjaTempl):
     def __init__(self, scfg: StructureConfig, pcfg: EmuConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
@@ -21,37 +22,61 @@ class ModuleTimeManager(JinjaTempl):
         module.add_input(scfg.reset_ctrl)
         module.add_output(scfg.time_probe)
 
-        dt_req_sig_names = []
-        if scfg.num_dt_reqs > 0:
-            module.add_output(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=True))
-            for derived_clk in scfg.clk_derived:
-                if derived_clk.abspath_dt_req is not None:
-                    dt_req_sig_names.append(derived_clk.name)
+        module.add_output(DigitalSignal(name=f'emu_dt', abspath='', width=pcfg.cfg.dt_width, signed=False))
 
-        for dt_req_sig_name in dt_req_sig_names:
-            module.add_input(DigitalSignal(name=f'dt_req_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
+        # add inputs for external timestep requests
+        dt_reqs = []
+        for derived_clk in scfg.clk_derived:
+            if derived_clk.abspath_dt_req is not None:
+                dt_req = DigitalSignal(
+                    name=f'dt_req_{derived_clk.name}',
+                    abspath='',
+                    width=pcfg.cfg.dt_width,
+                    signed=False
+                )
+                module.add_input(dt_req)
+                dt_reqs.append(dt_req)
 
         module.generate_header()
 
-        #####################################################
-        # Behaviour if num_dt_req > 0
-        #####################################################
+        # generate a bit of code to take the minimum of the timestep requests
+        self.codegen = SVAPI()
+        self.codegen.indent()
 
-        if dt_req_sig_names:
-            self.signal_gen = SVAPI()
-            for dt_req_sig_name in dt_req_sig_names:
-                self.signal_gen.gen_signal(DigitalSignal(name=f'dt_arr_{dt_req_sig_name}', abspath='', width=pcfg.cfg.dt_width, signed=True))
+        # take minimum of the timestep requests
+        if len(dt_reqs) == 0:
+            # Convert dt value to integer considering dt_scale
+            dt_as_int = int(float(pcfg.cfg.dt) / float(pcfg.cfg.dt_scale))
 
-            self.assign_ends = SVAPI()
-            self.assign_ends.indent()
-            self.assign_ends.writeln(f'assign dt_arr_{dt_req_sig_names[0]} = dt_req_{dt_req_sig_names[0]};')
-            self.assign_ends.writeln(f'assign emu_dt = dt_arr_{dt_req_sig_names[-1]};')
+            # Represent as binary and expand to dt_width
+            dt_as_bin = bin(dt_as_int).replace('b', '').zfill(pcfg.cfg.dt_width)
 
-            self.assign_intermediates = SVAPI()
-            for k in range(1, len(dt_req_sig_names)):
-                self.assign_intermediates.writeln(f'assign dt_arr_{dt_req_sig_names[k]} = dt_req_{dt_req_sig_names[k]} < dt_arr_{dt_req_sig_names[k-1]} ? dt_req_{dt_req_sig_names[k]} : dt_arr_{dt_req_sig_names[k-1]};')
+            # assign to the emulator timestep output
+            self.codegen.writeln(f"assign emu_dt = {pcfg.cfg.dt_width}'b{dt_as_bin};")
+            #raise Exception('The time manager requires that there is at least one timestep request.')
+        else:
+            prev_min = None
+            for k, curr_sig in enumerate(dt_reqs):
+                if k == 0:
+                    prev_min = curr_sig.name
+                else:
+                    # create a signal to hold temporary min result
+                    curr_min = f'__dt_req_min_{k - 1}'
+                    self.codegen.writeln(f'logic [((`DT_WIDTH)-1):0] {curr_min};')
+                    # take the minimum of the previous minimum and the current signal
+                    curr_min_val = self.vlog_min(curr_sig.name, prev_min)
+                    self.codegen.writeln(f'assign {curr_min} = {curr_min_val};')
+                    # mark the current minimum as the previous minimum for the next
+                    # iteration of the loop
+                    prev_min = curr_min
+            # assign to the emulator timestep output
+            self.codegen.writeln(f'assign emu_dt = {prev_min};')
 
-    TEMPLATE_TEXT = '''
+    @staticmethod
+    def vlog_min(a, b):
+        return f'((({a}) < ({b})) ? ({a}) : ({b}))'
+
+    TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
 `include "msdsl.sv"
@@ -59,43 +84,28 @@ class ModuleTimeManager(JinjaTempl):
 `default_nettype none
 
 {{subst.module_ifc.text}}
+{{subst.codegen.text}}
+    // assign internal state variable to output
+    logic [((`TIME_WIDTH)-1):0] emu_time_state;
+    assign emu_time = emu_time_state;
 
-{% if subst.num_dt_reqs == 0 %}
-    `COPY_FORMAT_REAL(emu_time, emu_time_next);
-    `COPY_FORMAT_REAL(emu_time, emu_dt);
-
-    `ASSIGN_CONST_REAL({{subst.dt_value}}, emu_dt);
-    `ADD_INTO_REAL(emu_time, emu_dt, emu_time_next);
-    `DFF_INTO_REAL(emu_time_next, emu_time, `RST_MSDSL, `CLK_MSDSL, 1'b1, 0);
-{% else %}
-
-    logic emu_time_sig;
-    
-    // create array of intermediate results and assign the endpoints
-    {{subst.signal_gen.text}}
-{{subst.assign_ends.text}}
-    
-    // assign intermediate results
-    {{subst.assign_intermediates.text}}
-    
-    // calculate emulation time
+    // update emulation time on each clock cycle
     always @(posedge emu_clk) begin
-        if (emu_rst == 1'b1) begin
-            emu_time_sig <= '0;
+        if (emu_rst==1'b1) begin
+            emu_time_state <= 0;
         end else begin
-            emu_time_sig <= emu_time_sig + emu_dt;
+            emu_time_state <= emu_time_state + emu_dt;
         end
     end
-    
-    assign emu_time = emu_time_sig;
-{% endif %}
 endmodule
 
 `default_nettype wire
 '''
 
+
 def main():
     print(ModuleTimeManager(scfg=StructureConfig(prj_cfg=EmuConfig(root='test', cfg_file=''))).render())
+
 
 if __name__ == "__main__":
     main()

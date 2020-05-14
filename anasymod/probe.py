@@ -1,13 +1,13 @@
+# general imports
 import numpy as np
 import os
 import csv
 import time
-
-
-from anasymod.utils.VCD_parser import ParseVCD
 from typing import Union
 
+# anasymod imports
 from anasymod.targets import CPUTarget, FPGATarget
+from anasymod.utils.VCD_parser import ParseVCD
 
 class Probe():
     """
@@ -305,21 +305,13 @@ class ProbeVCD(Probe):
         :param emu_time: Use emu_time as time basis or cycle_count
         :type emu_time: bool
         :param cache:
-        :return:
-        """
-        """
-                Access vcd data for specified run number simulation parameter
-
-                :param name: Column name in csv log, omit/None for all
-                :type name: str
-
-                :return: dict for `run_num`only or specified,
+        :return: dict for `run_num`only or specified,
                     list  for `name`  only specified,
                     numpy.array for specified `run_num` and `name`,
                     list of dict for run_num='all' specified
-                :rtype: numpy.array | list[numpy.array] | dict[ string : numpy.array]
+        :rtype: numpy.array | list[numpy.array] | dict[ string : numpy.array]
+        """
 
-                """
         run_num = 0
         vcd_handle = self.setup_data_access()
         try:
@@ -454,7 +446,15 @@ class ProbeVCD(Probe):
                 cycle_cnt = [i[0] for i in signal_dict[key]['cv']]
                 net = signal_dict[key]['nets'][0]
                 name = net['hier'] + '.' + net['name']
-                data[name] = np.array([cycle_cnt,signal], dtype='O')
+
+                if signal_dict[key]['nets'][0]['name'] == self.target.str_cfg.time_probe.name:
+                    # convert binary representation on time signal to integer and scale according to precision set in prj
+                    dt_scale = self.target.prj_cfg.cfg.dt_scale
+                    signal_scaled = [int(x, 2) * dt_scale for x in signal]
+                    data[name] = np.array([cycle_cnt, signal_scaled], dtype='O')
+                else:
+                    data[name] = np.array([cycle_cnt, signal], dtype='O')
+
                 data[name].setflags(write=False)
 
             if signal in [""]:

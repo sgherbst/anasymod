@@ -51,13 +51,13 @@ class TemplLAUNCH_FPGA_SIM(JinjaTempl):
 
         # Set radix for probes
         self.probe_radix = SVAPI()
-        for digital_probe in scfg.digital_probes:
+        for digital_probe in (scfg.digital_probes + [scfg.time_probe]):
             self.probe_radix.writeln(f'set_property DISPLAY_RADIX UNSIGNED ${digital_probe.name}')
 
-        for analog_probe in scfg.analog_probes + [scfg.time_probe]:
+        for analog_probe in scfg.analog_probes:
             self.probe_radix.writeln(f'set_property DISPLAY_RADIX SIGNED ${analog_probe.name}')
 
-    TEMPLATE_TEXT = '''
+    TEMPLATE_TEXT = '''\
 # Connect to hardware
 open_hw
 catch {disconnect_hw_server}

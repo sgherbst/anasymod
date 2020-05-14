@@ -24,9 +24,8 @@ def main():
     ctrl_handle.set_reset(1)                                # reset simulation
     ctrl_handle.setup_trace_unit(trigger_name='time',
                                  trigger_operator='gt',
-                                 #trigger_value=0.000000001,
-                                 trigger_value=0.26,
-                                 sample_decimation=10,
+                                 trigger_value=5.5,
+                                 sample_decimation=800,
                                  sample_count=16384
                                  )           # config & arm trace unit
     ctrl_handle.set_reset(0)                                # start simulation

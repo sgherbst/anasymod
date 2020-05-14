@@ -348,16 +348,21 @@ class Analysis():
             mkdir_p(os.path.dirname(target.result_path_raw))
 
         # run the emulation
-        VivadoEmulation(target=target).run_FPGA(start_time=self.args.start_time, stop_time=self.args.stop_time, server_addr=server_addr)
+        VivadoEmulation(target=target).run_FPGA(
+            start_time=self.args.start_time,
+            stop_time=self.args.stop_time,
+            server_addr=server_addr
+        )
+
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-
         ConvertWaveform(result_path_raw=target.result_path_raw,
                         result_type_raw=target.cfg.result_type_raw,
                         result_path=target.cfg.vcd_path,
                         str_cfg=target.str_cfg,
-                        float_type=self.float_type)
+                        float_type=self.float_type,
+                        dt_scale=self._prj_cfg.cfg.dt_scale)
 
     def launch(self, server_addr=None, debug=False):
         """
@@ -438,7 +443,8 @@ class Analysis():
                         result_path=target.cfg.vcd_path,
                         str_cfg=target.str_cfg,
                         float_type=self.float_type,
-                        debug=self._prj_cfg.cfg.cpu_debug_mode)
+                        debug=self._prj_cfg.cfg.cpu_debug_mode,
+                        dt_scale=self._prj_cfg.cfg.dt_scale)
 
     def probe(self, name, emu_time=False):
         """
@@ -758,7 +764,8 @@ class Analysis():
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='DT_EXPONENT', value=f'{self._prj_cfg.cfg.dt_exponent}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DT_SCALE', value=f'{self._prj_cfg.cfg.dt_scale}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
 
     def _setup_targets(self, target, gen_structures=False, debug=False):

@@ -77,7 +77,11 @@ class StructureConfig():
         # ToDo: Dec Threshold behavior needs to be moved from mactros to SV module
 
         # Add time signal representing current simulated time
-        self.time_probe = AnalogProbe(name='emu_time', abspath='', range=(1.1 * float(tstop)), width=prj_cfg.cfg.time_width)
+        self.time_probe = DigitalSignal(
+            name='emu_time',
+            width=prj_cfg.cfg.time_width,
+            abspath=''
+        )
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(abspath=None, name='emu_rst', width=1)
