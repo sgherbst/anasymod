@@ -115,10 +115,12 @@ class VIOCtrlApi(CtrlApi):
         trigger_obj = None
 
         if sample_count:
-            if not sample_count % 2:
+            # This solution I got from https://stackoverflow.com/questions/57025836/check-if-a-given-number-is-power-of-two-in-python
+            # and is checking if sample_count is a power of two using bit manipulations
+            if (sample_count & (sample_count-1) == 0) and sample_count != 0:
                 depth = sample_count
             else:
-                raise Exception(f'ERROR: Sample count needs to be a multiple of 2, but is set to:{sample_count}')
+                raise Exception(f'ERROR: Sample count needs to be a power of 2, but is set to: {sample_count}')
         else:
             depth = self.pcfg.ila_depth
 

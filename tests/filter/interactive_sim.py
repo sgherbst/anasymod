@@ -28,7 +28,7 @@ def main():
                                  trigger_operator='gt',
                                  trigger_value=1e-9,
                                  sample_decimation=8,
-                                 sample_count=20
+                                 sample_count=16
                                  )           # config & arm trace unit
     ctrl_handle.set_reset(0)                                # start simulation
     ctrl_handle.wait_on_and_dump_trace(result_file=result_file)                    # wait till trace buffer is full and dump to result file
