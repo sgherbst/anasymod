@@ -1,9 +1,10 @@
 import numpy as np
 
 try:
-    from si_prefix import si_format
+    # import si-prefix from Inicio installation
+    from site_pip_packages.si_prefix import si_format
 except:
-    print('ERROR: Could not load si-prefix package!')
+    from si_prefix import si_format
 
 try:
     from vcd import VCDWriter
