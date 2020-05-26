@@ -767,6 +767,7 @@ class Analysis():
             self.filesets.add_define(define=Define(name='DT_SCALE', value=f'{self._prj_cfg.cfg.dt_scale}', fileset=fileset))
             self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='DEC_WIDTH', value=f'{self._prj_cfg.cfg.dec_bits}', fileset=fileset))
 
     def _setup_targets(self, target, gen_structures=False, debug=False):
         """

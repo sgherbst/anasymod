@@ -225,6 +225,24 @@ class ModuleTop(JinjaTempl):
         # Control module
         ######################################################
 
+        self.ctrl_anasymod_inst_ifc = SVAPI()
+
+        ctrl_anasymod_inst = ModuleInst(
+            api=self.ctrl_anasymod_inst_ifc,
+            name='ctrl_anasymod',
+            inst_name='ctrl_anasymod_i'
+        )
+
+        #ctrl_anasymod_inst.add_input(scfg.emu_ctrl_mode, connection=scfg.emu_ctrl_mode)
+        #ctrl_anasymod_inst.add_input(scfg.emu_ctrl_data, connection=scfg.emu_ctrl_data)
+        ctrl_anasymod_inst.add_input(scfg.time_probe, connection=scfg.time_probe)
+        ctrl_anasymod_inst.add_input(scfg.dec_thr_ctrl, connection=scfg.dec_thr_ctrl)
+        ctrl_anasymod_inst.add_input(scfg.emu_clk, connection=scfg.emu_clk)
+        ctrl_anasymod_inst.add_input(scfg.reset_ctrl, connection=scfg.reset_ctrl)
+        ctrl_anasymod_inst.add_output(scfg.dec_cmp, connection=scfg.dec_cmp)
+
+        ctrl_anasymod_inst.generate_instantiation()
+
         # indicate whether TSTOP_MSDSL should be used
         self.use_tstop = target.cfg.tstop is not None
 
@@ -323,20 +341,23 @@ logic emu_clk, emu_clk_2x;
 {{subst.time_manager_inst_ifc.text}}
 {% endif %}
 
-// calculate decimation ctrl signal for trace port
-logic [{{subst.dec_bits|int-1}}:0] emu_dec_cnt, emu_dec_nxt;
-assign emu_dec_cmp = (emu_dec_cnt == {{subst.dec_thr}}) ? 1'b1 : 0;
-assign emu_dec_nxt = (emu_dec_cmp == 1'b1) ? 'd0 : (emu_dec_cnt + 'd1);
-mem_digital #(
-    .init('d0),
-    .width({{subst.dec_bits|int}})
-) mem_digital_emu_dec_cnt_i (
-    .in(emu_dec_nxt),
-    .out(emu_dec_cnt),
-    .clk(`CLK_MSDSL),
-    .rst(`RST_MSDSL),
-    .cke(1'b1)
-);
+// control signals
+{{subst.ctrl_anasymod_inst_ifc.text}}
+
+//// calculate decimation ctrl signal for trace port
+//logic [{{subst.dec_bits|int-1}}:0] emu_dec_cnt, emu_dec_nxt;
+//assign emu_dec_cmp = (emu_dec_cnt == {{subst.dec_thr}}) ? 1'b1 : 0;
+//assign emu_dec_nxt = (emu_dec_cmp == 1'b1) ? 'd0 : (emu_dec_cnt + 'd1);
+//mem_digital #(
+//    .init('d0),
+//    .width({{subst.dec_bits|int}})
+//) mem_digital_emu_dec_cnt_i (
+//    .in(emu_dec_nxt),
+//    .out(emu_dec_cnt),
+//    .clk(`CLK_MSDSL),
+//    .rst(`RST_MSDSL),
+//    .cke(1'b1)
+//);
 
 // Assignment for derived clks
 {{subst.derived_clk_assigns.text}}

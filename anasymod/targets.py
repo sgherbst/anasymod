@@ -15,7 +15,7 @@ from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
-from anasymod.files import get_from_anasymod
+from anasymod.files import anasymod_root
 from anasymod.util import expand_searchpaths
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
@@ -92,6 +92,10 @@ class Target():
                 ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
             self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'),
                                                            name='gen_ctrlwrap')]
+
+        # Include the source code for the anasymod control block
+        ctrl_anasymod = anasymod_root() / 'verilog' / 'ctrl_anasymod.sv'
+        self.content.verilog_sources += [VerilogSource(files=str(ctrl_anasymod), name='ctrl_anasymod')]
 
         # Generate clk management wrapper and add to target sources
         clkmanagerwrapper_path = os.path.join(self.prj_cfg.build_root, 'gen_clkmanager_wrap.sv')
