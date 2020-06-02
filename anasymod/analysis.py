@@ -199,6 +199,8 @@ class Analysis():
                 self.filesets._vhdl_sources.append(source)
             elif isinstance(source, Define):
                 self.filesets._defines.append(source)
+            elif isinstance(source, EDIFFile):
+                self.filesets._edif_files.append(source)
             elif isinstance(source, XCIFile):
                 self.filesets._xci_files.append(source)
             elif isinstance(source, XDCFile):

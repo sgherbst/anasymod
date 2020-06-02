@@ -269,6 +269,8 @@ class Content():
         """:type : List[VHDLSource]"""
         self.defines = []
         """:type : List[Define]"""
+        self.edif_files = []
+        """:type : List[EDIFFile]"""
         self.xci_files = []
         """:type : List[XCIFile]"""
         self.xdc_files = []

@@ -2,7 +2,7 @@ import os
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
-from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo
+from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo, EDIFFile
 from anasymod.targets import FPGATarget
 
 class VivadoTCLGenerator(CodeGenerator):
@@ -41,6 +41,9 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # add vhdl sources
         self.add_vhdl_sources(vhdl_src=content.vhdl_sources)
+
+        # add edif file
+        self.add_edif_file(edif_files=content.edif_files)
 
         # add mem file
         self.add_mem_file(mem_files=content.mem_files)
@@ -84,6 +87,11 @@ class VivadoTCLGenerator(CodeGenerator):
                 if src.version is not None:
                     file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
                     self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
+
+    def add_edif_file(self, edif_files: [EDIFFile]):
+        for edif_file in edif_files:
+            if edif_file.files:
+                self.add_files(edif_file.files)
 
     def add_mem_file(self, mem_files: [MEMFile]):
         for mem_file in mem_files:
