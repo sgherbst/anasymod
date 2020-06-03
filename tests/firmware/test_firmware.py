@@ -48,7 +48,7 @@ def test_5():
 def test_6():
     # run UART test
     ser = serial.Serial(
-        port='/dev/ttyUSB1',
+        port='/dev/ttyUSB0',
         baudrate=115200
     )
 

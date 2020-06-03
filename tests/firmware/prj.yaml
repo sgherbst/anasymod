@@ -1,6 +1,6 @@
 PROJECT:
   dt: 0.1e-6
-  board_name: PYNQ_Z1
+  board_name: ZC702
   plugins: ['msdsl']
   emu_clk_freq: 10e6
 FPGA_TARGET:
