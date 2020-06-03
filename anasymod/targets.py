@@ -83,7 +83,7 @@ class Target():
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
         with (open(toplevel_path, 'w')) as top_file:
-            top_file.write(ModuleTop(target=self).render())
+            top_file.write(ModuleTop(target=self, fpga_sim_ctrl=self.cfg.fpga_sim_ctrl).render())
         self.content.verilog_sources += [VerilogSource(files=toplevel_path, name='top')]
 
         # Build control structure and add all sources to project

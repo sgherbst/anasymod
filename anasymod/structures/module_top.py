@@ -3,6 +3,8 @@ from anasymod.templates.templ import JinjaTempl
 from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
 from anasymod.util import back2fwd
+from anasymod.enums import FPGASimCtrl
+from anasymod.templates.zynq_gpio import TemplZynqGPIO
 
 def digsig(name, width=1, signed=False):
     # convenience function to return a digital signal
@@ -18,7 +20,7 @@ class ModuleTop(JinjaTempl):
     """
     This is the generator for top.sv.
     """
-    def __init__(self, target):
+    def __init__(self, target, fpga_sim_ctrl=None):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
         scfg = target.str_cfg
         """ :type: StructureConfig """
@@ -44,6 +46,8 @@ class ModuleTop(JinjaTempl):
 
         module = ModuleInst(api=self.module_ifc, name='top')
         module.add_inputs(scfg.clk_i)
+        if fpga_sim_ctrl is not None and fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            module.add_inouts(TemplZynqGPIO.EXT_IOS)
         module.generate_header()
 
         #####################################################
@@ -115,6 +119,11 @@ class ModuleTop(JinjaTempl):
             scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs,
             connections=scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         )
+
+        ## Wire through Zynq connections if needed
+        if fpga_sim_ctrl is not None and fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            sim_ctrl_inst.add_inouts(TemplZynqGPIO.EXT_IOS,
+                                     connections=TemplZynqGPIO.EXT_IOS)
 
         # add master clk to ctrl module
         emu_clk_sig = DigitalSignal(name='emu_clk', width=1, abspath=None)

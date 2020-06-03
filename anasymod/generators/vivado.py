@@ -14,7 +14,9 @@ class VivadoTCLGenerator(CodeGenerator):
         super().__init__()
         self.target = target
 
-    def create_project(self, project_name, project_directory, force=False, full_part_name=None):
+    def create_project(self, project_name, project_directory, force=False, full_part_name=None,
+                       board_part=None):
+        # create the project
         cmd = ['create_project']
         if force:
             cmd.append('-force')
@@ -23,6 +25,10 @@ class VivadoTCLGenerator(CodeGenerator):
         if full_part_name is not None:
             cmd.extend(['-part', full_part_name])
         self.writeln(' '.join(cmd))
+
+        # specify the board part if known
+        if board_part is not None:
+            self.writeln(f'set_property board_part {board_part} [current_project]')
 
     def add_project_sources(self, content):
         """
