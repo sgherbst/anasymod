@@ -40,7 +40,7 @@ class ModuleEmuClks(JinjaTempl):
                 self.generated_clks.gen_signal(DigitalSignal(name=f'clk_unbuf_{gated_clk_sig_name}', width=1, abspath=''))
             self.generated_clks.writeln(f'always @(posedge emu_clk_2x) begin')
             self.generated_clks.indent()
-            self.generated_clks.writeln(r"if (emu_clk_unbuf == 1'b0) begin")
+            self.generated_clks.writeln(r"if (emu_clk_unbuf == 1'b1) begin")
             self.generated_clks.indent()
             for gated_clk_sig_name in gated_clk_sig_names:
                 self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_val_{gated_clk_sig_name};')
@@ -48,7 +48,7 @@ class ModuleEmuClks(JinjaTempl):
             self.generated_clks.writeln(f'end else begin')
             self.generated_clks.indent()
             for gated_clk_sig_name in gated_clk_sig_names:
-                self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_unbuf_{gated_clk_sig_name};')
+                self.generated_clks.writeln(f"clk_unbuf_{gated_clk_sig_name} <= 1'b0;")
             self.generated_clks.dedent()
             self.generated_clks.writeln(f'end')
             self.generated_clks.dedent()

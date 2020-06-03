@@ -312,6 +312,29 @@ class VIOCtrlApi(CtrlApi):
     def get_emu_time(self, timeout=30):
         return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
 
+    def set_ctrl_mode(self, value, timeout=30):
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
+
+    def set_ctrl_data(self, value, timeout=30):
+        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
+
+    def stall_emu(self, timeout=30):
+        self.set_ctrl_mode(1, timeout=timeout)
+
+    def sleep_emu(self, t, timeout=30):
+        # stall
+        self.stall_emu()
+
+        # set up in sleep mode
+        t_next = t + self.get_emu_time(timeout=timeout)
+        t_next_int = int(round(t_next / self.pcfg.cfg.dt_scale))
+        self.set_ctrl_data(t_next_int)
+        self.set_ctrl_mode(2)
+
+        # wait for enough time to pass
+        while(self.get_emu_time_int() < t_next_int):
+            pass
+
     ### Utility Functions
 
     @classmethod

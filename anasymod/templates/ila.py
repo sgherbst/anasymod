@@ -31,7 +31,8 @@ class TemplILA(TemplGenericIp):
         props['CONFIG.ALL_PROBE_SAME_MU_CNT'] = '2'
 
         # specify all signals to be probed
-        signals = scfg.digital_probes + scfg.analog_probes + [target.str_cfg.time_probe] + [target.str_cfg.dec_cmp]
+        signals = (scfg.digital_probes + scfg.analog_probes + [target.str_cfg.time_probe] +
+                  [target.str_cfg.dec_cmp])
         print(f"Signals: {[f'{signal.name}' for signal in signals]}")
 
         # Set number of probes in total

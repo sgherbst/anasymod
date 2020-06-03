@@ -114,6 +114,24 @@ class CtrlApi:
         """
         raise NotImplementedError("Base class was called to execute function")
 
+    def get_emu_time_int(self, timeout=30):
+        raise NotImplementedError("Base class was called to execute function")
+
+    def get_emu_time(self, timeout=30):
+        raise NotImplementedError("Base class was called to execute function")
+
+    def set_ctrl_mode(self, value, timeout=30):
+        raise NotImplementedError("Base class was called to execute function")
+
+    def set_ctrl_data(self, value, timeout=30):
+        raise NotImplementedError("Base class was called to execute function")
+
+    def stall_emu(self, timeout=30):
+        raise NotImplementedError("Base class was called to execute function")
+
+    def sleep_emu(self, t, timeout=30):
+        raise NotImplementedError("Base class was called to execute function")
+
     ### Utility Functions
 
     def _initialize(self):

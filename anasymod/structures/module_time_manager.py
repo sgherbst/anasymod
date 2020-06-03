@@ -37,6 +37,17 @@ class ModuleTimeManager(JinjaTempl):
                 module.add_input(dt_req)
                 dt_reqs.append(dt_req)
 
+        # add input for anasymod control dt request signal
+        dt_req = DigitalSignal(name=f'dt_req_stall', abspath='', width=pcfg.cfg.dt_width, signed=False)
+        module.add_input(dt_req)
+        dt_reqs.append(dt_req)
+
+        # add input for dt request signal, in case a default oscillator is used
+        if scfg.use_default_oscillator:
+            dt_req = DigitalSignal(name=f'dt_req_default_osc', abspath='', width=pcfg.cfg.dt_width, signed=False)
+            module.add_input(dt_req)
+            dt_reqs.append(dt_req)
+
         module.generate_header()
 
         # generate a bit of code to take the minimum of the timestep requests
@@ -62,7 +73,7 @@ class ModuleTimeManager(JinjaTempl):
                 else:
                     # create a signal to hold temporary min result
                     curr_min = f'__dt_req_min_{k - 1}'
-                    self.codegen.writeln(f'logic [((`DT_WIDTH)-1):0] {curr_min};')
+                    self.codegen.writeln(f'(* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] {curr_min};')
                     # take the minimum of the previous minimum and the current signal
                     curr_min_val = self.vlog_min(curr_sig.name, prev_min)
                     self.codegen.writeln(f'assign {curr_min} = {curr_min_val};')

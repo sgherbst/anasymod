@@ -75,7 +75,10 @@ class ConvertWaveform():
 
                     # convert data to native Python float type (rather than numpy float)
                     # this is required for PyVCD
-                    probe_data[name] = [float(x) for x in probe_data[name]]
+                    try:
+                        probe_data[name] = [float(x) for x in probe_data[name]]
+                    except:
+                        probe_data[name] = [float(probe_data[name])]
 
             for digital_signal in scfg.digital_probes + [scfg.dec_cmp] + [scfg.time_probe]:
                 name = 'trace_port_gen_i/' + digital_signal.name

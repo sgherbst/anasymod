@@ -2,7 +2,6 @@
 import numpy as np
 import os
 import csv
-import time
 from typing import Union
 
 # anasymod imports
