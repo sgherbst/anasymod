@@ -1,7 +1,9 @@
-from pathlib import Path
+import os
+import pytest
 import subprocess
 import shutil
 import serial
+from pathlib import Path
 
 root = Path(__file__).resolve().parent
 
@@ -11,10 +13,18 @@ def test_1(simulator_name=DEFAULT_SIMULATOR):
     # run simulation
     run_simulation(root=root, simulator_name=simulator_name)
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_2(gen_bitstream=True):
     # build bitstream
     run_emulation(root=root, gen_bitstream=gen_bitstream, emulate=False)
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_3(top_name='top'):
     # export hardware
     sdk_path = root / 'build' / 'fpga' / 'prj' / 'prj.sw'
@@ -25,6 +35,10 @@ def test_3(top_name='top'):
 
     shutil.copy(str(sysdef_path), str(hdf_path))
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_4():
     # build ELF
     tcl_path = root / 'build' / 'tcl'
@@ -35,6 +49,10 @@ def test_4():
 
     subprocess.run(['xsct', tcl_path / 'sdk.tcl'])
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_5():
     # download program
     tcl_path = root / 'build' / 'tcl'
@@ -45,6 +63,10 @@ def test_5():
 
     subprocess.run(['xsct', tcl_path / 'program.tcl'])
 
+@pytest.mark.skipif(
+    'FPGA_SERVER' not in os.environ,
+    reason='The FPGA_SERVER environment variable must be set to run this test.'
+)
 def test_6():
     # run UART test
     ser = serial.Serial(
