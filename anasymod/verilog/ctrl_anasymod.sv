@@ -5,7 +5,7 @@ module ctrl_anasymod (
     input wire logic [((`DEC_WIDTH)-1):0] emu_dec_thr,
     input wire logic emu_clk,
     input wire logic emu_rst,
-    output wire logic [((`DT_WIDTH)-1):0] emu_dt_req_stall,
+    output wire logic [((`DT_WIDTH)-1):0] dt_req_stall,
     output wire logic emu_dec_cmp
 );
     // comparison
@@ -64,5 +64,5 @@ module ctrl_anasymod (
         endcase
     end
     
-    assign emu_dt_req_stall = emu_dt_req ;
+    assign dt_req_stall = emu_dt_req ;
 endmodule

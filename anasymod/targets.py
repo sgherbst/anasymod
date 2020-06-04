@@ -78,7 +78,7 @@ class Target():
         """
 
         # Add anasymod header
-        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()))]
+        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()), name=f'anasymod')]
 
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')

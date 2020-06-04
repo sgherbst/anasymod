@@ -202,8 +202,6 @@ class ModuleTop(JinjaTempl):
             self.def_osc_api = SVAPI()
 
             # generate clock and reset signals
-            clk_default_osc = digsig('clk_default_osc')
-            self.def_osc_api.gen_signal(clk_default_osc)
 
             # instantiate the default oscillator
             def_osc_inst = ModuleInst(
@@ -218,7 +216,7 @@ class ModuleTop(JinjaTempl):
             def_osc_inst.add_output(scfg.reset_ctrl, connection=scfg.reset_ctrl)
             def_osc_inst.add_output(emu_dt, connection=emu_dt)
             def_osc_inst.add_output(emu_dt_req, connection=dt_req_default_osc)
-            def_osc_inst.add_output(digsig('cke'), connection=clk_default_osc)
+            def_osc_inst.add_output(digsig('cke'), connection=digsig('clk_val_default_osc'))
             def_osc_inst.generate_instantiation()
         else:
             self.def_osc_api = None

@@ -128,7 +128,7 @@ class StructureConfig():
         # a specific amount of time
         self.emu_ctrl_mode = DigitalCtrlInput(
             name='emu_ctrl_mode',
-            width=4,
+            width=2,
             abspath=None
         )
         self.emu_ctrl_mode.i_addr = self._assign_i_addr()

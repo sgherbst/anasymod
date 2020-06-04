@@ -13,8 +13,8 @@ module osc_model_anasymod (
     // note that it is only necessary to save the emulation time up
     // to `DT_WIDTH, due to the properties of modular arithmetic
 
-    (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] emu_time;
-    (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] nxt_time;
+    (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] emu_time = 0;
+    (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] nxt_time = 0;
     (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] emu_dt_s;
     (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] emu_dt_req_s;
 

@@ -9,7 +9,7 @@ class ModuleEmuClks(JinjaTempl):
     def __init__(self, scfg: StructureConfig, pcfg: EmuConfig):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
 
-        gated_clk_sig_names = []
+        gated_clks = []
 
         #####################################################
         # Create module interface
@@ -22,11 +22,15 @@ class ModuleEmuClks(JinjaTempl):
 
         for derived_clk in scfg.clk_derived:
             if derived_clk.abspath_gated_clk is not None:
-                gated_clk_sig_names.append(derived_clk.name)
+                gated_clks.append(derived_clk.name)
 
-        for gated_clk_sig_name in gated_clk_sig_names:
-            module.add_input(DigitalSignal(name=f'clk_val_{gated_clk_sig_name}', width=1, abspath=''))
-            module.add_output(DigitalSignal(name=f'clk_{gated_clk_sig_name}', width=1, abspath=''))
+        # add input for dt request signal, in case a default oscillator is used
+        if scfg.use_default_oscillator:
+            gated_clks.append(f'default_osc')
+
+        for gated_clk in gated_clks:
+            module.add_input(DigitalSignal(name=f'clk_val_{gated_clk}', width=1, abspath=''))
+            module.add_output(DigitalSignal(name=f'clk_{gated_clk}', width=1, abspath=''))
 
         module.generate_header()
 
@@ -35,34 +39,33 @@ class ModuleEmuClks(JinjaTempl):
         #####################################################
         self.generated_clks = SVAPI()
 
-        if gated_clk_sig_names:
-            for gated_clk_sig_name in gated_clk_sig_names:
-                self.generated_clks.gen_signal(DigitalSignal(name=f'clk_unbuf_{gated_clk_sig_name}', width=1, abspath=''))
+        if gated_clks:
+            for gated_clk in gated_clks:
+                self.generated_clks.gen_signal(DigitalSignal(name=f'clk_unbuf_{gated_clk}', width=1, abspath=''), default_value=0)
             self.generated_clks.writeln(f'always @(posedge emu_clk_2x) begin')
             self.generated_clks.indent()
-            self.generated_clks.writeln(r"if (emu_clk_unbuf == 1'b1) begin")
-            self.generated_clks.indent()
-            for gated_clk_sig_name in gated_clk_sig_names:
-                self.generated_clks.writeln(f'clk_unbuf_{gated_clk_sig_name} <= clk_val_{gated_clk_sig_name};')
-            self.generated_clks.dedent()
-            self.generated_clks.writeln(f'end else begin')
-            self.generated_clks.indent()
-            for gated_clk_sig_name in gated_clk_sig_names:
-                self.generated_clks.writeln(f"clk_unbuf_{gated_clk_sig_name} <= 1'b0;")
-            self.generated_clks.dedent()
-            self.generated_clks.writeln(f'end')
+            for gated_clk in gated_clks:
+                self.generated_clks.writeln(f"if (clk_val_{gated_clk} == 1'b1) begin")
+                self.generated_clks.indent()
+                self.generated_clks.writeln(f'clk_unbuf_{gated_clk} <= ~clk_unbuf_{gated_clk};')
+                self.generated_clks.dedent()
+                self.generated_clks.writeln(f'end else begin')
+                self.generated_clks.indent()
+                self.generated_clks.writeln(f"clk_unbuf_{gated_clk} <= 1'b0;")
+                self.generated_clks.dedent()
+                self.generated_clks.writeln(f'end')
             self.generated_clks.dedent()
             self.generated_clks.writeln(f'end')
             self.generated_clks.writeln(f'')
             self.generated_clks.writeln(f'`ifndef SIMULATION_MODE_MSDSL')
             self.generated_clks.indent()
-            for k, gated_clk_sig_name in enumerate(gated_clk_sig_names):
-                self.generated_clks.writeln(f'BUFG buf_{k} (.I(clk_unbuf_{gated_clk_sig_name}), .O(clk_{gated_clk_sig_name}));')
+            for k, gated_clk in enumerate(gated_clks):
+                self.generated_clks.writeln(f'BUFG buf_{k} (.I(clk_unbuf_{gated_clk}), .O(clk_{gated_clk}));')
             self.generated_clks.dedent()
             self.generated_clks.writeln(f'`else')
             self.generated_clks.indent()
-            for gated_clk_sig_name in gated_clk_sig_names:
-                self.generated_clks.writeln(f'assign clk_{gated_clk_sig_name} = clk_unbuf_{gated_clk_sig_name};')
+            for gated_clk in gated_clks:
+                self.generated_clks.writeln(f'assign clk_{gated_clk} = clk_unbuf_{gated_clk};')
             self.generated_clks.dedent()
             self.generated_clks.writeln(f'`endif')
 
@@ -75,6 +78,7 @@ class ModuleEmuClks(JinjaTempl):
 
 // generate emu_clk
 logic emu_clk_unbuf = 0;
+
 always @(posedge emu_clk_2x) begin
     emu_clk_unbuf <= ~emu_clk_unbuf;
 end

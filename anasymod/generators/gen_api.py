@@ -15,10 +15,11 @@ class GenAPI(CodeGenerator):
     def __init__(self, line_ending='\n'):
         super().__init__(line_ending=line_ending)
 
-    def gen_signal(self, io_obj: io_obj_types_union):
+    def gen_signal(self, io_obj: io_obj_types_union, default_value=None):
         """
         Generate a signal using the io object as input.
         :param io_obj: io object
+        :param default_value: default value of signal, this works only for digital signals
         """
         raise NotImplementedError()
 
@@ -82,21 +83,24 @@ class SVAPI(GenAPI):
     def __init__(self, line_ending='\n'):
         super().__init__(line_ending=line_ending)
 
-    def gen_signal(self, io_obj: io_obj_types_union):
+    def gen_signal(self, io_obj: io_obj_types_union, default_value=None):
         """
         Generate a signal using the io object as input.
         :param io_obj: io object
+        :param default_value: default value of signal, this works only for digital signals
         """
-
-        if isinstance(io_obj, AnalogProbe):
-            self.writeln(f"`MAKE_GENERIC_REAL({io_obj.name}, {io_obj.range}, {io_obj.width});")
-        elif isinstance(io_obj, AnalogSignal):
-            self.writeln(f"`MAKE_REAL({io_obj.name}, {io_obj.range});")
-        elif isinstance(io_obj, DigitalSignal):
-            if io_obj.width > 1:
-                self.writeln(f'logic [{str(io_obj.width)}  - 1:0] {io_obj.name};')
-            else:
-                self.writeln(f"logic {io_obj.name};")
+        if isinstance(io_obj, DigitalSignal):
+            value = f' = {default_value}' if default_value is not None else ''
+            width = f'[{str(io_obj.width)}  - 1:0] ' if io_obj.width > 1 else ''
+            self.writeln(f"logic {width}{io_obj.name}{value};")
+        else:
+            if default_value is not None:
+                raise Exception(f'ERROR: Default value provided for signal{io_obj.name}, which is an analog signal. '
+                                f'Defaults can only be provided for digital signals!')
+            if isinstance(io_obj, AnalogProbe):
+                self.writeln(f"`MAKE_GENERIC_REAL({io_obj.name}, {io_obj.range}, {io_obj.width});")
+            elif isinstance(io_obj, AnalogSignal):
+                self.writeln(f"`MAKE_REAL({io_obj.name}, {io_obj.range});")
 
     def gen_port(self, io_obj: io_obj_types_union, direction: PortDir):
         """
