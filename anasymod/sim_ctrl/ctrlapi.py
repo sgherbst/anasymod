@@ -115,21 +115,55 @@ class CtrlApi:
         raise NotImplementedError("Base class was called to execute function")
 
     def get_emu_time_int(self, timeout=30):
+        """
+        Get current time of the FPGA simulation as an unscaled integer value.
+        :param timeout: Maximum time granted for operation to finish
+        """
         raise NotImplementedError("Base class was called to execute function")
 
     def get_emu_time(self, timeout=30):
+        """
+        Get current time of the FPGA simulation as a decimal value.
+        :param timeout: Maximum time granted for operation to finish
+        """
         raise NotImplementedError("Base class was called to execute function")
 
     def set_ctrl_mode(self, value, timeout=30):
+        """
+        Set the control mode that shall be applied to stall the FPGA simulation.
+        :param value: Integer value setting the currently active control mode:
+                        0:  FPGA simulation is not stalled
+                        1:  FPGA simulation is immediately stalled
+                        2:  FPGA simulation is stalled, after time stored in *ctrl_data* has passed, starting from
+                            the point in time this mode has been selected.
+                        3:  FPGA simulation is stalled, once time value stored in *ctrl_data* has been reached
+        :param timeout: Maximum time granted for operation to finish
+        """
         raise NotImplementedError("Base class was called to execute function")
 
     def set_ctrl_data(self, value, timeout=30):
+        """
+        Set a time value as unscaled integer.
+        :param value:  Unscaled integer value that represents a time. This value is interpreted according to
+        the selected ctrl_mode
+        :param timeout: Maximum time granted for operation to finish
+        """
         raise NotImplementedError("Base class was called to execute function")
 
     def stall_emu(self, timeout=30):
+        """
+        Stall the FPGA simulation immediately.
+        :param timeout: Maximum time granted for operation to finish
+        """
         raise NotImplementedError("Base class was called to execute function")
 
     def sleep_emu(self, t, timeout=30):
+        """
+        Stall FPGA simulation, after emulated time of *t* has passed, starting from the point in time this function was
+        called.
+        :param t: Time value that shall pass before FPGA simulation is stalled.
+        :param timeout: Maximum time granted for operation to finish
+        """
         raise NotImplementedError("Base class was called to execute function")
 
     ### Utility Functions
