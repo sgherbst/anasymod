@@ -13,6 +13,7 @@ from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
+from anasymod.emu.xsct_emu import XSCTEmulation
 from anasymod.files import get_full_path, get_from_anasymod, mkdir_p
 from anasymod.sources import *
 from anasymod.filesets import Filesets
@@ -201,6 +202,8 @@ class Analysis():
                 self.filesets._defines.append(source)
             elif isinstance(source, EDIFFile):
                 self.filesets._edif_files.append(source)
+            elif isinstance(source, FirmwareFile):
+                self.filesets._firmware_files.append(source)
             elif isinstance(source, XCIFile):
                 self.filesets._xci_files.append(source)
             elif isinstance(source, XDCFile):
@@ -325,6 +328,19 @@ class Analysis():
         VivadoEmulation(target=target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
+    def build_firmware(self):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(target=target).build()
+
     def emulate(self, server_addr=None):
         """
         Program bitstream to FPGA and run simulation/emulation on FPGA
@@ -367,6 +383,19 @@ class Analysis():
             float_type=self.float_type,
             dt_scale=self._prj_cfg.cfg.dt_scale
         )
+
+    def program_firmware(self):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(target=target).program()
 
     def launch(self, server_addr=None, debug=False):
         """
@@ -747,7 +776,6 @@ class Analysis():
                                                               config_path=config_path,
                                                               fileset=fileset,
                                                               name='tb'))
-                get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -816,6 +844,9 @@ class Analysis():
                 getattr(getattr(self, target), 'setup_ctrl_ifc')(debug=debug)
                 if gen_structures:
                     getattr(getattr(self, target), 'gen_structure')()
+
+            # Generate corresponding firmware and add to sources
+            getattr(getattr(self, target), 'gen_firmware')()
 
         # Copy generated sources by plugin from plugin build_root to target-specific build_root
         for plugin in self._plugins:

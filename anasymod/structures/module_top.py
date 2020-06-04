@@ -20,7 +20,7 @@ class ModuleTop(JinjaTempl):
     """
     This is the generator for top.sv.
     """
-    def __init__(self, target, fpga_sim_ctrl=None):
+    def __init__(self, target):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
         scfg = target.str_cfg
         """ :type: StructureConfig """
@@ -46,7 +46,8 @@ class ModuleTop(JinjaTempl):
 
         module = ModuleInst(api=self.module_ifc, name='top')
         module.add_inputs(scfg.clk_i)
-        if fpga_sim_ctrl is not None and fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+        if ((target.cfg.fpga_sim_ctrl is not None) and
+                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ)):
             module.add_inouts(TemplZynqGPIO.EXT_IOS)
         module.generate_header()
 
@@ -121,7 +122,8 @@ class ModuleTop(JinjaTempl):
         )
 
         ## Wire through Zynq connections if needed
-        if fpga_sim_ctrl is not None and fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+        if ((target.cfg.fpga_sim_ctrl is not None) and
+                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ)):
             sim_ctrl_inst.add_inouts(TemplZynqGPIO.EXT_IOS,
                                      connections=TemplZynqGPIO.EXT_IOS)
 
