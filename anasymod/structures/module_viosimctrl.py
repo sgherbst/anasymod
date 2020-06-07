@@ -5,11 +5,20 @@ from anasymod.structures.structure_config import StructureConfig
 from anasymod.sim_ctrl.datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 class ModuleVIOSimCtrl(JinjaTempl):
-    def __init__(self, scfg: StructureConfig):
+    def __init__(self, scfg: StructureConfig, plugin_includes: list):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
 
         ctrl_inputs = scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         ctrl_outputs = scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs
+
+        #####################################################
+        # Add plugin specific includes
+        #####################################################
+
+        self.plugin_includes = SVAPI()
+        for plugin in plugin_includes:
+            for include_statement in plugin.include_statements:
+                self.plugin_includes.writeln(f'{include_statement}')
 
         #####################################################
         # Define module ios
@@ -86,7 +95,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
     TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
-`include "svreal.sv"
+{{subst.plugin_includes.text}}
 
 `default_nettype none
 {{subst.module_ifc.text}}

@@ -6,9 +6,10 @@ from anasymod.structures.structure_config import StructureConfig
 import serial, os
 
 class ControlInfrastructure():
-    def __init__(self, prj_cfg):
+    def __init__(self, prj_cfg, plugin_includes):
 
         self._simctrlwrap_path = os.path.join(prj_cfg.build_root, 'gen_ctrlwrap.sv')
+        self.plugin_includes = plugin_includes
 
     def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """

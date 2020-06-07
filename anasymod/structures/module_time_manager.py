@@ -6,11 +6,20 @@ from anasymod.sim_ctrl.datatypes import DigitalSignal
 
 
 class ModuleTimeManager(JinjaTempl):
-    def __init__(self, scfg: StructureConfig, pcfg: EmuConfig):
+    def __init__(self, scfg: StructureConfig, pcfg: EmuConfig, plugin_includes: list):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
 
         self.num_dt_reqs = scfg.num_dt_reqs
         self.dt_value = pcfg.cfg.dt
+
+        #####################################################
+        # Add plugin specific includes
+        #####################################################
+
+        self.plugin_includes = SVAPI()
+        for plugin in plugin_includes:
+            for include_statement in plugin.include_statements:
+                self.plugin_includes.writeln(f'{include_statement}')
 
         #####################################################
         # Create module interface
@@ -90,7 +99,7 @@ class ModuleTimeManager(JinjaTempl):
     TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
-`include "msdsl.sv"
+{{subst.plugin_includes.text}}
 
 `default_nettype none
 

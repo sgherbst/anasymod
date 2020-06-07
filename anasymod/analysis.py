@@ -770,6 +770,10 @@ class Analysis():
             self.filesets.add_define(define=Define(name='DEC_WIDTH', value=f'{self._prj_cfg.cfg.dec_bits}', fileset=fileset))
             self.filesets.add_define(define=Define(name='EMU_CLK_FREQ', value=f'{self._prj_cfg.cfg.emu_clk_freq}', fileset=fileset))
 
+        # Set cpu target specific defines
+        for fileset in self.cpu_targets:
+            self.filesets.add_define(define=Define(name='SIMULATION_MODE_MSDSL', fileset=fileset))
+
     def _setup_targets(self, target, gen_structures=False, debug=False):
         """
         Setup targets for project.
