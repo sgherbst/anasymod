@@ -9,8 +9,9 @@ from anasymod.templates.ext_clk import TemplExtClk
 from anasymod.templates.clk_wiz import TemplClkWiz
 from anasymod.templates.execute_FPGA_sim import TemplEXECUTE_FPGA_SIM
 from anasymod.templates.ila import TemplILA
+from anasymod.templates.zynq_gpio import TemplZynqGPIO
 from anasymod.targets import FPGATarget
-
+from anasymod.enums import FPGASimCtrl
 
 class VivadoEmulation(VivadoTCLGenerator):
     """
@@ -30,6 +31,7 @@ class VivadoEmulation(VivadoTCLGenerator):
             project_name=self.target.prj_cfg.vivado_config.project_name,
             project_directory=self.target.project_root,
             full_part_name=self.target.prj_cfg.board.full_part_name,
+            board_part=self.target.prj_cfg.board.board_part,
             force=True
         )
 
@@ -64,7 +66,7 @@ class VivadoEmulation(VivadoTCLGenerator):
             constrs.writeln('create_generated_clock -name emu_clk -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 2 [get_pins gen_emu_clks_i/buf_emu_clk/I]')
 
             for k in range(scfg.num_gated_clks):
-                constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/gen_other[{k}].buf_i/I]')
+                constrs.writeln(f'create_generated_clock -name clk_other_{k} -source [get_pins clk_gen_i/clk_wiz_0_i/clk_out1] -divide_by 4 [get_pins gen_emu_clks_i/buf_{k}/I]')
 
             # Setup ILA for signal probing - only of at least one probe is defined
             if len(scfg.analog_probes + scfg.digital_probes + [scfg.time_probe]) != 0:
@@ -91,6 +93,11 @@ class VivadoEmulation(VivadoTCLGenerator):
 
         # generate all IPs
         self.writeln('generate_target all [get_ips]')
+
+        # create block diagram if needed
+        # TODO: pass through configuration options
+        if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            self.writeln(TemplZynqGPIO().text)
 
         # launch the build and wait for it to finish
         num_cores = min(int(self.target.prj_cfg.vivado_config.num_cores), 8)

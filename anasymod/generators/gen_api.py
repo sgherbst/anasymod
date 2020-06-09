@@ -117,6 +117,12 @@ class SVAPI(GenAPI):
             elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
                 width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
                 return f"output wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
+        elif direction in [PortDir.INOUT]:
+            if isinstance(io_obj, AnalogSignal):
+                raise Exception('Analog signals do not support the INOUT direction.')
+            elif isinstance(io_obj, (DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal)):
+                width = f'[{str(io_obj.width - 1)}:0] ' if io_obj.width > 1 else ''
+                return f"inout wire logic {'signed ' if io_obj.signed else ''}{width}{io_obj.name}"
         else:
             raise Exception(f"No valid direction provided: {direction}")
 
@@ -214,6 +220,7 @@ class ModuleInst():
         self.analog_outputs = []
         self.digital_inputs = []
         self.digital_outputs = []
+        self.digital_inouts = []
         self.parameters = []
 
         self.connections = []
@@ -265,6 +272,30 @@ class ModuleInst():
             self.analog_outputs.append(io_obj)
         else:
             self.digital_outputs.append(io_obj)
+
+    def add_inouts(self, io_objs: [io_obj_types_union], connections=None):
+        if connections:
+            if len(io_objs) != len(connections):
+                raise Exception(f"ERROR: Each provided port object needs to have a connection counterpart! "
+                                f"io_objs:{io_objs}, connections: {connections}")
+            for io_obj, connection in zip(io_objs, connections):
+                self.add_inout(io_obj=io_obj, connection=connection)
+        else:
+            for io_obj in io_objs:
+                self.add_inout(io_obj=io_obj)
+
+    def add_inout(self, io_obj: io_obj_types_union, connection=None):
+        if connection:
+            if isinstance(connection, (DigitalSignal, str)):
+                self.connect(io_obj=io_obj, io_obj_con=connection)
+            else:
+                raise Exception(f"Unsupported connection type was provided, supported types "
+                                f"are. {io_obj_types_union}, provided: {type(connection)}")
+
+        if isinstance(io_obj, (AnalogSignal)):
+            raise Exception('INOUT connect to AnalogSignal is not supported.')
+        else:
+            self.digital_inouts.append(io_obj)
 
     def add_parameters(self, io_objs: [io_obj_types_union]):
         for io_obj in io_objs:
@@ -320,21 +351,22 @@ class ModuleInst():
             self.api.writeln(f"module {self.name} (")
 
         #### Add port section
-        inputs = self.analog_inputs + self.digital_inputs
-        outputs = self.analog_outputs + self.digital_outputs
+
+        io_lines = []
+        for elem in (self.analog_inputs + self.digital_inputs):
+            io_lines += [self.api.gen_port(io_obj=elem, direction=PortDir.IN)]
+        for elem in (self.analog_outputs + self.digital_outputs):
+            io_lines += [self.api.gen_port(io_obj=elem, direction=PortDir.OUT)]
+        for elem in (self.digital_inouts):
+            io_lines += [self.api.gen_port(io_obj=elem, direction=PortDir.INOUT)]
 
         self.api.indent()
-        if inputs:
-            for input in inputs[:-1]:
-                self.api.writeln(line=self.api.gen_port(io_obj=input, direction=PortDir.IN) + ",")
-            self.api.writeln(self.api.gen_port(io_obj=inputs[-1], direction=PortDir.IN) + ("," if outputs else ""))
-        if outputs:
-            for output in outputs[:-1]:
-                self.api.writeln(self.api.gen_port(io_obj=output, direction=PortDir.OUT) + ",")
-            self.api.writeln(self.api.gen_port(io_obj=outputs[-1], direction=PortDir.OUT))
-
+        if len(io_lines) > 0:
+            for io_line in io_lines[:-1]:
+                self.api.writeln(f'{io_line},')
+            self.api.writeln(f'{io_lines[-1]}')
         self.api.dedent()
-        self.api.writeln(f");")
+        self.api.writeln(');')
 
     def generate_instantiation(self):
         """
