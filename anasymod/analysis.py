@@ -328,7 +328,7 @@ class Analysis():
         VivadoEmulation(target=target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
-    def build_firmware(self):
+    def build_firmware(self, *args, **kwargs):
         # create target object, but don't generate instrumentation structure again in case target object does not exist yet
         if not hasattr(self, self.act_fpga_target):
             self._setup_targets(target=self.act_fpga_target)
@@ -339,7 +339,7 @@ class Analysis():
             raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
 
         # build the firmware
-        XSCTEmulation(target=target).build()
+        XSCTEmulation(target=target).build(*args, **kwargs)
 
     def emulate(self, server_addr=None):
         """
@@ -384,7 +384,7 @@ class Analysis():
             dt_scale=self._prj_cfg.cfg.dt_scale
         )
 
-    def program_firmware(self):
+    def program_firmware(self, *args, **kwargs):
         # create target object, but don't generate instrumentation structure again in case target object does not exist yet
         if not hasattr(self, self.act_fpga_target):
             self._setup_targets(target=self.act_fpga_target)
@@ -395,7 +395,7 @@ class Analysis():
             raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
 
         # build the firmware
-        XSCTEmulation(target=target).program()
+        XSCTEmulation(target=target).program(*args, **kwargs)
 
     def launch(self, server_addr=None, debug=False):
         """
