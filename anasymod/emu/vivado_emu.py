@@ -44,6 +44,13 @@ class VivadoEmulation(VivadoTCLGenerator):
         # set define variables
         self.add_project_defines(content=self.target.content, fileset='[current_fileset]')
 
+        # specify the level of flattening to use
+        self.set_property(
+            'STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY',
+            self.target.prj_cfg.cfg.flatten_hierarchy,
+            '[get_runs synth_1]'
+        )
+
         # append user constraints
         for xdc_file in self.target.content.xdc_files:
             for file in xdc_file.files:

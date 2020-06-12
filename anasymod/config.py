@@ -329,6 +329,13 @@ class Config(BaseConfig):
             design modules, for which all signals shall be stored in result file. e.g.:
             [(0, top.tb_i.filter_i)]"""
 
+        self.flatten_hierarchy = 'rebuilt'
+        """ type(str) : Flattening strategy used in synthesis by Vivado.  Can be 'none', 'full', or 'rebuilt'.
+            Choosing 'none' is a good strategy for debugging synthesis issues, while 'full' may allow for
+            better synthesis results.  'rebuilt' is a trade-off between readability and performance, but
+            sometimes has bugs, particularly when more complex Verilog features like hierarchical references and
+            interfaces are used."""
+
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:
