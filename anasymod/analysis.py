@@ -341,7 +341,7 @@ class Analysis():
         # build the firmware
         XSCTEmulation(target=target).build(*args, **kwargs)
 
-    def emulate(self, server_addr=None):
+    def emulate(self, server_addr=None, convert_waveform=True):
         """
         Program bitstream to FPGA and run simulation/emulation on FPGA
 
@@ -375,14 +375,15 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-        ConvertWaveform(
-            result_path_raw=target.result_path_raw,
-            result_type_raw=target.cfg.result_type_raw,
-            result_path=target.cfg.vcd_path,
-            str_cfg=target.str_cfg,
-            float_type=self.float_type,
-            dt_scale=self._prj_cfg.cfg.dt_scale
-        )
+        if convert_waveform:
+            ConvertWaveform(
+                result_path_raw=target.result_path_raw,
+                result_type_raw=target.cfg.result_type_raw,
+                result_path=target.cfg.vcd_path,
+                str_cfg=target.str_cfg,
+                float_type=self.float_type,
+                dt_scale=self._prj_cfg.cfg.dt_scale
+            )
 
     def program_firmware(self, *args, **kwargs):
         # create target object, but don't generate instrumentation structure again in case target object does not exist yet
@@ -434,7 +435,7 @@ class Analysis():
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command
 
-    def simulate(self, unit=None, id=None):
+    def simulate(self, unit=None, id=None, convert_waveform=True):
         """
         Run simulation on a pc target.
         """
@@ -471,12 +472,15 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
         # post-process results
-        ConvertWaveform(result_path_raw=target.result_path_raw,
-                        result_type_raw=target.cfg.result_type_raw,
-                        result_path=target.cfg.vcd_path,
-                        str_cfg=target.str_cfg,
-                        float_type=self.float_type,
-                        debug=self._prj_cfg.cfg.cpu_debug_mode)
+        if convert_waveform:
+            ConvertWaveform(
+                result_path_raw=target.result_path_raw,
+                result_type_raw=target.cfg.result_type_raw,
+                result_path=target.cfg.vcd_path,
+                str_cfg=target.str_cfg,
+                float_type=self.float_type,
+                debug=self._prj_cfg.cfg.cpu_debug_mode
+            )
 
     def probe(self, name, emu_time=False):
         """
