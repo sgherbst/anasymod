@@ -166,3 +166,11 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # run the script
         call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
+
+    @property
+    def version_year(self):
+        return self.target.prj_cfg.vivado_config.version_year
+
+    @property
+    def version_number(self):
+        return self.target.prj_cfg.vivado_config.version_number
