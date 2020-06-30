@@ -1,4 +1,6 @@
 import os.path
+import pathlib
+import re
 import multiprocessing
 import shutil
 
@@ -98,13 +100,16 @@ class EmuConfig:
             return TE0720()
         elif self.cfg.board_name == BoardNames.ZC702:
             return ZC702()
+        elif self.cfg.board_name == BoardNames.ZC706:
+            return ZC706()
         elif self.cfg.board_name == BoardNames.ARTY_200T_CUSTOM_LIDAR:
             return ARTY_200T_CUSTOM_LIDAR()
         else:
             raise Exception(f'The requested board {self.cfg.board_name} could not be found.')
 
 class VivadoConfig():
-    def __init__(self, parent: EmuConfig, vivado=None):
+    def __init__(self, parent: EmuConfig, vivado=None, version=None,
+                 version_year=None, version_number=None):
         # save reference to parent config
         self.parent = parent
 
@@ -128,6 +133,12 @@ class VivadoConfig():
                 self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
 
         self._vivado = vivado
+
+        # version, year, number
+        self._version = version
+        self._version_year = version_year
+        self._version_number = version_number
+
         # set various project options
         self.num_cores = multiprocessing.cpu_count()
         self.vio_name = 'vio_0'
@@ -141,6 +152,26 @@ class VivadoConfig():
         if self._vivado is None:
             self._vivado = find_tool(name='vivado', hints=self.hints)
         return self._vivado
+
+    @property
+    def version(self):
+        if self._version is None:
+            self._version = pathlib.Path(self.vivado).parent.parent.name
+        return self._version
+
+    @property
+    def version_year(self):
+        if self._version_year is None:
+            self._version_year = re.match(r'(\d+)\.(\d+)', self.version).groups()[0]
+            self._version_year = int(self._version_year)
+        return self._version_year
+
+    @property
+    def version_number(self):
+        if self._version_number is None:
+            self._version_number = re.match(r'(\d+)\.(\d+)', self.version).groups()[1]
+            self._version_number = int(self._version_number)
+        return self._version_number
 
 class XceliumConfig():
     def __init__(self, parent: EmuConfig, xrun=None):
@@ -299,6 +330,13 @@ class Config(BaseConfig):
         """ type(str, list) : Either tuple of depth and absolute path or list of tuples of depth and absolute path to 
             design modules, for which all signals shall be stored in result file. e.g.:
             [(0, top.tb_i.filter_i)]"""
+
+        self.flatten_hierarchy = 'rebuilt'
+        """ type(str) : Flattening strategy used in synthesis by Vivado.  Can be 'none', 'full', or 'rebuilt'.
+            Choosing 'none' is a good strategy for debugging synthesis issues, while 'full' may allow for
+            better synthesis results.  'rebuilt' is a trade-off between readability and performance, but
+            sometimes has bugs, particularly when more complex Verilog features like hierarchical references and
+            interfaces are used."""
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

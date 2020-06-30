@@ -156,7 +156,7 @@ class UARTCtrlApi(CtrlApi):
         Close connection to shell.
         :return:
         """
-        raise NotImplementedError("Base class was called to execute function")
+        pass
 
 
 class Config(BaseConfig):

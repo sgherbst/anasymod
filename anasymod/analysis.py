@@ -13,6 +13,7 @@ from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
+from anasymod.emu.xsct_emu import XSCTEmulation
 from anasymod.files import get_full_path, get_from_anasymod, mkdir_p
 from anasymod.sources import *
 from anasymod.filesets import Filesets
@@ -199,6 +200,10 @@ class Analysis():
                 self.filesets._vhdl_sources.append(source)
             elif isinstance(source, Define):
                 self.filesets._defines.append(source)
+            elif isinstance(source, EDIFFile):
+                self.filesets._edif_files.append(source)
+            elif isinstance(source, FirmwareFile):
+                self.filesets._firmware_files.append(source)
             elif isinstance(source, XCIFile):
                 self.filesets._xci_files.append(source)
             elif isinstance(source, XDCFile):
@@ -323,7 +328,20 @@ class Analysis():
         VivadoEmulation(target=target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
-    def emulate(self, server_addr=None):
+    def build_firmware(self, *args, **kwargs):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(target=target).build(*args, **kwargs)
+
+    def emulate(self, server_addr=None, convert_waveform=True):
         """
         Program bitstream to FPGA and run simulation/emulation on FPGA
 
@@ -357,14 +375,28 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-        ConvertWaveform(
-            result_path_raw=target.result_path_raw,
-            result_type_raw=target.cfg.result_type_raw,
-            result_path=target.cfg.vcd_path,
-            str_cfg=target.str_cfg,
-            float_type=self.float_type,
-            dt_scale=self._prj_cfg.cfg.dt_scale
-        )
+        if convert_waveform:
+            ConvertWaveform(
+                result_path_raw=target.result_path_raw,
+                result_type_raw=target.cfg.result_type_raw,
+                result_path=target.cfg.vcd_path,
+                str_cfg=target.str_cfg,
+                float_type=self.float_type,
+                dt_scale=self._prj_cfg.cfg.dt_scale
+            )
+
+    def program_firmware(self, *args, **kwargs):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(target=target).program(*args, **kwargs)
 
     def launch(self, server_addr=None, debug=False):
         """
@@ -403,7 +435,7 @@ class Analysis():
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command
 
-    def simulate(self, unit=None, id=None):
+    def simulate(self, unit=None, id=None, convert_waveform=True):
         """
         Run simulation on a pc target.
         """
@@ -440,12 +472,15 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
         # post-process results
-        ConvertWaveform(result_path_raw=target.result_path_raw,
-                        result_type_raw=target.cfg.result_type_raw,
-                        result_path=target.cfg.vcd_path,
-                        str_cfg=target.str_cfg,
-                        float_type=self.float_type,
-                        debug=self._prj_cfg.cfg.cpu_debug_mode)
+        if convert_waveform:
+            ConvertWaveform(
+                result_path_raw=target.result_path_raw,
+                result_type_raw=target.cfg.result_type_raw,
+                result_path=target.cfg.vcd_path,
+                str_cfg=target.str_cfg,
+                float_type=self.float_type,
+                debug=self._prj_cfg.cfg.cpu_debug_mode
+            )
 
     def probe(self, name, emu_time=False):
         """
@@ -745,7 +780,6 @@ class Analysis():
                                                               config_path=config_path,
                                                               fileset=fileset,
                                                               name='tb'))
-                get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -814,6 +848,9 @@ class Analysis():
                 getattr(getattr(self, target), 'setup_ctrl_ifc')(debug=debug)
                 if gen_structures:
                     getattr(getattr(self, target), 'gen_structure')()
+
+            # Generate corresponding firmware and add to sources
+            getattr(getattr(self, target), 'gen_firmware')()
 
         # Copy generated sources by plugin from plugin build_root to target-specific build_root
         for plugin in self._plugins:

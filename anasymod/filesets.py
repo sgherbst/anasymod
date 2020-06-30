@@ -1,5 +1,7 @@
 import os, yaml
-from anasymod.sources import Sources, VerilogSource, VerilogHeader, VHDLSource, SubConfig, XCIFile, XDCFile, MEMFile, BDFile, FunctionalModel, IPRepo
+from anasymod.sources import (Sources, VerilogSource, VerilogHeader, VHDLSource,
+                              SubConfig, XCIFile, XDCFile, MEMFile, BDFile,
+                              FunctionalModel, IPRepo, EDIFFile, FirmwareFile)
 from anasymod.defines import Define
 
 class Filesets():
@@ -19,6 +21,12 @@ class Filesets():
 
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
+
+        self._edif_files = []
+        """:type : List[EDIFFile]"""
+
+        self._firmware_files = []
+        """:type : List[FirmwareFile]"""
 
         self._xci_files = []
         """:type : List[XCIFile]"""
@@ -116,6 +124,20 @@ class Filesets():
                                                      library=cfg['vhdl_sources'][vhdl_source]['library'] if 'library' in cfg['vhdl_sources'][vhdl_source].keys() else None,
                                                      version = cfg['vhdl_sources'][vhdl_source]['version'] if 'version' in cfg['vhdl_sources'][vhdl_source].keys() else None,
                                                      name=vhdl_source))
+        if 'edif_files' in cfg.keys(): # Add EDIF files to filesets
+            print(f'EDIF Files: {[key for key in cfg["edif_files"].keys()]}')
+            for edif_file in cfg['edif_files'].keys():
+                self._edif_files.append(EDIFFile(files=cfg['edif_files'][edif_file]['files'],
+                                                fileset=cfg['edif_files'][edif_file]['fileset'] if 'fileset' in cfg['edif_files'][edif_file].keys() else 'default',
+                                                config_path=cfg_path,
+                                                name=edif_file))
+        if 'firmware_files' in cfg.keys(): # Add firmware files to filesets
+            print(f'Firmware Files: {[key for key in cfg["firmware_files"].keys()]}')
+            for firmware_file in cfg['firmware_files'].keys():
+                self._firmware_files.append(FirmwareFile(files=cfg['firmware_files'][firmware_file]['files'],
+                                                fileset=cfg['firmware_files'][firmware_file]['fileset'] if 'fileset' in cfg['firmware_files'][firmware_file].keys() else 'default',
+                                                config_path=cfg_path,
+                                                name=firmware_file))
         if 'xci_files' in cfg.keys(): # Add xci files to filesets
             print(f'XCI Files: {[key for key in cfg["xci_files"].keys()]}')
             for xci_file in cfg['xci_files'].keys():
@@ -204,6 +226,12 @@ class Filesets():
         # Read in vhdlsource objects to fileset dict
         self._add_to_fileset_dict(name='vhdl_sources', container=self._expand_source_paths(self._vhdl_sources))
 
+        # Read in edif_files objects to fileset dict
+        self._add_to_fileset_dict(name='edif_files', container=self._expand_source_paths(self._edif_files))
+
+        # Read in firmware_files objects to fileset dict
+        self._add_to_fileset_dict(name='firmware_files', container=self._expand_source_paths(self._firmware_files))
+
         # Read in xcifile objects to fileset dict
         self._add_to_fileset_dict(name='xci_files', container=self._expand_source_paths(self._xci_files))
 
@@ -251,6 +279,12 @@ class Filesets():
 
     def add_define(self, define: Define):
         self._defines.append(define)
+
+    def add_edif_file(self, edif_file: EDIFFile):
+        self._edif_files.append(edif_file)
+
+    def add_firmware_file(self, firmware_file: FirmwareFile):
+        self._firmware_files.append(firmware_file)
 
     def add_xci_file(self, xci_file: XCIFile):
         self._xci_files.append(xci_file)
