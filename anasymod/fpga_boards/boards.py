@@ -89,3 +89,16 @@ class ULTRA96():
     full_part_name = 'xczu3eg-sbva484-???'
     short_part_name = 'xczu3eg'
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+
+class ZC706():
+    """
+    Container to store ZC706 FPGA board specific properties.
+    """
+    clk_pin = ['H9', 'G9']
+    clk_io = 'LVDS'
+    clk_freq = 200e6
+    board_part = 'xilinx.com:zc706:part0:1.4'
+    full_part_name = 'xc7z045ffg900-2'
+    short_part_name = 'xc7z045'
+    dbg_hub_clk_freq = 100e6
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
