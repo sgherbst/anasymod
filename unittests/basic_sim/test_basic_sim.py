@@ -9,8 +9,8 @@ from anasymod.util import OutputError
 try:
     from pverify.postproc.signals import Waveform
 except:
-    pass
-    #ToDo: Waveform comparison cannot be executed using pyverify -> requires custom implementation here
+    # get files from "common.py"
+    from unittests.common import Waveform
 
 import os
 import pytest
@@ -69,47 +69,37 @@ def cleanup_test_env():
 def run_target(test_name, test_root=anasymod_test_root):
     if pytest.config.getoption("--target") in Target.__dict__.keys():
         if pytest.config.getoption("--target") == Target.sim_icarus:
-            ana = setup_target(test_name, test_root, simulator_name='icarus')
-            """ :type : Analysis"""
-            ana.set_target(target_name='sim')
+            ana = setup_target(test_name, test_root, 'sim', simulator='icarus')
             ana.simulate()
             return probe_signals(ana)
         elif pytest.config.getoption("--target") == Target.sim_vivado:
-            ana = setup_target(test_name, test_root, simulator_name='vivado')
-            """ :type : Analysis"""
-            ana.set_target(target_name='sim')
+            ana = setup_target(test_name, test_root, 'sim', simulator='vivado')
             ana.simulate()
             return probe_signals(ana)
         elif pytest.config.getoption("--target") == Target.sim_xcelium:
-            ana = setup_target(test_name, test_root, simulator_name='xrun')
-            """ :type : Analysis"""
-            ana.set_target(target_name='sim')
+            ana = setup_target(test_name, test_root, 'sim', simulator='xrun')
             ana.simulate(unit="main", id="xrun")
             return probe_signals(ana)
         elif pytest.config.getoption("--target") == Target.build_vivado:
-            ana = setup_target(test_name, test_root, synthesizer_name='vivado')
-            """ :type : Analysis"""
-            ana.set_target(target_name='fpga')
+            ana = setup_target(test_name, test_root, 'fpga', synthesizer='vivado')
             ana.build()
             raise MyException
         elif pytest.config.getoption("--target") == Target.emulate_vivado:
-            ana = setup_target(test_name, test_root, synthesizer_name='vivado')
-            """ :type : Analysis"""
-            ana.set_target(target_name='fpga')
+            ana = setup_target(test_name, test_root, 'fpga', synthesizer='vivado')
             ana.build()
             ana.emulate()
             return probe_signals(ana)
     else:
         raise Exception(f'Provided target:{pytest.config.getoption("--target")} not supported')
 
-def setup_target(test_name, test_root=anasymod_test_root, simulator_name=None, synthesizer_name=None, viewer_name=None):
+def setup_target(test_name, test_root, target, simulator=None, synthesizer=None, viewer=None):
     ana = Analysis(input=os.path.join(test_root, test_name),
                    build_root=os.path.join(BuildRoot.get_build_root, 'test_' + test_name),
-                   simulator_name=simulator_name,
-                   synthesizer_name=synthesizer_name,
-                   viewer_name=viewer_name)
+                   simulator_name=simulator,
+                   synthesizer_name=synthesizer,
+                   viewer_name=viewer)
     ana.gen_sources()
-    #ana._setup_filesets()
+    ana.set_target(target_name=target)
     return ana
 
 

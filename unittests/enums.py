@@ -1,5 +1,3 @@
-import pytest
-
 class RunTimeEnvs:
     """
     Container including enums for supported Run Time Environments.
