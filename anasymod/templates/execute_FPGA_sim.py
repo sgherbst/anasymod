@@ -3,7 +3,6 @@ from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 from anasymod.targets import FPGATarget
 
-
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         '''
@@ -63,25 +62,6 @@ class TemplEXECUTE_FPGA_SIM(JinjaTempl):
         self.time_name = time.name
         self.decimation_ratio_setting = str(decimation_ratio_setting)
         self.start_time_int = f"{int(time.width)}'u{start_time_int}"
-
-        # set display radix for analog probes
-        # TODO: is it necessary to wrap the commands in "catch"?
-        self.analog_probe_radix = []
-        for probe in scfg.analog_probes:
-            self.analog_probe_radix += [
-                f'catch {{set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{probe.name}]}}'
-            ]
-        self.analog_probe_radix = '\n'.join(self.analog_probe_radix)
-
-        # set display radix for digital probes
-        # TODO: is it necessary to wrap the commands in "catch"?
-        self.digital_probe_radix = []
-        for probe in (scfg.digital_probes + [scfg.time_probe]):
-            signed = 'SIGNED' if probe.signed else 'UNSIGNED'
-            self.digital_probe_radix += [
-                f'catch {{set_property DISPLAY_RADIX {signed} [get_hw_probes trace_port_gen_i/{probe.name}]}}'
-            ]
-        self.digital_probe_radix = '\n'.join(self.digital_probe_radix)
 
         # set display radix for analog probes
         # TODO: is it necessary to wrap the commands in "catch"?
@@ -162,8 +142,7 @@ commit_hw_vio $emu_dec_thr_vio
 # Radix setup: analog probes
 {{subst.analog_probe_radix}}
 
-# Radix setup: digital probes
-{{subst.digital_probe_radix}}
+catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{subst.time_name}}]{{'}'}}
 
 # Radix setup: digital probes
 {{subst.digital_probe_radix}}

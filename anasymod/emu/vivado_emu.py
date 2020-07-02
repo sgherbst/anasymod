@@ -116,18 +116,19 @@ class VivadoEmulation(VivadoTCLGenerator):
         self.writeln(f'launch_runs impl_1 -to_step write_bitstream -jobs {num_cores}')
         self.writeln('wait_on_run impl_1')
 
-        # open the impl_1 run and determine its location
-        self.writeln('open_run impl_1')
+        # re-generate the LTX file
+        # without this step, the ILA probes are sometimes split into individual bits
         impl_dir = os.path.join(
-            self.target.project_root,
+            project_root,
             f'{self.target.prj_cfg.vivado_config.project_name}.runs',
             'impl_1',
         )
 
-        # re-generate the LTX file
-        # without this step, the ILA probes are sometimes split into individual bits
-        ltx_file_path = os.path.join(impl_dir, f'{self.target.cfg.top_module}.ltx')
-        ltx_file_path = back2fwd(ltx_file_path)
+        ltx_file_path = os.path.join(
+            impl_dir, f"{self.target.cfg.top_module}.ltx"
+        )
+
+        self.writeln('open_run impl_1')
         self.writeln(f'write_debug_probes -force {{{back2fwd(ltx_file_path)}}}')
 
         # export the XSA if this is a more recent version of vivado
