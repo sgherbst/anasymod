@@ -1,6 +1,5 @@
 PROJECT:
     dt: 0.1e-6
-    board_name: ZC702
     cpu_debug_mode: 1
     cpu_debug_hierarchies: [[0, 'top.tb_i.filter_i']]
 CPU_TARGET:
