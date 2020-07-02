@@ -13,7 +13,6 @@ class _Signal():
 
     def __init__(self, abspath, name, delimiter='.'):
         self.delimiter = delimiter
-
         self.name = name
         self.abs_path = abspath
 
@@ -39,6 +38,7 @@ class DigitalSignal(_Signal):
         self.width = width
         self.signed = signed
 
+
 class DigitalCtrlInput(DigitalSignal):
     """
     Container for a digital control input to the simulation.
@@ -53,6 +53,7 @@ class DigitalCtrlInput(DigitalSignal):
         # save settings
         self.i_addr = i_addr
         self.init_value = init_value
+
 
 class DigitalCtrlOutput(DigitalSignal):
     """

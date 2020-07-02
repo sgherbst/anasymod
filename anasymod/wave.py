@@ -12,6 +12,7 @@ except:
     print('ERROR: Could not load pyvcd package!')
 
 import datetime
+
 from anasymod.utils.VCD_parser import ParseVCD
 from anasymod.enums import ResultFileTypes
 
@@ -91,7 +92,15 @@ class ConvertWaveform():
 
                     # convert data to native Python int type (rather than numpy int)
                     # this is required for PyVCD
-                    probe_data[name] = [int(x) for x in probe_data[name]]
+                    try:
+                        probe_data[name] = [int(x) for x in probe_data[name]]
+                    except ValueError:
+                        print(f'ValueError encountered when converting probe_data[{name}].')
+                        print(f'Contents of probe_data[{name}]:')
+                        print(f'{probe_data}')
+                        print(f'Contents of CSV file {self.result_path_raw}:')
+                        print(open(self.result_path_raw, 'r').read())
+                        raise
 
             # Write data to VCD file
             with open(result_path, 'w') as vcd:
@@ -313,7 +322,7 @@ class ConvertWaveform():
                                             # -> we need to apply interpolation in order to assign the timestamp properly
                                             cycles_in_dt = probe_data[time_path]['data'][idx+1][0] - cycle_count
                                             dt = probe_data[time_path]['data'][idx+1][1] - timestamp
-                                            interp_timestamp = dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp
+                                            interp_timestamp = int(dt/cycles_in_dt * (sig_tuple[0] - cycle_count + offset) + timestamp)
 
                                             timestep_events.append([sig, interp_timestamp, sig_tuple[1]])
 
@@ -360,14 +369,29 @@ class ConvertWaveform():
         else:
             raise Exception(f'ERROR: No supported Result file format selected:{result_type_raw}')
 
-
-
     def get_csv_col(self, name):
         """
         Getting unscaled data from csv file column
         :return:
         """
-        return np.genfromtxt(self.result_path_raw, delimiter=',', usecols=self.signal_lookup[name], skip_header=1)
+        # have to preview the first few lines
+        with open(self.result_path_raw, 'r') as f:
+            first_line = f.readline()
+            second_line = f.readline()
+
+        # determine how many lines to skip
+        if second_line.startswith('Radix'):
+            skip_header=2
+        else:
+            skip_header=1
+
+        # call a NumPy routine to read from the CSV file
+        return np.genfromtxt(
+            self.result_path_raw,
+            delimiter=',',
+            usecols=self.signal_lookup[name],
+            skip_header=skip_header
+        )
 
     def sort_timestamp(self, element):
         return element[1]

@@ -301,7 +301,6 @@ class VIOCtrlApi(CtrlApi):
         :param value: Value of reset signal, 1 will set it to reset and 0 will release reset.
         :param timeout: Maximum time granted for operation to finish
         """
-
         self.set_param(name=self.scfg.reset_ctrl.name, value=value, timeout=timeout)
 
     def get_emu_time_int(self, timeout=30):

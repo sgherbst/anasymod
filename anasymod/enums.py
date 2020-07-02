@@ -19,17 +19,19 @@ class BoardNames:
     ARTY_A7
     VC707
     ZC702
+    ZC706
     ULTRA96
     TE0720
+
     """
     PYNQ_Z1 = 'PYNQ_Z1'
     ARTY_A7 = 'ARTY_A7'
     VC707 = 'VC707'
     ZC702 = 'ZC702'
+    ZC706 = 'ZC706'
     ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
     ARTY_200T_CUSTOM_LIDAR = 'ARTY_200T_CUSTOM_LIDAR'
-
 
 class PortDir:
     """

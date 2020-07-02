@@ -3,7 +3,7 @@ import pathlib
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
-from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo
+from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo, EDIFFile
 from anasymod.targets import FPGATarget
 
 class VivadoTCLGenerator(CodeGenerator):
@@ -17,7 +17,9 @@ class VivadoTCLGenerator(CodeGenerator):
         self.subst = None
         self.old_subst = None
 
-    def create_project(self, project_name, project_directory, force=False, full_part_name=None):
+    def create_project(self, project_name, project_directory, force=False, full_part_name=None,
+                       board_part=None):
+        # create the project
         cmd = ['create_project']
         if force:
             cmd.append('-force')
@@ -26,6 +28,10 @@ class VivadoTCLGenerator(CodeGenerator):
         if full_part_name is not None:
             cmd.extend(['-part', full_part_name])
         self.writeln(' '.join(cmd))
+
+        # specify the board part if known
+        if board_part is not None:
+            self.writeln(f'set_property board_part {board_part} [current_project]')
 
     def add_project_sources(self, content):
         """
@@ -44,6 +50,9 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # add vhdl sources
         self.add_vhdl_sources(vhdl_src=content.vhdl_sources)
+
+        # add edif file
+        self.add_edif_file(edif_files=content.edif_files)
 
         # add mem file
         self.add_mem_file(mem_files=content.mem_files)
@@ -87,6 +96,11 @@ class VivadoTCLGenerator(CodeGenerator):
                 if src.version is not None:
                     file_list = '{ ' + ' '.join('"' + back2fwd(file) + '"' for file in src.files) + ' }'
                     self.set_property('file_type', value=f'{{{src.version}}}', objects=f'[get_files {file_list}]')
+
+    def add_edif_file(self, edif_files: [EDIFFile]):
+        for edif_file in edif_files:
+            if edif_file.files:
+                self.add_files(edif_file.files)
 
     def add_mem_file(self, mem_files: [MEMFile]):
         for mem_file in mem_files:
@@ -166,3 +180,11 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # run the script
         call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
+
+    @property
+    def version_year(self):
+        return self.target.prj_cfg.vivado_config.version_year
+
+    @property
+    def version_number(self):
+        return self.target.prj_cfg.vivado_config.version_number

@@ -8,6 +8,7 @@ from typing import Union
 from anasymod.targets import CPUTarget, FPGATarget
 from anasymod.utils.VCD_parser import ParseVCD
 
+
 class Probe():
     """
     Base class for simulation data access API
@@ -325,7 +326,7 @@ class ProbeVCD(Probe):
             self.probe_caches[run_num] = run_cache
 
         #check complete name of emu_time_probe
-        matching = [s for s in self._probes() if 'emu_time' in s]
+        matching = [s for s in self._probes() if self.target.str_cfg.time_probe.name in s]
         if len(matching) == 1:
             emu_time_probe = matching[0]
         else:
@@ -433,7 +434,11 @@ class ProbeVCD(Probe):
 
             if signal in [""]:
                 raise ValueError("No data found for signal:{0}".format(name))
-            return np.array([cycle_cnt, signal], dtype='O')
+
+            if signal == self.target.str_cfg.time_probe.name:
+                return np.array([cycle_cnt, signal], dtype='O')
+            else:
+                return np.array([cycle_cnt, signal], dtype='O')
 
         else:
             # parse all signals into run_cache

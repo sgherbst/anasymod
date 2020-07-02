@@ -7,7 +7,7 @@ from anasymod.enums import ConfigSections, FPGASimCtrl, ResultFileTypes
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
-from anasymod.sources import VerilogSource, VerilogHeader
+from anasymod.sources import VerilogSource, VerilogHeader, FirmwareFile
 from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
@@ -17,6 +17,7 @@ from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
 from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
 from anasymod.files import anasymod_root, anasymod_header
 from anasymod.util import expand_searchpaths
+from anasymod.structures.firmware_gpio import FirmwareGPIO
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -78,7 +79,7 @@ class Target():
         """
 
         # Add anasymod header
-        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()), name=f'anasymod')]
+        self.content.verilog_headers += [VerilogHeader(str(anasymod_header()), name='anasymod_header')]
 
         # Generate toplevel and add to target sources
         toplevel_path = os.path.join(self.prj_cfg.build_root, 'gen_top.sv')
@@ -99,7 +100,7 @@ class Target():
         # Include the source code for an oscillator if needed
         if self.str_cfg.use_default_oscillator:
             osc_model_anasymod = anasymod_root() / 'verilog' / 'osc_model_anasymod.sv'
-            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod), name=f'osc_model_anasymod')]
+            self.content.verilog_sources += [VerilogSource(files=str(osc_model_anasymod), name='osc_model_anasymod')]
 
         # Include the source code for the anasymod control block
         ctrl_anasymod = anasymod_root() / 'verilog' / 'ctrl_anasymod.sv'
@@ -132,6 +133,22 @@ class Target():
             timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg, plugin_includes=self.plugins).render())
         self.content.verilog_sources += [VerilogSource(files=timemanager_path,
                                                        name='gen_time_manager')]
+
+    def gen_firmware(self):
+        # Generate firmware
+        gpio_fw = FirmwareGPIO(scfg=self.str_cfg)
+
+        # Write header code
+        gpio_hdr = os.path.join(self.prj_cfg.build_root, 'gpio_funcs.h')
+        with open(gpio_hdr, 'w') as f:
+            f.write(gpio_fw.hdr_text)
+        self.content.firmware_files += [FirmwareFile(files=gpio_hdr, name='gpio_hdr')]
+
+        # Write implementation code
+        gpio_src = os.path.join(self.prj_cfg.build_root, 'gpio_funcs.c')
+        with open(gpio_src, 'w') as f:
+            f.write(gpio_fw.src_text)
+        self.content.firmware_files += [FirmwareFile(files=gpio_src, name='gpio_src')]
 
     @property
     def project_root(self):
@@ -269,6 +286,10 @@ class Content():
         """:type : List[VHDLSource]"""
         self.defines = []
         """:type : List[Define]"""
+        self.edif_files = []
+        """:type : List[EDIFFile]"""
+        self.firmware_files = []
+        """:type : List[FirmwareFile]"""
         self.xci_files = []
         """:type : List[XCIFile]"""
         self.xdc_files = []

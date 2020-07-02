@@ -17,7 +17,7 @@ export PYTHON_MSDSL=`which python`
 echo $$PYTHON_MSDSL
 
 # run tests
-pytest --cov-report=xml --cov=anasymod tests -v -r s
+pytest --cov-report=xml --cov=anasymod tests -v -r s -s -x
 
 # upload coverage information
 bash <(curl -s https://codecov.io/bash)

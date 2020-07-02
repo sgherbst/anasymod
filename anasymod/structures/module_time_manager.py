@@ -73,7 +73,6 @@ class ModuleTimeManager(JinjaTempl):
 
             # assign to the emulator timestep output
             self.codegen.writeln(f"assign emu_dt = {pcfg.cfg.dt_width}'b{dt_as_bin};")
-            #raise Exception('The time manager requires that there is at least one timestep request.')
         else:
             prev_min = None
             for k, curr_sig in enumerate(dt_reqs):

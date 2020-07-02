@@ -1,7 +1,4 @@
-import serial
-import io, os
-import serial.tools.list_ports as ports
-from anasymod.enums import CtrlOps
+import os
 from anasymod.sim_ctrl.ctrlinfra import ControlInfrastructure
 from anasymod.structures.module_uartsimctrl import ModuleUARTSimCtrl
 from anasymod.structures.module_regmapsimctrl import ModuleRegMapSimCtrl
@@ -18,52 +15,51 @@ class UARTControlInfrastructure(ControlInfrastructure):
 
         # Program Zynq PS for UART access
         self._program_zynq_ps()
-        #ToDo: add path to elf file and add structure for storing ctrl ifc dependent files, also including the BD;
-        # later test if .tcl script for creating BD would be beneficial/at least there should be a script for creating
-        # the .bd file for a new Vivado version, also add binary path to xsct interface
+
+        #TODO: add path to elf file and add structure for storing ctrl ifc dependent files,
+        # also including the BD; later test if .tcl script for creating BD would be
+        # beneficial/at least there should be a script for creating the .bd file for a
+        # new Vivado version, also add binary path to xsct interface
 
     def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """
-        Generate RTL design for control infrastructure. This will generate the register map, add the block diagram
-        including the zynq PS and add the firmware running on the zynq PS.
+        Generate RTL design for control infrastructure. This will generate the register map, add the
+        block diagram including the zynq PS and add the firmware running on the zynq PS.
         """
 
         # Generate simulation control wrapper and add to target sources
         with (open(self._simctrlwrap_path, 'w')) as ctrl_file:
            ctrl_file.write(ModuleUARTSimCtrl(scfg=str_cfg).render())
 
-        content['verilog_sources'] += [VerilogSource(files=self._simctrlwrap_path)]
+        content.verilog_sources += [VerilogSource(files=self._simctrlwrap_path, name='simctrlwrap')]
 
     def gen_ctrl_infrastructure(self, str_cfg: StructureConfig, content):
         """
-        Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
-        For UART_ZYNQ control a register map, ZYNQ CPU SS block diagram and the firmware running on the zynq PS
-        need to be handled.
-
+        Generate RTL design for FPGA specific control infrastructure, depending on the interface
+        selected for communication. For UART_ZYNQ control a register map, ZYNQ CPU SS block
+        diagram and the firmware running on the zynq PS need to be handled.
         """
 
         # Generate register map according to IO settings stored in structure config and add to target sources
         with (open(self._simctrlregmap_path, 'w')) as ctrl_file:
            ctrl_file.write(ModuleRegMapSimCtrl(scfg=str_cfg).render())
 
-        content['verilog_sources'] += [VerilogSource(files=self._simctrlregmap_path)]
+        content.verilog_sources += [VerilogSource(files=self._simctrlregmap_path, name='simctrlregmap')]
 
-        # Add ZYNQ CPU subsystem to target sources for UART IO as a blockdiagram
-        zynq_bd = BDFile(files=get_from_anasymod('verilog', 'zynq_uart.bd'))
-        content['bd_files'].append(zynq_bd)
-
-        #ToDo: Add firmware part here -> generate FW if needed and add it to target sources
+        #TODO: Add firmware part here -> generate FW if needed and add it to target sources
 
     def _program_zynq_ps(self):
         """
         Program UART control application to Zynq PS to enable UART control interface.
         """
+
         pass
-        #HIER WEITER
 
     def add_ip_cores(self, scfg, ip_dir):
         """
-        Configures and adds IP cores that are necessary for selected IP cores. No IP core is configured and added.
+        Configures and adds IP cores that are necessary for selected IP cores. No IP core is
+        configured and added, so this just returns an empty list.
         :return rendered template for configuring a vio IP core
         """
+
         return []

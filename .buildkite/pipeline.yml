@@ -2,16 +2,19 @@ steps:
   - command: |
       # set up environment
       source /etc/environment
-      python3.7 -m venv venv
-      source venv/bin/activate
+      export ANASYMOD_PYTHON=python3.7
+      export FPGA_SERVER=1
       printenv
-
-      # upgrade pip
-      python -m pip install --upgrade pip
 
       # run regression script
       source regress.sh
     label: "test_emu"
     timeout_in_minutes: 60
+    artifact_paths:
+      - "tests/*/build/*/prj/prj.runs/*/*.bit"
+      - "tests/*/build/*/prj/prj.runs/*/*.ltx"
+      - "tests/*/build/*/prj/prj.runs/*/*.log"
+      - "tests/*/build/*/prj/prj.sim/*/behav/xsim/*.log"
+      - "tests/*/build/*/prj/prj.sim/*/behav/xsim/*.sh"
     agents:
       fpga_verif: "true"

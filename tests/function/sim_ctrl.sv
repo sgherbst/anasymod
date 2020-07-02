@@ -1,3 +1,4 @@
+`timescale 1s/1ns
 `include "svreal.sv"
 
 module sim_ctrl #(
@@ -7,6 +8,8 @@ module sim_ctrl #(
     `OUTPUT_REAL(in_),
     `INPUT_REAL(out)
 );
+    `include "anasymod.sv"
+
     // parameters
     localparam real m_pi = 3.1415926535;
     localparam real err_tol = 0.001;
@@ -35,18 +38,15 @@ module sim_ctrl #(
     integer n_samp;
     initial begin
         // wait for emulator reset to complete
-        #(10us);
-
-        // initialize signals
-        in_int = 0.0;
-        #(1us);
+        wait_emu_reset();
 
         // walk through simulation values
         sum_err_sqrd = 0.0;
         n_samp = 0;
-        for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int = in_int + 0.05) begin
-            // wait
-            #(1us);
+        for (in_int=-1.2*m_pi; in_int<=+1.2*m_pi; in_int=in_int+0.05) begin
+            // wait until next clock cycle (and then a little bit)
+            wait_emu_cycle();
+
             // compute expected output
             expct = $sin(clip(in_int, -m_pi, +m_pi));
             // print simulation state

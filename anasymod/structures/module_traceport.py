@@ -31,7 +31,7 @@ class ModuleTracePort(JinjaTempl):
         self.probe_dumps.indent()
         self.probe_dumps.writeln(f'initial begin')
         self.probe_dumps.indent()
-        self.probe_dumps.writeln(f'#0')
+        self.probe_dumps.writeln('#0;')
         for probe in probes:
             self.probe_dumps.writeln(f'$dumpvars(0, {probe.name});')
         self.probe_dumps.dedent()

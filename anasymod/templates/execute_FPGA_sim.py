@@ -3,6 +3,7 @@ from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 from anasymod.targets import FPGATarget
 
+
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         '''
@@ -161,7 +162,8 @@ commit_hw_vio $emu_dec_thr_vio
 # Radix setup: analog probes
 {{subst.analog_probe_radix}}
 
-catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{subst.time_name}}]{{'}'}}
+# Radix setup: digital probes
+{{subst.digital_probe_radix}}
 
 # Radix setup: digital probes
 {{subst.digital_probe_radix}}

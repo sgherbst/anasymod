@@ -102,7 +102,8 @@ class ModuleVIOSimCtrl(JinjaTempl):
 
 `ifdef SIMULATION_MODE_MSDSL
     // reset sequence
-    logic emu_rst_state = 1'b1;
+    logic emu_rst_state = 1'b1;    
+    assign emu_rst = emu_rst_state;
     assign emu_rst = emu_rst_state;
     initial begin
         @(posedge emu_clk);

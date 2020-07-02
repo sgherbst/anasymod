@@ -5,6 +5,7 @@
 .DS_Store
 *.jou
 *.log
+*.str
 *.egg-info
 __pycache__
 build

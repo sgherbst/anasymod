@@ -1,6 +1,4 @@
 verilog_sources:
-  clk_route:
-    files: "clk_route.sv"
   sim_ctrl:
     files: "sim_ctrl.sv"
     fileset: "sim"

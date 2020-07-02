@@ -118,7 +118,7 @@ class StructureConfig():
         self.emu_ctrl_data = DigitalCtrlInput(
             name='emu_ctrl_data',
             width=int(prj_cfg.cfg.time_width),
-            abspath=None
+            abspath = None
         )
         self.emu_ctrl_data.i_addr = self._assign_i_addr()
         self.digital_ctrl_inputs += [self.emu_ctrl_data]
@@ -129,7 +129,7 @@ class StructureConfig():
         self.emu_ctrl_mode = DigitalCtrlInput(
             name='emu_ctrl_mode',
             width=2,
-            abspath=None
+            abspath = None
         )
         self.emu_ctrl_mode.i_addr = self._assign_i_addr()
         self.digital_ctrl_inputs += [self.emu_ctrl_mode]
@@ -139,14 +139,19 @@ class StructureConfig():
         self.emu_time_vio = DigitalCtrlOutput(
             name='emu_time_vio',
             width=prj_cfg.cfg.time_width,
-            abspath='emu_time'
+            abspath = 'emu_time'
         )
         self.emu_time_vio.i_addr = self._assign_o_addr()
         self.digital_ctrl_outputs += [self.emu_time_vio]
         self.special_ctrl_ios.add(self.emu_time_vio.name)
 
-        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling for the ila depending on 'emu_dec_thr'
-        self.dec_cmp = DigitalSignal(name='emu_dec_cmp', abspath='emu_dec_cmp_probe', width=1)
+        # Add DigitalSignal for control of signal 'emu_dec_cmp' to trigger sampling
+        # for the ila depending on 'emu_dec_thr'
+        self.dec_cmp = DigitalSignal(
+            name='emu_dec_cmp',
+            abspath='emu_dec_cmp_probe',
+            width=1
+        )
 
         self._read_simctrlfile()
 
@@ -355,6 +360,7 @@ class ClkIndependent(DigitalSignal):
         # save settings
         self.freq = freq
 
+
 class ClkDerived(DigitalSignal):
     """
     Container for a derived clk object.
@@ -373,6 +379,7 @@ class ClkDerived(DigitalSignal):
         self.abspath_dt_req = abspath_dt_req
         self.abspath_gated_clk = abspath_gated_clk
         self.abspath_gated_clk_req = abspath_gated_clk_req
+
 
 class Config(BaseConfig):
     """

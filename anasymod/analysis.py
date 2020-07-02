@@ -13,6 +13,7 @@ from anasymod.viewer.gtkwave import GtkWaveViewer
 from anasymod.viewer.scansion import ScansionViewer
 from anasymod.viewer.simvision import SimVisionViewer
 from anasymod.emu.vivado_emu import VivadoEmulation
+from anasymod.emu.xsct_emu import XSCTEmulation
 from anasymod.files import get_full_path, get_from_anasymod, mkdir_p
 from anasymod.sources import *
 from anasymod.filesets import Filesets
@@ -30,7 +31,9 @@ class Analysis():
     """
     This is the top user Class that shall be used to exercise anasymod.
     """
-    def __init__(self, input=None, build_root=None, simulator_name=None, synthesizer_name=None, viewer_name=None, preprocess_only=None, op_mode=None, active_target=None):
+    def __init__(self, input=None, build_root=None, simulator_name=None,
+                 synthesizer_name=None, viewer_name=None, preprocess_only=None,
+                 op_mode=None, active_target=None):
 
         # Parse command line arguments
         self.args = None
@@ -198,6 +201,10 @@ class Analysis():
                 self.filesets._vhdl_sources.append(source)
             elif isinstance(source, Define):
                 self.filesets._defines.append(source)
+            elif isinstance(source, EDIFFile):
+                self.filesets._edif_files.append(source)
+            elif isinstance(source, FirmwareFile):
+                self.filesets._firmware_files.append(source)
             elif isinstance(source, XCIFile):
                 self.filesets._xci_files.append(source)
             elif isinstance(source, XDCFile):
@@ -288,7 +295,8 @@ class Analysis():
         else:
             raise Exception(f'Provided data type for parameter plugins is not supported. Expects list, given:{type(plugins)}')
 
-        #Check if any valid plugin was selected
+        # Check if any valid plugin was selected
+        # TODO: does this need to be more selective? (What happens if we don't want any plugins?)
         if not valid_plugins:
             raise Exception(f'ERROR: Provided plugin/s:{plugins} were not registered in the project configuration!')
 
@@ -321,7 +329,20 @@ class Analysis():
         VivadoEmulation(target=target).build()
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
 
-    def emulate(self, server_addr=None):
+    def build_firmware(self, *args, **kwargs):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(target=target).build(*args, **kwargs)
+
+    def emulate(self, server_addr=None, convert_waveform=True):
         """
         Program bitstream to FPGA and run simulation/emulation on FPGA
 
@@ -357,12 +378,28 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
-        ConvertWaveform(result_path_raw=target.result_path_raw,
-                        result_type_raw=target.cfg.result_type_raw,
-                        result_path=target.cfg.vcd_path,
-                        str_cfg=target.str_cfg,
-                        float_type=self.float_type,
-                        dt_scale=self._prj_cfg.cfg.dt_scale)
+        if convert_waveform:
+            ConvertWaveform(
+                result_path_raw=target.result_path_raw,
+                result_type_raw=target.cfg.result_type_raw,
+                result_path=target.cfg.vcd_path,
+                str_cfg=target.str_cfg,
+                float_type=self.float_type,
+                dt_scale=self._prj_cfg.cfg.dt_scale
+            )
+
+    def program_firmware(self, *args, **kwargs):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(target=target).program(*args, **kwargs)
 
     def launch(self, server_addr=None, debug=False):
         """
@@ -401,7 +438,7 @@ class Analysis():
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command
 
-    def simulate(self, unit=None, id=None):
+    def simulate(self, unit=None, id=None, convert_waveform=True):
         """
         Run simulation on a pc target.
         """
@@ -438,13 +475,16 @@ class Analysis():
         statpro.statpro_update(statpro.FEATURES.anasymod_sim + self.args.simulator_name)
 
         # post-process results
-        ConvertWaveform(result_path_raw=target.result_path_raw,
-                        result_type_raw=target.cfg.result_type_raw,
-                        result_path=target.cfg.vcd_path,
-                        str_cfg=target.str_cfg,
-                        float_type=self.float_type,
-                        debug=self._prj_cfg.cfg.cpu_debug_mode,
-                        dt_scale=self._prj_cfg.cfg.dt_scale)
+        if convert_waveform:
+            ConvertWaveform(
+                result_path_raw=target.result_path_raw,
+                result_type_raw=target.cfg.result_type_raw,
+                result_path=target.cfg.vcd_path,
+                str_cfg=target.str_cfg,
+                float_type=self.float_type,
+                debug=self._prj_cfg.cfg.cpu_debug_mode,
+                dt_scale=self._prj_cfg.cfg.dt_scale
+            )
 
     def probe(self, name, emu_time=False):
         """
@@ -483,7 +523,8 @@ class Analysis():
             temp_data = d[1]
 
         try:
-            return np.array(wave_step, dtype='float').transpose()
+            #return np.array(wave_step, dtype='float').transpose()
+            return np.array(wave_step, dtype='O').transpose()
         except:
             return np.array(wave_step, dtype='O').transpose()
 
@@ -750,7 +791,6 @@ class Analysis():
                                                               config_path=config_path,
                                                               fileset=fileset,
                                                               name='tb'))
-                get_from_anasymod('verilog', 'zynq_uart.bd')
 
         # Set define variables specifying the emulator control architecture
         # TODO: find a better place for these operations, and try to avoid directly accessing the config dictionary
@@ -762,6 +802,7 @@ class Analysis():
 
             print(f'Using top module {top_module} for fileset {fileset}.')
             self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.clk_default_osc', fileset=fileset))
+            self.filesets.add_define(define=Define(name='CKE_MSDSL', value=f'{top_module}.emu_cke', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_SCALE', value=f'{self._prj_cfg.cfg.dt_scale}', fileset=fileset))
@@ -822,6 +863,9 @@ class Analysis():
                 getattr(getattr(self, target), 'setup_ctrl_ifc')(debug=debug)
                 if gen_structures:
                     getattr(getattr(self, target), 'gen_structure')()
+
+            # Generate corresponding firmware and add to sources
+            getattr(getattr(self, target), 'gen_firmware')()
 
         # Copy generated sources by plugin from plugin build_root to target-specific build_root
         for plugin in self._plugins:

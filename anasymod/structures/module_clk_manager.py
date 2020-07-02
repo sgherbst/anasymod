@@ -73,7 +73,7 @@ class ModuleClkManager(JinjaTempl):
 	        emu_clk_2x_state = ~emu_clk_2x_state;
 	    end
 	    
-{% for clk in subst.independent_clks %}	    
+{% for clk in subst.independent_clks %}
 	    forever begin
 	        // TODO: investigate whether these clocks periods should be
 	        // related to `EMU_CLK_FREQ / `DT_MSDSL or not (since they are
@@ -91,9 +91,7 @@ class ModuleClkManager(JinjaTempl):
 {% endfor %}	
 `else
 	logic locked;
-
     {{subst.clk_wiz_inst.text}}
-
 `endif // `ifdef SIMULATION_MODE_MSDSL
 
 endmodule
