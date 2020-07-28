@@ -102,3 +102,16 @@ class ZC706():
     short_part_name = 'xc7z045'
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+
+class ZCU106():
+    """
+    Container to store ZCU106 FPGA board specific properties.
+    """
+    clk_pin = ['H9', 'G9']
+    clk_io = 'LVDS'
+    clk_freq = 125e6
+    board_part = ... # TODO: fill in with actual board part name
+    full_part_name = ... # TODO: fill in with package ffvc1156 and speedgrade -2
+    short_part_name = 'xczu7ev'
+    dbg_hub_clk_freq = 100e6
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
