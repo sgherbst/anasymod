@@ -37,6 +37,7 @@ class VivadoEmulation(VivadoTCLGenerator):
             project_name=self.target.prj_cfg.vivado_config.project_name,
             project_directory=project_root,
             full_part_name=self.target.prj_cfg.board.full_part_name,
+            board_part=self.target.prj_cfg.board.board_part,
             force=True
         )
 
