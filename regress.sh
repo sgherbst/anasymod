@@ -19,12 +19,10 @@ export PYTHON_MSDSL=`which python`
 echo $$PYTHON_MSDSL
 
 # run tests
-pytest --cov-report=xml --cov=anasymod tests -v -r s -s
-# to run tests in unittests directory, a command such as:
-# pytest --cov-report=xml --cov=anasymod unittests -v -r s -s -x
-# shall be used, note that it is also possible to specify a test target by adding
-# the argument --target <target_name> to the pytest call
-# the argument --classification <classification> can be used to select,
+pytest --cov-report=xml --cov=anasymod unittests tests -v -r s -s
+# for the unittests, the test target can be specified by adding
+# --target <target_name> to the pytest call, while the argument
+# --classification <classification> can be used to select,
 # which set of tests shall be executed (basic, weekend, ...)
 
 # upload coverage information
