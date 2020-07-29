@@ -214,7 +214,7 @@ class FPGATarget(Target):
                                        float_type=self.float_type, debug=debug)
         elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg, plugin_includes=self.plugins)
             self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg)
         else:
             raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")

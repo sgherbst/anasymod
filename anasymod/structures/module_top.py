@@ -4,6 +4,8 @@ from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import DigitalSignal
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.util import back2fwd
+from anasymod.enums import FPGASimCtrl
+from anasymod.templates.zynq_gpio import TemplZynqGPIO
 
 def digsig(name, width=1, signed=False):
     # convenience function to return a digital signal
@@ -44,6 +46,9 @@ class ModuleTop(JinjaTempl):
 
         module = ModuleInst(api=self.module_ifc, name='top')
         module.add_inputs(scfg.clk_i)
+        if ((target.cfg.fpga_sim_ctrl is not None) and
+                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ)):
+            module.add_inouts(TemplZynqGPIO.EXT_IOS)
         module.generate_header()
 
         #####################################################
@@ -114,6 +119,13 @@ class ModuleTop(JinjaTempl):
             scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs,
             connections=scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         )
+
+        ## Wire through Zynq connections if needed
+        if ((target.cfg.fpga_sim_ctrl is not None) and
+                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ)):
+            sim_ctrl_inst.add_inouts(TemplZynqGPIO.EXT_IOS,
+                                     connections=TemplZynqGPIO.EXT_IOS)
+
         # add master clk to ctrl module
         emu_clk_sig = DigitalSignal(name='emu_clk', width=1, abspath=None)
         sim_ctrl_inst.add_input(emu_clk_sig, emu_clk_sig)
