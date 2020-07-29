@@ -6,8 +6,10 @@ from anasymod.analysis import Analysis
 from anasymod.targets import Target
 from anasymod.util import OutputError
 
+USING_PVERIFY = False
 try:
     from pverify.postproc.signals import Waveform
+    USING_PVERIFY = True
 except:
     # get files from "common.py"
     from unittests.common import Waveform
@@ -115,11 +117,15 @@ def waveform_in_limits(low_limit, wave, high_limit):
     :type high_limit: Waveform
     :return:
     """
-    if low_limit <= wave <= high_limit:
-        pass
+
+    # check if the waveform is between the two limits
+    # implementation depends on whether PVERIFY is being used
+    if USING_PVERIFY:
+        if not (low_limit <= wave <= high_limit):
+            print("Waveform not inside limits")
+            raise ValueError
     else:
-        print("Waveform not inside limits")
-        raise ValueError
+        wave.check_in_limits(low_limit, high_limit)
 
 def probe_signals(ana):
     """
@@ -197,6 +203,10 @@ class TestBasicSIM():
         # TODO: How can we test this test?
 
     @basic
+    @pytest.mark.skipif(
+        not os.path.exists(smoke_test_root),
+        reason='smoke_test_root does not exist'
+    )
     def test_nfc(self):
         print("Running nfc sim")
         try:
@@ -297,7 +307,8 @@ class TestBasicSIM():
                       5.122767511991505e-06, 0.18753511357117747, 5.620693668879983e-06, 0.5087013672813337,
                       6.203175044552685e-06, 0.7446919992782245, 7.000617278766725e-06, 0.8635485949554907,
                       7.606988984257434e-06, 0.4254601049960923, 8.418432899053952e-06, 0.1960129644726062,
-                      8.90638533413989e-06, 0.539234044081612, 9.766686802670409e-06, 0.8038550900277232]
+                      8.90638533413989e-06, 0.539234044081612, 9.766686802670409e-06, 0.8038550900277232,
+                      1.0e-7, 0.82]
         low_limit = [0.0, -0.005071129093666055, 1.9088332258904226e-06, -0.01582642216396682, 2.4795281354570584e-06,
                      0.39305527528222917, 2.9479053069648825e-06, 0.6231600673274025, 3.439550047624293e-06,
                      0.775821599293627, 3.916432538170918e-06, 0.4474167574483633, 4.553125186578735e-06,
@@ -305,7 +316,8 @@ class TestBasicSIM():
                      0.49267278941947945, 6.30657785625346e-06, 0.6642516375076556, 6.757562704094439e-06,
                      0.7828122769792349, 7.03520301032725e-06, 0.543473412465884, 7.708156031653259e-06,
                      0.25057055770087977, 8.58737320247998e-06, 0.09898533422842445, 9.202825222058684e-06,
-                     0.5089544613471104, 9.866985509192334e-06, 0.7475891010562503]
+                     0.5089544613471104, 9.866985509192334e-06, 0.7475891010562503,
+                     1.0e-7, 0.76]
         wave_high_limit = Waveform(data=high_limit[1::2], time=high_limit[::2])
         wave_low_limit = Waveform(data=low_limit[1::2], time=low_limit[::2])
 
