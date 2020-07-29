@@ -11,8 +11,8 @@ try:
     from pverify.postproc.signals import Waveform
     USING_PVERIFY = True
 except:
-    # get files from "common.py"
-    from unittests.common import Waveform
+    # get files from "waveform.py"
+    from unittests.waveform import Waveform
 
 import os
 import pytest
