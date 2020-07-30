@@ -19,10 +19,7 @@ def main():
     m.add_analog_output('v_out')
 
     # apply dynamics
-    # TODO: clean up with update to MSDSL
-    class ce:
-        name = '`CKE_MSDSL'
-    m.set_next_cycle(m.v_out, m.v_out*exp(-a.dt/a.tau) + m.v_in*(1-exp(-a.dt/a.tau)), ce=ce)
+    m.set_next_cycle(m.v_out, m.v_out*exp(-a.dt/a.tau) + m.v_in*(1-exp(-a.dt/a.tau)))
 
     # determine the output filename
     filename = Path(a.output).resolve() / f'{m.module_name}.sv'

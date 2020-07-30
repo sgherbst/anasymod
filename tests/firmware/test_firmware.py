@@ -52,7 +52,8 @@ def test_5():
     # run UART test
     ser = serial.Serial(
         port='/dev/ttyUSB2',
-        baudrate=115200
+        baudrate=115200,
+        timeout=30.0  # prevent test from hanging forever
     )
 
     # simple test

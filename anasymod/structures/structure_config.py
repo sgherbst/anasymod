@@ -103,7 +103,7 @@ class StructureConfig():
         self.special_ctrl_ios.add(self.reset_ctrl.name)
 
         # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation
-        # ration for capturing probe samples
+        # ratio for capturing probe samples
         self.dec_thr_ctrl = DigitalCtrlInput(
             abspath=None,
             name='emu_dec_thr',
