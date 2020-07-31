@@ -14,13 +14,13 @@ class TemplXSCTProgram:
 
         self.connect()
 
-        if program_fpga:
-            self.program_fpga(bit_path)
-
         self.select_cpu(cpu_filter)
 
         if reset_system:
             self.reset_system()
+
+        if program_fpga:
+            self.program_fpga(bit_path)
 
         self.loadhw(hw_path)
 
