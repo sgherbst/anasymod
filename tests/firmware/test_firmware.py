@@ -1,6 +1,5 @@
 import os
 import pytest
-import serial
 from pathlib import Path
 from anasymod.analysis import Analysis
 
@@ -49,12 +48,13 @@ def test_4():
     reason='The FPGA_SERVER environment variable must be set to run this test.'
 )
 def test_5():
-    # run UART test
-    ser = serial.Serial(
-        port='/dev/ttyUSB2',
-        baudrate=115200,
-        timeout=30.0  # prevent test from hanging forever
-    )
+    # launch the UART controller
+    ana = Analysis(input=root)
+    ana.set_target(target_name='fpga')
+    ctrl = ana.launch()
+
+    # short name for the low-level PySerial object
+    ser = ctrl.ctrl_handler
 
     # simple test
     ser.write(f'HELLO\n'.encode('utf-8'))
