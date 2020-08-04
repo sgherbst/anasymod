@@ -37,6 +37,8 @@ class XSCTTCLGenerator(CodeGenerator):
     def xsct(self):
         if self._xsct is None:
             self._xsct = shutil.which('xsct')
+        if self._xsct is None:
+            self._xsct = r"C:\Inicio\tools\64\Xilinx-18.2.0.3\SDK\2018.2\bin\xsct.bat"
         return self._xsct
 
     @property

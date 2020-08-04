@@ -31,7 +31,8 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # specify the board part if known
         if board_part is not None:
-            self.writeln(f'set_property board_part {board_part} [current_project]')
+            self.writeln(f'if {{[catch {{set_property board_part {board_part} [current_project]}}]}} '
+                         f'{{puts "WARNING: Could not not set board_part:{board_part}"}}')
 
     def add_project_sources(self, content):
         """

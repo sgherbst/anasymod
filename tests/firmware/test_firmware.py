@@ -2,6 +2,7 @@ import os
 import pytest
 import serial
 from pathlib import Path
+import serial.tools.list_ports as ports
 from anasymod.analysis import Analysis
 
 root = Path(__file__).resolve().parent
@@ -14,47 +15,67 @@ def test_1(simulator_name=DEFAULT_SIMULATOR):
     ana.gen_sources()
     ana.simulate()
 
-@pytest.mark.skipif(
-    'FPGA_SERVER' not in os.environ,
-    reason='The FPGA_SERVER environment variable must be set to run this test.'
-)
+#@pytest.mark.skipif(
+#    'FPGA_SERVER' not in os.environ,
+#    reason='The FPGA_SERVER environment variable must be set to run this test.'
+#)
 def test_2():
     # build bitstream
     ana = Analysis(input=root)
     ana.set_target(target_name='fpga')  # set the active target to 'fpga'
     ana.build()
 
-@pytest.mark.skipif(
-    'FPGA_SERVER' not in os.environ,
-    reason='The FPGA_SERVER environment variable must be set to run this test.'
-)
+#@pytest.mark.skipif(
+#    'FPGA_SERVER' not in os.environ,
+#    reason='The FPGA_SERVER environment variable must be set to run this test.'
+#)
 def test_3():
     # build ELF
     ana = Analysis(input=root)
     ana.set_target(target_name='fpga')  # set the active target to 'fpga'
     ana.build_firmware()
 
-@pytest.mark.skipif(
-    'FPGA_SERVER' not in os.environ,
-    reason='The FPGA_SERVER environment variable must be set to run this test.'
-)
+#@pytest.mark.skipif(
+#    'FPGA_SERVER' not in os.environ,
+#    reason='The FPGA_SERVER environment variable must be set to run this test.'
+#)
 def test_4():
     # download program
     ana = Analysis(input=root)
     ana.set_target(target_name='fpga')  # set the active target to 'fpga'
     ana.program_firmware()
 
-@pytest.mark.skipif(
-    'FPGA_SERVER' not in os.environ,
-    reason='The FPGA_SERVER environment variable must be set to run this test.'
-)
+#@pytest.mark.skipif(
+#    'FPGA_SERVER' not in os.environ,
+#    reason='The FPGA_SERVER environment variable must be set to run this test.'
+#)
 def test_5():
     # run UART test
-    ser = serial.Serial(
-        port='/dev/ttyUSB2',
-        baudrate=115200,
-        timeout=30.0  # prevent test from hanging forever
-    )
+    # find all available COM ports
+    port_list = []
+    vid_list = [1027]
+    pid_list = [24592]
+    comports = [port for port in ports.comports(include_links=True)]
+    # check if any COM port is compliant to known vids and pids and if so store the device_id
+    for port in comports:
+        if ((port.vid in vid_list) and (port.pid in pid_list)):
+            port_list.append(port.device)
+
+    for port in port_list:
+        try:
+            ser = serial.Serial(port, int(115200), timeout=30.0)
+                                              #parity=serial.PARITY_NONE, stopbits=1,
+                                              #bytesize=serial.EIGHTBITS)
+            print(f'Port working:{port}]')
+        except:
+            pass
+
+
+    #ser = serial.Serial(
+    #    port='/dev/ttyUSB2',
+    #    baudrate=115200,
+    #    timeout=30.0  # prevent test from hanging forever
+    #)
 
     # simple test
     ser.write(f'HELLO\n'.encode('utf-8'))
