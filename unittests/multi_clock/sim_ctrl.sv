@@ -16,20 +16,16 @@ module sim_ctrl #(
     // set t_lo
     real t_lo_val [0:(num_osc-1)];
     assign t_lo_val[0] = 0.123e-12;
+    assign t_lo_0 = t_lo_val[0]/(`DT_SCALE);
     assign t_lo_val[1] = 0.234e-12;
+    assign t_lo_1 = t_lo_val[1]/(`DT_SCALE);
 
     // set t_hi
     real t_hi_val [0:(num_osc-1)];
     assign t_hi_val[0] = 0.345e-12;
+    assign t_hi_0 = t_hi_val[0]/(`DT_SCALE);
     assign t_hi_val[1] = 0.456e-12;
-
-    // apply t_lo and t_hi settings
-    initial begin
-        t_lo_0 = t_lo_val[0]/(`DT_SCALE);
-        t_hi_0 = t_hi_val[0]/(`DT_SCALE);
-        t_lo_1 = t_lo_val[1]/(`DT_SCALE);
-        t_hi_1 = t_hi_val[1]/(`DT_SCALE);
-    end
+    assign t_hi_1 = t_hi_val[1]/(`DT_SCALE);
 
     // wire up clocks
     logic [(num_osc-1):0] clk_i;
