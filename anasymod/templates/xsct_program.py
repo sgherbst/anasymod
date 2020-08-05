@@ -16,34 +16,15 @@ class TemplXSCTProgram:
 
         self.connect()
 
-        if program_fpga:
-            self.program_fpga(bit_path)
-
         self.select_cpu(cpu_filter)
 
         if reset_system:
             self.reset_system()
 
+        if program_fpga:
+            self.program_fpga(bit_path)
+
         self.loadhw(hw_path)
-
-        #test
-        # Connect to hardware
-        #self.line('puts "open_hw"')
-        #self.line('open_hw')
-        #self.line('puts "connect_hw_server"')
-        #self.line('connect_hw_server')
-        #self.line('set_property PARAM.FREQUENCY {{subst.jtag_freq}} [get_hw_targets]')
-        #self.line('open_hw_target')
-
-        # Configure files to be programmed
-        #self.line('set my_hw_device [get_hw_devices {{subst.device_name}}*]')
-        #self.line('current_hw_device $my_hw_device')
-        #self.line('refresh_hw_device $my_hw_device')
-        #self.line('set_property PROGRAM.FILE "{{subst.bit_file}}" $my_hw_device')
-        #self.line('set_property PROBES.FILE "{{subst.ltx_file}}" $my_hw_device')
-        #self.line('set_property FULL_PROBES.FILE "{{subst.ltx_file}}" $my_hw_device')
-        #end
-
 
         self.init_cpu(tcl_path)
 
