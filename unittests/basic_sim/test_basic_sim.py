@@ -466,7 +466,8 @@ class TestBasicSIM():
     def test_firmware(self):
         print("Running firmware sim")
         try:
-            ctrl: UARTCtrlApi = run_target('firmware', interactive=True)
+            ctrl: UARTCtrlApi = run_target('firmware', interactive=True,
+                                           has_firmware=True)
         except MyException:
             return
         except:
