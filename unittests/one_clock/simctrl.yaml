@@ -1,0 +1,11 @@
+digital_ctrl_inputs:
+  t_lo:
+    abspath: 'tb_i.t_lo'
+    width: 32
+  t_hi:
+    abspath: 'tb_i.t_hi'
+    width: 32
+
+digital_ctrl_outputs:
+  clk_i:
+    abspath: 'tb_i.clk_i'

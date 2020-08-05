@@ -611,3 +611,14 @@ class TestBasicSIM():
 
             # wait a certain amount of time
             ctrl.sleep_emu(dt)
+
+    @basic
+    def test_one_clock(self):
+        print("Running one_clock sim")
+        try:
+            signals = run_target('one_clock')
+            """ :type : dict"""
+        except MyException:
+            return
+        except:
+            raise Exception
