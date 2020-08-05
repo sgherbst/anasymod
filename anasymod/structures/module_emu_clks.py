@@ -24,9 +24,11 @@ class ModuleEmuClks(JinjaTempl):
             if derived_clk.abspath_gated_clk is not None:
                 gated_clks.append(derived_clk.name)
 
-        # add input for dt request signal, in case a default oscillator is used
+        # add IOs for default oscillator if used
+        self.use_default_oscillator = scfg.use_default_oscillator
         if scfg.use_default_oscillator:
-            gated_clks.append(f'default_osc')
+            module.add_input(DigitalSignal(name=f'clk_val_default_osc', width=1, abspath=''))
+            module.add_output(DigitalSignal(name=f'clk_default_osc', width=1, abspath=''))
 
         for gated_clk in gated_clks:
             module.add_input(DigitalSignal(name=f'clk_val_{gated_clk}', width=1, abspath=''))
@@ -45,13 +47,13 @@ class ModuleEmuClks(JinjaTempl):
             self.generated_clks.writeln(f'always @(posedge emu_clk_2x) begin')
             self.generated_clks.indent()
             for gated_clk in gated_clks:
-                self.generated_clks.writeln(f"if (clk_val_{gated_clk} == 1'b1) begin")
+                self.generated_clks.writeln(f"if (emu_clk_unbuf == 1'b0) begin")
                 self.generated_clks.indent()
-                self.generated_clks.writeln(f'clk_unbuf_{gated_clk} <= ~clk_unbuf_{gated_clk};')
+                self.generated_clks.writeln(f'clk_unbuf_{gated_clk} <= clk_val_{gated_clk};')
                 self.generated_clks.dedent()
                 self.generated_clks.writeln(f'end else begin')
                 self.generated_clks.indent()
-                self.generated_clks.writeln(f"clk_unbuf_{gated_clk} <= 1'b0;")
+                self.generated_clks.writeln(f"clk_unbuf_{gated_clk} <= clk_unbuf_{gated_clk};")
                 self.generated_clks.dedent()
                 self.generated_clks.writeln(f'end')
             self.generated_clks.dedent()
@@ -87,6 +89,19 @@ end
 `else
     assign emu_clk = emu_clk_unbuf;
 `endif
+
+{% if subst.use_default_oscillator %}
+// Handle default oscillator
+logic clk_unbuf_default_osc = 0;
+always @(posedge emu_clk_2x) begin
+    clk_unbuf_default_osc <= (~emu_clk_unbuf) & clk_val_default_osc;
+end
+`ifndef SIMULATION_MODE_MSDSL
+    BUFG buf_default_osc (.I(clk_unbuf_default_osc), .O(clk_default_osc));
+`else
+    assign clk_default_osc = clk_unbuf_default_osc;
+`endif
+{% endif %}
 
 // generate other clocks
 {{subst.generated_clks.text}}
