@@ -176,14 +176,12 @@ def probe_signals(ana):
 class TestBasicSIM():
     @basic
     def test_error_recognition(self):
-        if pytest.config.getoption("--target") not in ['sim_icarus', 'sim_vivado']:
-            pytest.skip("test works for iverilog and vivado_sim only")
         print("Running error_recognition test")
         try:
             signals = run_target('error_recognition')
             """ :type : dict"""
             raise Exception
-        except OutputError:
+        except (OutputError, AssertionError):
             pass
 
     @basic
