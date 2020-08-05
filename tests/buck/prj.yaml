@@ -1,6 +1,0 @@
-PROJECT:
-    dt:                 50e-9
-    ila_depth:          16384
-CPU_TARGET:
-    sim:
-        tstop:          100e-6

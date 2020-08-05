@@ -3,8 +3,9 @@
 # NOTE: for interactive debug, add -s to py.test run in order to have stdout and stderr no longer captured by py.test!
 
 from anasymod.analysis import Analysis
-from anasymod.targets import Target
 from anasymod.util import OutputError
+from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
+from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
 
 USING_PVERIFY = False
 try:
@@ -18,12 +19,14 @@ import os
 import pytest
 import shutil
 import numpy as np
+from math import exp
 from unittests.enums import TestClassification, RunTimeEnvs, Target
 
 basic = pytest.mark.skipif(
     TestClassification.basic not in pytest.config.getoption("--classification"),
     reason="need basic as argument for --classification")
 
+# TODO: should this be here?  It doesn't seem to be used...
 weekend = pytest.mark.skipif(
     TestClassification.weekend not in pytest.config.getoption("--classification"),
     reason="need weekend as argument for --classification")
@@ -31,7 +34,7 @@ weekend = pytest.mark.skipif(
 nocplusplus = pytest.mark.skipif(RunTimeEnvs.nocplusplus not in pytest.config.getoption("--rtenv"),
                                  reason="need nocplusplus as argument for --rtenv")
 
-anasymod_test_root = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'tests')
+anasymod_test_root = os.path.dirname(os.path.dirname(__file__))
 smoke_test_root = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '..', 'smoketests')
 
 class classproperty(object):
@@ -68,29 +71,53 @@ def cleanup_test_env():
         except:
             pass
 
-def run_target(test_name, test_root=anasymod_test_root):
+def run_target(test_name, test_root=anasymod_test_root, should_probe=True,
+               interactive=False, debug=False, has_firmware=False):
     if pytest.config.getoption("--target") in Target.__dict__.keys():
-        if pytest.config.getoption("--target") == Target.sim_icarus:
-            ana = setup_target(test_name, test_root, 'sim', simulator='icarus')
-            ana.simulate()
-            return probe_signals(ana)
-        elif pytest.config.getoption("--target") == Target.sim_vivado:
-            ana = setup_target(test_name, test_root, 'sim', simulator='vivado')
-            ana.simulate()
-            return probe_signals(ana)
-        elif pytest.config.getoption("--target") == Target.sim_xcelium:
-            ana = setup_target(test_name, test_root, 'sim', simulator='xrun')
-            ana.simulate(unit="main", id="xrun")
-            return probe_signals(ana)
-        elif pytest.config.getoption("--target") == Target.build_vivado:
+        if pytest.config.getoption("--target") in \
+                {Target.sim_icarus, Target.sim_vivado, Target.sim_xcelium}:
+            # determine simulator-specific arguments
+            if pytest.config.getoption("--target") == Target.sim_icarus:
+                simulator = 'icarus'
+                simulate_kwargs = {}
+            elif pytest.config.getoption("--target") == Target.sim_vivado:
+                simulator = 'vivado'
+                simulate_kwargs = {}
+            elif pytest.config.getoption("--target") == Target.sim_xcelium:
+                simulator = 'xrun'
+                simulate_kwargs = dict(unit="main", id="xrun")
+            else:
+                raise Exception(f'Unknown target type.')
+
+            # run the simulation
+            ana = setup_target(test_name, test_root, 'sim', simulator=simulator)
+            ana.simulate(**simulate_kwargs, convert_waveform=should_probe)
+
+            # return the probe signals if requested
+            if should_probe:
+                return probe_signals(ana)
+        elif pytest.config.getoption("--target") in \
+                {Target.build_vivado, Target.emulate_vivado}:
+            # build the emulator bitstream (and firmware if necessary)
             ana = setup_target(test_name, test_root, 'fpga', synthesizer='vivado')
             ana.build()
-            raise MyException
-        elif pytest.config.getoption("--target") == Target.emulate_vivado:
-            ana = setup_target(test_name, test_root, 'fpga', synthesizer='vivado')
-            ana.build()
-            ana.emulate()
-            return probe_signals(ana)
+            if has_firmware:
+                ana.build_firmware()
+
+            # stop at this point if only running the build target, using a custom
+            # exception handled through the regression testing framework
+            if pytest.config.getoption("--target") == Target.build_vivado:
+                raise MyException
+
+            # run the emulator
+            if interactive:
+                if has_firmware:
+                    ana.program_firmware()
+                return ana.launch(debug=debug)
+            else:
+                ana.emulate()
+                if should_probe:
+                    return probe_signals(ana)
     else:
         raise Exception(f'Provided target:{pytest.config.getoption("--target")} not supported')
 
@@ -434,3 +461,152 @@ class TestBasicSIM():
         else:
             print("Output voltage not settled (+-5%) in required time")
             raise ValueError
+
+    @basic
+    def test_firmware(self):
+        print("Running firmware sim")
+        try:
+            ctrl: UARTCtrlApi = run_target('firmware', interactive=True)
+        except MyException:
+            return
+        except:
+            raise Exception
+
+        # only continue further if running the emulate_vivado target
+        if pytest.config.getoption("--target") != Target.emulate_vivado:
+            return
+
+        # short name for the low-level PySerial object
+        ser = ctrl.ctrl_handler
+
+        # simple test
+        ser.write(f'HELLO\n'.encode('utf-8'))
+        out = ser.readline().decode('utf-8').strip()
+        print(f'Got output: "{out}"')
+        if out != 'Hello World!':
+            raise Exception('Output mismatch.')
+
+        # detailed test
+        def run_test(a, b, mode, expct):
+            # write inputs
+            ser.write(f'SET_A {a}\n'.encode('utf-8'))
+            ser.write(f'SET_B {b}\n'.encode('utf-8'))
+            ser.write(f'SET_MODE {mode}\n'.encode('utf-8'))
+
+            # get output
+            ser.write('GET_C\n'.encode('utf-8'))
+            out = ser.readline().decode('utf-8').strip()
+            c = int(out)
+
+            print(f'a={a}, b={b}, mode={mode} -> c={c} (expct={expct})')
+
+            if c != expct:
+                raise Exception('Output mismatch.')
+
+        # try out different operating modes
+        run_test(12, 34, 0, 46)
+        run_test(45, 10, 1, 35)
+        run_test(10, 44, 2, 34)
+        run_test(3, 7, 3, 21)
+        run_test(9, 1, 4, 4)
+        run_test(9, 1, 5, 18)
+        run_test(2, 32, 6, 8)
+        run_test(3, 3, 7, 24)
+        run_test(56, 78, 8, 42)
+
+        # quit the program
+        print('Quitting the program...')
+        ser.write('EXIT\n'.encode('utf-8'))
+
+    @basic
+    def test_function(self):
+        print("Running function sim")
+        try:
+            # should_probe must be False for this test -- there seems to
+            # be a bug when cpu_debug_mode=True as in this test case
+            ctrl: VIOCtrlApi = run_target('function', should_probe=False,
+                                          interactive=True)
+        except MyException:
+            return
+        except:
+            raise Exception
+
+        # only continue further if running the emulate_vivado target
+        if pytest.config.getoption("--target") != Target.emulate_vivado:
+            return
+
+        # reset emulator
+        ctrl.set_reset(1)
+        ctrl.set_reset(0)
+
+        # reset everything else
+        ctrl.set_param(name='in_', value=0.0)
+
+        # save the outputs
+        inpts = np.random.uniform(-1.2 * np.pi, +1.2 * np.pi, 100)
+        apprx = np.zeros(shape=inpts.shape, dtype=float)
+        for k, in_ in enumerate(inpts):
+            ctrl.set_param(name='in_', value=in_)
+            ctrl.refresh_param('vio_0_i')
+            apprx[k] = ctrl.get_param('out')
+
+        # compute the exact response to inputs
+        def myfunc(x):
+            # clip input
+            x = np.clip(x, -np.pi, +np.pi)
+            # apply function
+            return np.sin(x)
+
+        exact = myfunc(inpts)
+
+        # check the result
+        err = np.sqrt(np.mean((exact - apprx) ** 2))
+        assert err <= 0.000318
+
+    @basic
+    def test_rc(self):
+        print("Running rc sim")
+        try:
+            ctrl: VIOCtrlApi = run_target('rc', interactive=True)
+        except MyException:
+            return
+        except:
+            raise Exception
+
+        # only continue further if running the emulate_vivado target
+        if pytest.config.getoption("--target") != Target.emulate_vivado:
+            return
+
+        # define test parameters
+        v_in = 1.0
+        n_steps = 25
+        dt = 0.1e-6
+        tau = 1.0e-6
+        abs_tol = 1e-3
+
+        # initialize values
+        ctrl.stall_emu()
+        ctrl.set_param(name='v_in', value=v_in)
+
+        # reset emulator
+        ctrl.set_reset(1)
+        ctrl.set_reset(0)
+
+        # walk through simulation values
+        for _ in range(n_steps):
+            # get readings
+            ctrl.refresh_param('vio_0_i')
+            v_out = ctrl.get_param('v_out')
+            t_sim = ctrl.get_emu_time()
+
+            # print readings
+            print(f't_sim: {t_sim}, v_out: {v_out}')
+
+            # check results
+            meas_val = v_out
+            expt_val = v_in * (1 - exp(-t_sim / tau))
+            assert (expt_val - abs_tol) <= meas_val <= (expt_val + abs_tol), \
+                'Measured value is out of range.'
+
+            # wait a certain amount of time
+            ctrl.sleep_emu(dt)

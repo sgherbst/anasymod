@@ -1,14 +1,12 @@
 import os
 import pytest
 
-DEFAULT_SIMULATOR = 'sim_icarus' if 'FPGA_SERVER' not in os.environ else 'sim_vivado'
-
 def pytest_addoption(parser):
     parser.addoption("--rtenv", action="store", default="nocplusplus",
         help="Select for which Run Time Environment test should be executed.")
     parser.addoption("--classification", action="store", default="basic",
                      help="Select what classification of test should be executed.")
-    parser.addoption("--target", action="store", default=DEFAULT_SIMULATOR,
+    parser.addoption("--target", action="store", default='sim_icarus',
                      help="Select for which target the test should be executed.")
 
 """

@@ -1,8 +1,0 @@
-analog_probes:
-    v_out_probe:
-        abspath:    'tb_i.v_out'
-        range:      1.5
-digital_probes:
-    osc_cke:
-        abspath:    'def_osc_i.cke'
-        width:      1

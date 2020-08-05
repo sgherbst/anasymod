@@ -18,12 +18,10 @@ pip install -e .
 export PYTHON_MSDSL=`which python`
 echo $$PYTHON_MSDSL
 
-# run tests
-pytest --cov-report=xml --cov=anasymod unittests tests -v -r s -s
-# for the unittests, the test target can be specified by adding
-# --target <target_name> to the pytest call, while the argument
-# --classification <classification> can be used to select,
-# which set of tests shall be executed (basic, weekend, ...)
+# run tests.  optional arguments:
+# --target <target_name> to specify the simulator (sim_icarus, sim_vivado, etc.)
+# --classification <classification> to select which tests are run (basic, weekend, etc.)
+pytest --cov-report=xml --cov=anasymod --target=$ANASYMOD_TARGET unittests -v -r s -s
 
 # upload coverage information
 bash <(curl -s https://codecov.io/bash)
