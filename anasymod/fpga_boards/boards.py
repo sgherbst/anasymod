@@ -105,3 +105,17 @@ class ZC706(FPGA_Board):
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_vid = 4292
     uart_pid = 60000
+
+class ZCU106(FPGA_Board):
+    """
+    Container to store ZCU106 FPGA board specific properties.
+    """
+    clk_pin = ['H9', 'G9']
+    clk_io = 'LVDS'
+    clk_freq = 125e6
+    board_part = 'xilinx.com:zcu106:part0:2.5'
+    full_part_name = 'xczu7ev-ffvc1156-2-e'
+    short_part_name = 'xczu7ev'
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    uart_vid = 4292
+    uart_pid = 60000
