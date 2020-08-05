@@ -622,3 +622,14 @@ class TestBasicSIM():
             return
         except:
             raise Exception
+
+    @basic
+    def test_multi_clock(self):
+        print("Running multi_clock sim")
+        try:
+            signals = run_target('multi_clock')
+            """ :type : dict"""
+        except MyException:
+            return
+        except:
+            raise Exception
