@@ -1,5 +1,23 @@
 steps:
-  - command: |
+  - label: "test"
+    command: |
+      # set up environment
+      source /cad/modules/tcl/init/bash
+      module load base xcelium
+      export ANASYMOD_TARGET=sim_xcelium
+      printenv
+
+      # set up Python environment
+      /usr/local/miniconda/bin/python3.7 -m venv venv
+      source venv/bin/activate
+
+      # run regression script
+      source regress.sh
+    timeout_in_minutes: 60
+    agents:
+      fault2: "true"
+  - label: "test_emu"
+    command: |
       # set up environment
       source /etc/environment
       export FPGA_SERVER=1
@@ -12,8 +30,6 @@ steps:
 
       # run regression script
       source regress.sh
-    label: "test_emu"
-    timeout_in_minutes: 60
     artifact_paths:
       - "tests/*/build/*/prj/prj.runs/*/*.bit"
       - "tests/*/build/*/prj/prj.runs/*/*.ltx"
@@ -24,5 +40,6 @@ steps:
       - "tests/*/build/*/prj/prj.runs/*/ps7_init.tcl"
       - "tests/*/build/*/prj/prj.sdk/*/*/*.elf"
       - "tests/*/build/*/*.tcl"
+    timeout_in_minutes: 60
     agents:
       fpga_verif: "true"
