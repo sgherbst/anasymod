@@ -31,8 +31,8 @@ pytest --cov-report=xml -v -r s -s \
 if [[ -n "${FPGA_SERVER}" ]]; then
     pytest --cov-report=xml --cov-append -v -r s -s \
         --cov=anasymod --target=emulate_vivado \
-        unittests/basic_sim/test_basic_sim.py::TestBasicSIM.test_firmware \
-        unittests/basic_sim/test_basic_sim.py::TestBasicSIM.test_rc
+        unittests/basic_sim/test_basic_sim.py::TestBasicSIM::test_firmware \
+        unittests/basic_sim/test_basic_sim.py::TestBasicSIM::test_rc
 fi
 
 # upload coverage information
