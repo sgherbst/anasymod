@@ -2,10 +2,13 @@ steps:
   - command: |
       # set up environment
       source /etc/environment
-      export ANASYMOD_PYTHON=python3.7
       export FPGA_SERVER=1
       export ANASYMOD_TARGET=sim_vivado
       printenv
+
+      # set up Python environment
+      python3.7 -m venv venv
+      source venv/bin/activate
 
       # run regression script
       source regress.sh

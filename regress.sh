@@ -1,7 +1,3 @@
-# create virtual environment
-$ANASYMOD_PYTHON -m venv venv
-source venv/bin/activate
-
 # upgrade pip
 python -m pip install --upgrade pip
 
@@ -16,7 +12,10 @@ pip install -e .
 
 # specify python location (needed for msdsl)
 export PYTHON_MSDSL=`which python`
-echo $$PYTHON_MSDSL
+echo $PYTHON_MSDSL
+
+# use a default target if not specified
+if [ -z "$ANASYMOD_TARGET" ]; then ANASYMOD_TARGET=sim_icarus; fi
 
 # run tests.  optional arguments:
 # --target <target_name> to specify the simulator (sim_icarus, sim_vivado, etc.)
