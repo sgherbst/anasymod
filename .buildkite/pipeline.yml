@@ -28,18 +28,23 @@ steps:
       python3.7 -m venv venv
       source venv/bin/activate
 
+      # update the board name to match what is
+      # available on the regression server
+      sed -i 's/PYNQ_Z1/ZC702/g' unittests/*/prj.yaml
+
       # run regression script
       source regress.sh
     artifact_paths:
-      - "tests/*/build/*/prj/prj.runs/*/*.bit"
-      - "tests/*/build/*/prj/prj.runs/*/*.ltx"
-      - "tests/*/build/*/prj/prj.runs/*/*.log"
-      - "tests/*/build/*/prj/prj.sim/*/behav/xsim/*.log"
-      - "tests/*/build/*/prj/prj.sim/*/behav/xsim/*.sh"
-      - "tests/*/build/*/prj/prj.runs/*/*.xsa"
-      - "tests/*/build/*/prj/prj.runs/*/ps7_init.tcl"
-      - "tests/*/build/*/prj/prj.sdk/*/*/*.elf"
-      - "tests/*/build/*/*.tcl"
+      - "unittests/*/build/*/prj/prj.runs/*/*.bit"
+      - "unittests/*/build/*/prj/prj.runs/*/*.ltx"
+      - "unittests/*/build/*/prj/prj.runs/*/*.log"
+      - "unittests/*/build/*/prj/prj.sim/*/behav/xsim/*.log"
+      - "unittests/*/build/*/prj/prj.sim/*/behav/xsim/*.sh"
+      - "unittests/*/build/*/prj/prj.runs/*/*.xsa"
+      - "unittests/*/build/*/prj/prj.runs/*/ps7_init.tcl"
+      - "unittests/*/build/*/prj/prj.sdk/*/*/*.elf"
+      - "unittests/*/build/*/*.tcl"
+      - "unittests/*/prj.y*ml"
     timeout_in_minutes: 60
     agents:
       fpga_verif: "true"
