@@ -438,9 +438,11 @@ class Analysis():
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command
 
-    def simulate(self, unit=None, id=None, convert_waveform=True):
+    def simulate(self, unit=None, id=None, convert_waveform=True, flags=None):
         """
-        Run simulation on a pc target.
+        Run simulation on a pc target.  'flags' contains a list of simulator-specific
+        flags, as a sort of escape hatch for features that are not yet supported
+        natively through anasymod.
         """
         # Remove target-specific build dir to make sure there are no old files.
         # However, don't fail when certain files can't be removed, because that
@@ -467,7 +469,7 @@ class Analysis():
 
         # run simulation
 
-        sim = sim_cls(target=target)
+        sim = sim_cls(target=target, flags=flags)
 
         if self.args.simulator_name == "xrun":
             sim.unit = unit
