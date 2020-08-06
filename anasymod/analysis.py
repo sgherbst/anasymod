@@ -19,7 +19,7 @@ from anasymod.sources import *
 from anasymod.filesets import Filesets
 from anasymod.defines import Define
 from anasymod.targets import CPUTarget, FPGATarget
-from anasymod.enums import ConfigSections
+from anasymod.enums import ConfigSections, FPGASimCtrl
 from anasymod.utils import statpro
 from anasymod.util import expand_path
 from anasymod.wave import ConvertWaveform
@@ -314,7 +314,7 @@ class Analysis():
             plugin._set_generator_sources(generator_sources=self.filesets._functional_models)
             plugin.models()
 
-    def build(self):
+    def build(self, *args, **kwargs):
         """
         Generate bitstream for FPGA target
         """
@@ -327,20 +327,12 @@ class Analysis():
         target = getattr(self, self.act_fpga_target)
 
         VivadoEmulation(target=target).build()
+
+        # Build firmware for ctrl infrastructure if needed
+        if target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            self._build_firmware(*args, **kwargs)
+
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)
-
-    def build_firmware(self, *args, **kwargs):
-        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
-        if not hasattr(self, self.act_fpga_target):
-            self._setup_targets(target=self.act_fpga_target)
-
-        # check if bitstream was generated for active fpga target
-        target = getattr(self, self.act_fpga_target)
-        if not os.path.isfile(getattr(target, 'bitfile_path')):
-            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
-
-        # build the firmware
-        XSCTEmulation(target=target).build(*args, **kwargs)
 
     def emulate(self, server_addr=None, convert_waveform=True):
         """
@@ -388,19 +380,6 @@ class Analysis():
                 dt_scale=self._prj_cfg.cfg.dt_scale
             )
 
-    def program_firmware(self, *args, **kwargs):
-        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
-        if not hasattr(self, self.act_fpga_target):
-            self._setup_targets(target=self.act_fpga_target)
-
-        # check if bitstream was generated for active fpga target
-        target = getattr(self, self.act_fpga_target)
-        if not os.path.isfile(getattr(target, 'bitfile_path')):
-            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
-
-        # build the firmware
-        XSCTEmulation(target=target).program(*args, **kwargs)
-
     def launch(self, server_addr=None, debug=False):
         """
         Program bitstream to FPGA, setup control infrastructure and wait for interactive commands.
@@ -434,9 +413,6 @@ class Analysis():
 
         # Return ctrl handle for interactive control
         return ctrl_handle
-
-        #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
-        #ToDo: the conversion step to .vcd needs to be triggered via some command
 
     def simulate(self, unit=None, id=None, convert_waveform=True):
         """
@@ -864,9 +840,6 @@ class Analysis():
                 if gen_structures:
                     getattr(getattr(self, target), 'gen_structure')()
 
-            # Generate corresponding firmware and add to sources
-            getattr(getattr(self, target), 'gen_firmware')()
-
         # Copy generated sources by plugin from plugin build_root to target-specific build_root
         for plugin in self._plugins:
             try:
@@ -908,6 +881,23 @@ class Analysis():
             target.probes[target_name] = ProbeVCD(target=target)
 
         return target.probes[target_name]
+
+    def _build_firmware(self, *args, **kwargs):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # build the firmware
+        XSCTEmulation(pcfg=target.prj_cfg,
+                      content=target.content,
+                      project_root=target.project_root,
+                      top_module=target.cfg.top_module
+                      ).build(*args, **kwargs)
 
 def main():
     Analysis(op_mode='commandline')

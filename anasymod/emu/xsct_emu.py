@@ -4,7 +4,7 @@ from anasymod.generators.xsct import XSCTTCLGenerator
 
 from anasymod.templates.xsct_build import TemplXSCTBuild
 from anasymod.templates.xsct_program import TemplXSCTProgram
-from anasymod.targets import FPGATarget
+from anasymod.config import EmuConfig
 
 class XSCTEmulation(XSCTTCLGenerator):
     """
@@ -12,20 +12,23 @@ class XSCTEmulation(XSCTTCLGenerator):
     or launch an FPGA emulation for interactive mode and pass the handle for interactive control.
     """
 
-    def __init__(self, target: FPGATarget):
-        super().__init__(target=target)
+    def __init__(self, pcfg: EmuConfig, top_module, project_root, content):
+        super().__init__(pcfg=pcfg)
+        self.top_module = top_module
+        self.project_root = project_root
+        self.content = content
 
     @property
     def impl_dir(self):
         return (
-            Path(self.target.project_root) /
-            f'{self.target.prj_cfg.vivado_config.project_name}.runs' /
+            Path(self.project_root) /
+            f'{self.pcfg.vivado_config.project_name}.runs' /
             'impl_1'
         )
 
     @property
     def bit_path(self):
-        return self.impl_dir / f'{self.target.cfg.top_module}.bit'
+        return self.impl_dir / f'{self.top_module}.bit'
 
     @property
     def tcl_path(self):
@@ -34,14 +37,14 @@ class XSCTEmulation(XSCTTCLGenerator):
     @property
     def hw_path(self):
         if self.version_year < 2020:
-            return self.impl_dir / f'{self.target.cfg.top_module}.sysdef'
+            return self.impl_dir / f'{self.top_module}.sysdef'
         else:
-            return self.impl_dir / f'{self.target.cfg.top_module}.xsa'
+            return self.impl_dir / f'{self.top_module}.xsa'
 
     def build(self, create=True, copy_files=True, build=True):
         # determine SDK path
-        sdk_path = (Path(self.target.project_root) /
-                    f'{self.target.prj_cfg.vivado_config.project_name}.sdk')
+        sdk_path = (Path(self.project_root) /
+                    f'{self.pcfg.vivado_config.project_name}.sdk')
 
         # clear the SDK directory
         if create:
@@ -52,7 +55,7 @@ class XSCTEmulation(XSCTTCLGenerator):
         if copy_files:
             src_path = sdk_path / 'sw' / 'src'
             src_path.mkdir(exist_ok=True, parents=True)
-            for src in self.target.content.firmware_files:
+            for src in self.content.firmware_files:
                 if src.files is not None:
                     for file_ in src.files:
                         shutil.copy(str(file_), str(src_path / Path(file_).name))
@@ -72,10 +75,10 @@ class XSCTEmulation(XSCTTCLGenerator):
         # run the build script
         self.run('sdk.tcl')
 
-    def program(self, program_fpga=True, reset_system=True):
+    def program(self, program_fpga=True, reset_system=True, server_addr=None):
         # determine SDK path
-        sdk_path = (Path(self.target.project_root) /
-                    f'{self.target.prj_cfg.vivado_config.project_name}.sdk')
+        sdk_path = (Path(self.project_root) /
+                    f'{self.pcfg.vivado_config.project_name}.sdk')
 
         # generate the build script
         self.write(
@@ -85,7 +88,8 @@ class XSCTEmulation(XSCTTCLGenerator):
                 hw_path=self.hw_path,
                 tcl_path=self.tcl_path,
                 program_fpga=program_fpga,
-                reset_system=reset_system
+                reset_system=reset_system,
+                server_addr=server_addr
             ).text
         )
 

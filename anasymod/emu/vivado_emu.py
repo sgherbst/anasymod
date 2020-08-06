@@ -107,10 +107,14 @@ class VivadoEmulation(VivadoTCLGenerator):
         # generate all IPs
         self.writeln('generate_target all [get_ips]')
 
-        # create block diagram if needed
-        # TODO: pass through configuration options
+        # create additional Hardware for control interface
         if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
-            self.writeln(TemplZynqGPIO().text)
+            # create block diagram
+            self.writeln(TemplZynqGPIO(
+                ps_vlnv='xilinx.com:ip:processing_system7:5.5',
+                gpio_vlnv='xilinx.com:ip:axi_gpio:2.0',
+                design_name='zynq_gpio'
+            ).text)
 
         # launch the build and wait for it to finish
         num_cores = min(int(self.target.prj_cfg.vivado_config.num_cores), 8)

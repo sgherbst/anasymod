@@ -1,10 +1,11 @@
-import serial
+import serial, os
 import serial.tools.list_ports as ports
 from anasymod.enums import CtrlOps
 from anasymod.base_config import BaseConfig
 from anasymod.sim_ctrl.ctrlapi import CtrlApi
 from anasymod.enums import ConfigSections
 from anasymod.config import EmuConfig
+from anasymod.emu.xsct_emu import XSCTEmulation
 
 
 class UARTCtrlApi(CtrlApi):
@@ -13,14 +14,19 @@ class UARTCtrlApi(CtrlApi):
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self, prj_cfg: EmuConfig):
+    def __init__(self, prj_cfg: EmuConfig, content, project_root, top_module):
         super().__init__()
+
+        self.pcfg = prj_cfg
+        self.content = content
+        self.project_root = project_root
+        self.top_module = top_module
 
         # Initialize control config
         self.cfg = Config(cfg_file=prj_cfg.cfg_file)
 
-        self.vid_list = [1027]
-        self.pid_list = [24592]
+        self.vid_list = self.pcfg.board.uart_zynq_vid
+        self.pid_list = self.pcfg.board.uart_zynq_pid
         self.port_list = []
 
     ### User Functions
@@ -118,13 +124,19 @@ class UARTCtrlApi(CtrlApi):
             except:
                 raise Exception(f"ERROR: Provided COM port: {self.cfg.comport} could not ne opened for communication.")
 
-    def _setup_ctrl(self, server_addr):
+    def _setup_ctrl(self, server_addr, *args, **kwargs):
         """
         Prepare instrumentation on the FPGA to allow interactive control.
         :param server_addr: Address of remote hardware server
         :return:
         """
-        raise NotImplementedError("Base class was called to execute function")
+
+        # program the firmware
+        XSCTEmulation(pcfg=self.pcfg,
+                      content=self.content,
+                      project_root=self.project_root,
+                      top_module=self.top_module
+                      ).program(server_addr=server_addr, *args, **kwargs)
 
     def _expect_prompt(self, timeout=float('inf')):
         """

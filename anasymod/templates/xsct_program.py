@@ -7,14 +7,14 @@ from anasymod.util import back2fwd
 
 class TemplXSCTProgram:
     def __init__(self, sdk_path, bit_path, hw_path, tcl_path, cpu_filter='"ARM*#0"',
-                 sw_name='sw', program_fpga=True, reset_system=True):
+                 sw_name='sw', program_fpga=True, reset_system=True, server_addr=None):
 
         # initialize text
         self.text = ''
 
         # apply commands
 
-        self.connect()
+        self.connect(server_addr=server_addr)
 
         self.select_cpu(cpu_filter)
 
@@ -40,9 +40,12 @@ class TemplXSCTProgram:
     def puts(self, s):
         self.line(f'puts "{s}"')
 
-    def connect(self):
+    def connect(self, server_addr):
         self.puts('Connecting to the HW server...')
-        self.line('connect')
+        if server_addr is not None:
+            self.line(f'connect -url {server_addr}')
+        else:
+            self.line('connect')
         self.line()
 
     def select_cpu(self, cpu_filter):
