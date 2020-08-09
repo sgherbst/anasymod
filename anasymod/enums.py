@@ -53,15 +53,6 @@ class TraceUnitOperators:
     LESSER = 'lt'
     LESSEREQUAL = 'lteq'
 
-
-class CtrlOps:
-    """
-    Container including enums for all supported control operations for controlling the FPGA.
-    """
-    WRITE_PARAMETER = 0
-    READ_PARAMETER = 1
-
-
 class FPGASimCtrl:
     """
     Container including enums for all supported FPGA control interfaces.

@@ -7,4 +7,4 @@ PROJECT:
 FPGA_TARGET:
     fpga:
         fpga_sim_ctrl: 'UART_ZYNQ'
-        custom_zynq_firmware: True
+        #custom_zynq_firmware: True

@@ -8,13 +8,13 @@ from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
 from anasymod.sources import VerilogSource, VerilogHeader, FirmwareFile
-from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
+from anasymod.sim_ctrl.uart_zynq_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
 from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
-from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
+from anasymod.sim_ctrl.uart_zynq_ctrlapi import UARTCtrlApi
 from anasymod.files import anasymod_root, anasymod_header
 from anasymod.util import expand_searchpaths
 
@@ -198,9 +198,11 @@ class FPGATarget(Target):
             print("Direct anasymod FPGA simulation control via UART enabled.")
             self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg,
                                                   scfg=self.str_cfg,
-                                                  plugin_includes=self.plugins
+                                                  plugin_includes=self.plugins,
+                                                  tcfg= self.cfg
                                                   )
             self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg,
+                                        scfg=self.str_cfg,
                                         content=self.content,
                                         top_module=self.cfg.top_module,
                                         project_root=self.project_root

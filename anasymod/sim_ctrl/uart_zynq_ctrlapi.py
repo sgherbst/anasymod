@@ -1,10 +1,10 @@
 import serial, os
 import serial.tools.list_ports as ports
-from anasymod.enums import CtrlOps
 from anasymod.base_config import BaseConfig
 from anasymod.sim_ctrl.ctrlapi import CtrlApi
 from anasymod.enums import ConfigSections
 from anasymod.config import EmuConfig
+from anasymod.structures.structure_config import StructureConfig
 from anasymod.emu.xsct_emu import XSCTEmulation
 
 
@@ -14,10 +14,9 @@ class UARTCtrlApi(CtrlApi):
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self, prj_cfg: EmuConfig, content, project_root, top_module):
-        super().__init__()
+    def __init__(self, prj_cfg: EmuConfig, scfg: StructureConfig, content, project_root, top_module):
+        super().__init__(pcfg=prj_cfg, scfg=scfg)
 
-        self.pcfg = prj_cfg
         self.content = content
         self.project_root = project_root
         self.top_module = top_module
@@ -28,35 +27,7 @@ class UARTCtrlApi(CtrlApi):
         self.vid_list = self.pcfg.board.uart_zynq_vid
         self.pid_list = self.pcfg.board.uart_zynq_pid
         self.port_list = []
-
     ### User Functions
-
-    def sendline(self, line, timeout=float('inf')):
-        """
-        Send a single line in target shell specific language e.g. in tcl for tcl shell.
-        :param line: Line that shall be send to/processed by shell
-        :param timeout: Maximum time granted for operation to finish
-        :return:
-        """
-        raise NotImplementedError("Base class was called to execute function")
-
-    def source(self, script, timeout=float('inf')):
-        """
-        Source a script written language for targeted shell.
-        :param script: Name/Path to script that shall be sourced
-        :param timeout: Maximum time granted for operation to finish
-        :return:
-        """
-        raise NotImplementedError("Base class was called to execute function")
-
-    def refresh_param(self, name, timeout=30):
-        """
-        Refresh selected control parameter.
-        :param name: Name of control parameter
-        :param timeout: Maximum time granted for operation to finish
-        :return:
-        """
-        raise NotImplementedError("Base class was called to execute function")
 
     def get_param(self, name, timeout=30):
         """
@@ -65,7 +36,7 @@ class UARTCtrlApi(CtrlApi):
         :param timeout: Maximum time granted for operation to finish
         :return:
         """
-        self._write(operation=CtrlOps.READ_PARAMETER, name=name)
+        self._write(name=self.cfg.get_operation_prefix+name)
         return self._read()
 
     def set_param(self, name, value, timeout=30):
@@ -76,18 +47,38 @@ class UARTCtrlApi(CtrlApi):
         :param timeout: Maximum time granted for operation to finish
         :return:
         """
-        self._write(operation=CtrlOps.WRITE_PARAMETER, name=name, value=value)
+        self._write(name=self.cfg.set_operation_prefix+name, value=value)
         if self._read():
-            raise Exception(f"ERROR: Couldn't properly write: {name}={value} command to FPGA.")
+            raise Exception(f"ERROR: Couldn't properly write: {self.cfg.set_operation_prefix+name}={value} command to FPGA.")
 
-    def set_var(self, name, value):
+    def set_reset(self, value, timeout=30):
         """
-        Define a variable in target shell environment.
-        :param name: Name of variable that shall be set
-        :param value: Value of variable that shall be set
-        :return:
+        Control the 'emu_rst' signal, in order to put the system running on the FPGA into or out of reset state.
+        :param value: Value of reset signal, 1 will set it to reset and 0 will release reset.
+        :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_param(name= self.cfg.set_operation_prefix+self.scfg.reset_ctrl.name, value=value, timeout=timeout)
+
+    def get_emu_time_int(self, timeout=30):
+        """
+        Get current time of the FPGA simulation as an unscaled integer value.
+        :param timeout: Maximum time granted for operation to finish
+        """
+        emu_time_vio = self.get_param(name=self.scfg.emu_time_vio.name, timeout=timeout)
+        return int(emu_time_vio)
+
+    def set_ctrl_mode(self, value, timeout=30):
+        """
+        Set the control mode that shall be applied to stall the FPGA simulation.
+        :param value: Integer value setting the currently active control mode:
+                        0:  FPGA simulation is not stalled
+                        1:  FPGA simulation is immediately stalled
+                        2:  FPGA simulation is stalled, after time stored in *ctrl_data* has passed, starting from
+                            the point in time this mode has been selected.
+                        3:  FPGA simulation is stalled, once time value stored in *ctrl_data* has been reached
+        :param timeout: Maximum time granted for operation to finish
+        """
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
 
     ### Utility Functions
 
@@ -138,20 +129,12 @@ class UARTCtrlApi(CtrlApi):
                       top_module=self.top_module
                       ).program(server_addr=server_addr, *args, **kwargs)
 
-    def _expect_prompt(self, timeout=float('inf')):
-        """
-        Wait for the shell used to transmit commands to provide a response.
-        :param timeout: Maximum time granted for shell to open
-        :return:
-        """
-        raise NotImplementedError("Base class was called to execute function")
-
-    def _write(self, operation, name, value=None):
+    def _write(self, name, value=None):
         # check is space is in any of the give input strings
-        if ' ' in [operation, name, value]:
-            raise Exception(f"Blanks in any of the provided argument strings;{operation}, {name}, {value}; sent via control interface are not allowed!")
+        if ' ' in [name, value]:
+            raise Exception(f"Blanks in any of the provided argument strings;{name}, {value}; sent via control interface are not allowed!")
 
-        self.ctrl_handler.write((' '.join([str(operation), str(name), str(value) + '\r']).encode('utf-8')))
+        self.ctrl_handler.write((' '.join([str(name), str(value) + '\r']).encode('utf-8')))
         self.ctrl_handler.flush()
 
     def _read(self, count=1):
@@ -195,6 +178,12 @@ class Config(BaseConfig):
 
         self.bytesize=serial.EIGHTBITS
         """ type(int): Number of bits per transmitted package """
+
+        self.set_operation_prefix='SET_'
+        """ type(str): Default operator prefix added to every set operation."""
+
+        self.get_operation_prefix = 'GET_'
+        """ type(str): Default operator prefix added to every get operation."""
 
 def main():
    ctrl = UARTCtrlApi(prj_cfg=EmuConfig(root='',cfg_file=''))

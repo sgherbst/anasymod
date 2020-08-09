@@ -45,12 +45,12 @@ def test_3():
     # detailed test
     def run_test(a, b, mode, expct):
         # write inputs
-        ctrl.ctrl_handler.write(f'SET_A {a}\n'.encode('utf-8'))
-        ctrl.ctrl_handler.write(f'SET_B {b}\n'.encode('utf-8'))
-        ctrl.ctrl_handler.write(f'SET_MODE {mode}\n'.encode('utf-8'))
+        ctrl.ctrl_handler.write(f'SET_a_in {a}\n'.encode('utf-8'))
+        ctrl.ctrl_handler.write(f'SET_b_in {b}\n'.encode('utf-8'))
+        ctrl.ctrl_handler.write(f'SET_mode_in {mode}\n'.encode('utf-8'))
 
         # get output
-        ctrl.ctrl_handler.write('GET_C\n'.encode('utf-8'))
+        ctrl.ctrl_handler.write('GET_c_out\n'.encode('utf-8'))
         out = ctrl.ctrl_handler.readline().decode('utf-8').strip()
         c = int(out)
 

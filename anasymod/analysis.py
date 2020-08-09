@@ -885,7 +885,7 @@ class Analysis():
     def _build_firmware(self, *args, **kwargs):
         # create target object, but don't generate instrumentation structure again in case target object does not exist yet
         if not hasattr(self, self.act_fpga_target):
-            self._setup_targets(target=self.act_fpga_target)
+            self._setup_targets(target=self.act_fpga_target, gen_structures=True)
 
         # check if bitstream was generated for active fpga target
         target = getattr(self, self.act_fpga_target)

@@ -1,11 +1,15 @@
+from anasymod.config import EmuConfig
+from anasymod.structures.structure_config import StructureConfig
+
 class CtrlApi:
     """
     Start an interactive control interface to HW target for running regression tests or design exploration/debug.
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self):
-        pass
+    def __init__(self, pcfg: EmuConfig, scfg: StructureConfig):
+        self.pcfg=pcfg
+        self.scfg=scfg
 
     ### User Functions
 
@@ -126,7 +130,7 @@ class CtrlApi:
         Get current time of the FPGA simulation as a decimal value.
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
 
     def set_ctrl_mode(self, value, timeout=30):
         """
@@ -139,7 +143,7 @@ class CtrlApi:
                         3:  FPGA simulation is stalled, once time value stored in *ctrl_data* has been reached
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
 
     def set_ctrl_data(self, value, timeout=30):
         """
@@ -148,14 +152,14 @@ class CtrlApi:
         the selected ctrl_mode
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
 
     def stall_emu(self, timeout=30):
         """
         Stall the FPGA simulation immediately.
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_ctrl_mode(1, timeout=timeout)
 
     def sleep_emu(self, t, timeout=30):
         """
@@ -164,7 +168,19 @@ class CtrlApi:
         :param t: Time value that shall pass before FPGA simulation is stalled.
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+
+        # stall
+        self.stall_emu()
+
+        # set up in sleep mode
+        t_next = t + self.get_emu_time(timeout=timeout)
+        t_next_int = int(round(t_next / self.pcfg.cfg.dt_scale))
+        self.set_ctrl_data(t_next_int)
+        self.set_ctrl_mode(2)
+
+        # wait for enough time to pass
+        while(self.get_emu_time_int() < t_next_int):
+            pass
 
     ### Utility Functions
 

@@ -2,9 +2,9 @@ verilog_sources:
   sim_ctrl:
     files: "sim_ctrl.sv"
     fileset: "sim"
-firmware_files:
-  main_fw:
-    files: "main.c"
+#firmware_files:
+#  main_fw:
+#    files: "main.c"
 defines:
   DT_MSDSL:
     name: DT_MSDSL

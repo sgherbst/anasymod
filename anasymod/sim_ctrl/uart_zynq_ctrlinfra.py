@@ -6,17 +6,17 @@ from anasymod.sources import VerilogSource, BDFile, FirmwareFile
 from anasymod.files import get_from_anasymod
 from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.firmware_gpio import FirmwareGPIO
+from anasymod.structures.uart_zynq_firmware_appcode import UartZynqFirmwareAppCode
+#from anasymod.targets import Config as tcfg
 
 class UARTControlInfrastructure(ControlInfrastructure):
-    def __init__(self, prj_cfg, scfg: StructureConfig, plugin_includes):
+    def __init__(self, prj_cfg, scfg: StructureConfig, plugin_includes, tcfg):
         super().__init__(prj_cfg=prj_cfg, plugin_includes=plugin_includes)
         self.scfg = scfg
+        self.tcfg = tcfg
 
         # Initialize internal variables
         self._simctrlregmap_path = os.path.join(prj_cfg.build_root, 'gen_ctrlregmap.sv')
-
-        # Program Zynq PS for UART access
-        self._program_zynq_ps()
 
         #TODO: add path to elf file and add structure for storing ctrl ifc dependent files,
         # also including the BD; later test if .tcl script for creating BD would be
@@ -66,6 +66,17 @@ class UARTControlInfrastructure(ControlInfrastructure):
         content.firmware_files += [FirmwareFile(files=gpio_src, name='gpio_src')]
 
         # Generate application code for UART_ZYNQ control, if no custom code is provided
-        if not self.pcfg.cfg.custom_zynq_firmware:
-            pass
-        #ToDo: write generator for UART_ZYNQ application code
+        if not self.tcfg.custom_zynq_firmware:
+            appcode = UartZynqFirmwareAppCode(scfg=self.scfg)
+            # Write application code and add to firmware files
+            appcode_src = os.path.join(self.pcfg.build_root, 'main.c')
+            with open(appcode_src, 'w') as f:
+                f.write(appcode.src_text)
+            content.firmware_files += [FirmwareFile(files=appcode_src, name='appcode_src')]
+
+    def add_ip_cores(self, scfg, ip_dir):
+        """
+        Configures and adds IP cores that are necessary for selected IP cores. VIO IP core is configured and added.
+        :return rendered template for configuring a vio IP core
+        """
+        return []
