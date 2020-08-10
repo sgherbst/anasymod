@@ -154,11 +154,12 @@ apply_bd_automation \\
 apply_bd_automation \\
     -rule xilinx.com:bd_rule:axi4 \\
     -config { \\
-        Clk_master {/processing_system7_0/FCLK_CLK0 (100 MHz)} \\
+        Clk_master {Auto} \\
         Clk_slave {Auto} \\
         Clk_xbar {Auto} \\
-        Master {/processing_system7_0/M_AXI_GP0} \\
+        Master {/zynq_ultra_ps_e_0/M_AXI_HPM0_FPD} \\
         Slave {/axi_gpio_1/S_AXI} \\
+        ddr_seg {Auto} \\
         intc_ip {New AXI Interconnect} \\
         master_apm {0}\\
     } \\
@@ -167,12 +168,11 @@ apply_bd_automation \\
 apply_bd_automation \\
     -rule xilinx.com:bd_rule:axi4 \\
     -config { \\
-        Clk_master {Auto} \\
+        Clk_master {/processing_system7_0/FCLK_CLK0 (100 MHz)} \\
         Clk_slave {Auto} \\
         Clk_xbar {Auto} \\
-        Master {/zynq_ultra_ps_e_0/M_AXI_HPM0_FPD} \\
+        Master {/processing_system7_0/M_AXI_GP0} \\
         Slave {/axi_gpio_1/S_AXI} \\
-        ddr_seg {Auto} \\
         intc_ip {New AXI Interconnect} \\
         master_apm {0}\\
     } \\
