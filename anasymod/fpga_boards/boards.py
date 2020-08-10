@@ -6,6 +6,7 @@ class FPGA_Board():
     uart_vid = None
     uart_pid = None
     uart_suffix = None
+    is_ultrascale = False
 
 class PYNQ_Z1(FPGA_Board):
     """
@@ -119,3 +120,4 @@ class ZCU106(FPGA_Board):
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_vid = 4292
     uart_pid = 60000
+    is_ultrascale = True
