@@ -9,5 +9,5 @@ class Viewer(ABC):
         self.target = target
 
     @abstractmethod
-    def view(self):
+    def view(self, result_file=None):
         pass

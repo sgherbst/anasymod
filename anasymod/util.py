@@ -42,14 +42,14 @@ def tee_output(fd, err_str=None):
     # prints lines from the given file descriptor while checking for errors
     # returns a flag indicating whether an error was detected
     # modified from: https://github.com/leonardt/fault/blob/master/fault/subprocess_run.py
-    found_err = False
+    found_err = None
     for line in fd:
         # display line
         print(line, end='')
         # check line for errors
         if err_str is not None:
             if error_detected(text=line, err_str=err_str):
-                found_err = True
+                found_err = line
     # Return flag indicating whether an error was found
     return found_err
 
@@ -74,11 +74,15 @@ def call(args, cwd=None, wait=True, err_str=None):
             assert returncode == 0, f'Exited with non-zero code: {returncode}'
 
             # check for an error in the output text
-            if found_err:
-                raise Exception(f'Found {err_str} in output of subprocess.')
+            if found_err is not None:
+                raise OutputError(f'Found {err_str} in output of subprocess: {found_err}')
     else:
         Popen(args=args, cwd=cwd, stdout=sys.stdout, stderr=sys.stdout)
 
+
+class OutputError(Exception):
+    def __init__(self, *args, **kwargs):
+        pass
 
 def next_pow_2(x):
     '''
@@ -96,20 +100,24 @@ def expand_searchpaths(paths: Union[list, str], rel_path_reference: str):
     else:
         raise TypeError(f"Wrong format used for passing searchpaths, expecting list: {paths}")
     for file in paths:
-        file = os.path.expandvars(str(file).strip('" '))
-        if not os.path.isabs(file):
-            if rel_path_reference is not None:
-                path_suffix = file.replace('\\', '/').replace('/', os.sep).split(os.sep)
-                try:
-                    path_suffix.remove('.')
-                except:
-                    pass
-                file = os.path.join(rel_path_reference, *(path_suffix))
-            else:
-                raise KeyError(f"No reference for expanding relative paths was provided for search paths: {paths}")
+        file = expand_path(path=file, rel_path_reference=rel_path_reference)
         abs_paths.append(file)
 
     return [file for p in abs_paths for file in glob(p)]
+
+def expand_path(path, rel_path_reference):
+    path = os.path.expandvars(str(path).strip('" '))
+    if not os.path.isabs(path):
+        if rel_path_reference is not None:
+            path_suffix = path.replace('\\', '/').replace('/', os.sep).split(os.sep)
+            try:
+                path_suffix.remove('.')
+            except:
+                pass
+            path = os.path.join(rel_path_reference, *(path_suffix))
+        else:
+            raise KeyError(f"No reference for expanding relative paths was provided for path: {path}")
+    return path
 
 ########################
 # parallel_scripts

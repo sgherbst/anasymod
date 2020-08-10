@@ -3,6 +3,7 @@ from anasymod.sources import (Sources, VerilogSource, VerilogHeader, VHDLSource,
                               SubConfig, XCIFile, XDCFile, MEMFile, BDFile,
                               FunctionalModel, IPRepo, EDIFFile, FirmwareFile)
 from anasymod.defines import Define
+from anasymod.util import expand_searchpaths
 
 class Filesets():
     def __init__(self, root, default_filesets, root_func_models):
@@ -72,7 +73,9 @@ class Filesets():
             while (bool(self._sub_config_paths)):
                 for config in self._sub_config_paths:
                     self._sub_config_paths.remove(config)
-                    for file in config.files:
+                    files = expand_searchpaths(config.files, rel_path_reference=os.path.dirname(config.config_path))
+                    for file in files:
+
                         if os.path.isfile(file):
                             try:
                                 cfg = yaml.safe_load(open(file, "r"))
@@ -81,7 +84,7 @@ class Filesets():
                             self._parseconfig(cfg=cfg, cfg_path=file)
                             self._config_paths.append(config)  #Store processed config path
                         else:
-                            print(f"WARNING: provided path:'{config}' does not exist, skipping config file")
+                            print(f"WARNING: provided path:'{file}' does not exist, skipping config file")
 
             # Check if fileset paths exist
             if validate_paths:

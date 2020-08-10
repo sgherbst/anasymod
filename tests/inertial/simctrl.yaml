@@ -1,7 +1,0 @@
-digital_probes:
-    in__probe:
-        abspath:    'tb_i.in_'
-        width:      1
-    out_probe:
-        abspath:    'tb_i.out'
-        width:      1

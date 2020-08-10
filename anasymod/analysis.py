@@ -21,6 +21,7 @@ from anasymod.defines import Define
 from anasymod.targets import CPUTarget, FPGATarget
 from anasymod.enums import ConfigSections
 from anasymod.utils import statpro
+from anasymod.util import expand_path
 from anasymod.wave import ConvertWaveform
 from anasymod.plugins import Plugin
 from typing import Union
@@ -369,9 +370,11 @@ class Analysis():
 
         # run the emulation
         VivadoEmulation(target=target).run_FPGA(
-            start_time=self.args.start_time, stop_time=self.args.stop_time,
+            start_time=self.args.start_time,
+            stop_time=self.args.stop_time,
             server_addr=server_addr
         )
+
         statpro.statpro_update(statpro.FEATURES.anasymod_emulate_vivado)
 
         # post-process results
@@ -435,12 +438,16 @@ class Analysis():
         #ToDo: once recording via ila in interactive mode is finishe and caotured results were dumped into a file,
         #ToDo: the conversion step to .vcd needs to be triggered via some command
 
-    def simulate(self, unit=None, id=None, convert_waveform=True):
+    def simulate(self, unit=None, id=None, convert_waveform=True, flags=None):
         """
-        Run simulation on a pc target.
+        Run simulation on a pc target.  'flags' contains a list of simulator-specific
+        flags, as a sort of escape hatch for features that are not yet supported
+        natively through anasymod.
         """
-
-        shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
+        # Remove target-specific build dir to make sure there are no old files.
+        # However, don't fail when certain files can't be removed, because that
+        # might indicate that a waveform window is open
+        shutil.rmtree(self._prj_cfg.build_root, ignore_errors=True)
         mkdir_p(self._prj_cfg.build_root)
         self._setup_targets(target=self.act_cpu_target, gen_structures=True)
 
@@ -462,7 +469,7 @@ class Analysis():
 
         # run simulation
 
-        sim = sim_cls(target=target)
+        sim = sim_cls(target=target, flags=flags)
 
         if self.args.simulator_name == "xrun":
             sim.unit = unit
@@ -479,7 +486,8 @@ class Analysis():
                 result_path=target.cfg.vcd_path,
                 str_cfg=target.str_cfg,
                 float_type=self.float_type,
-                debug=self._prj_cfg.cfg.cpu_debug_mode
+                debug=self._prj_cfg.cfg.cpu_debug_mode,
+                dt_scale=self._prj_cfg.cfg.dt_scale
             )
 
     def probe(self, name, emu_time=False):
@@ -524,10 +532,17 @@ class Analysis():
         except:
             return np.array(wave_step, dtype='O').transpose()
 
-    def view(self):
+    def view(self, result_file=None):
         """
         View results from selected target run.
+
+        :param result_file: Path to the result file that shall be opened
         """
+
+        root = self._prj_cfg.root
+
+        if result_file is not None:
+            result_file = expand_path(result_file, rel_path_reference=root)
 
         target = getattr(self, self.args.active_target)
 
@@ -548,7 +563,7 @@ class Analysis():
             gtkw_search_order = ['view.gtkw']
 
         for basename in gtkw_search_order:
-            candidate_path = os.path.join(self.args.input, basename)
+            candidate_path = os.path.join(root, basename)
             if os.path.isfile(candidate_path):
                 self._prj_cfg.gtkwave_config.gtkw_config = candidate_path
                 break
@@ -556,11 +571,11 @@ class Analysis():
             self._prj_cfg.gtkwave_config.gtkw_config = None
 
         # set config file location for SimVision
-        self._prj_cfg.simvision_config.svcf_config = os.path.join(self.args.input, 'view.svcf')
+        self._prj_cfg.simvision_config.svcf_config = os.path.join(root, 'view.svcf')
 
         # run viewer
         viewer = viewer_cls(target=target)
-        viewer.view()
+        viewer.view(result_file=result_file)
 
     def pack_results(self, target=None):
         """
@@ -790,15 +805,19 @@ class Analysis():
                 top_module = 'top'
 
             print(f'Using top module {top_module} for fileset {fileset}.')
-            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.emu_clk', fileset=fileset))
+            self.filesets.add_define(define=Define(name='CLK_MSDSL', value=f'{top_module}.clk_default_osc', fileset=fileset))
             self.filesets.add_define(define=Define(name='CKE_MSDSL', value=f'{top_module}.emu_cke', fileset=fileset))
             self.filesets.add_define(define=Define(name='RST_MSDSL', value=f'{top_module}.emu_rst', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_WIDTH', value=f'{self._prj_cfg.cfg.dt_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DT_SCALE', value=f'{self._prj_cfg.cfg.dt_scale}', fileset=fileset))
             self.filesets.add_define(define=Define(name='TIME_WIDTH', value=f'{self._prj_cfg.cfg.time_width}', fileset=fileset))
             self.filesets.add_define(define=Define(name='EMU_DT', value=f'{self._prj_cfg.cfg.dt}', fileset=fileset))
-            self.filesets.add_define(define=Define(name='EMU_CLK_FREQ', value=f'{self._prj_cfg.cfg.emu_clk_freq}', fileset=fileset))
             self.filesets.add_define(define=Define(name='DEC_WIDTH', value=f'{self._prj_cfg.cfg.dec_bits}', fileset=fileset))
+            self.filesets.add_define(define=Define(name='EMU_CLK_FREQ', value=f'{self._prj_cfg.cfg.emu_clk_freq}', fileset=fileset))
+
+        # Set cpu target specific defines
+        for fileset in self.cpu_targets:
+            self.filesets.add_define(define=Define(name='SIMULATION_MODE_MSDSL', fileset=fileset))
 
     def _setup_targets(self, target, gen_structures=False, debug=False):
         """

@@ -25,5 +25,9 @@ class VivadoSimulator(Simulator):
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')
         v.writeln('launch_simulation')
 
+        # add any additional user-supplied flags
+        for flag in self.flags:
+            v.writeln(str(flag))
+
         # run the simulation
         v.run(filename='vivado_sim.tcl', err_str=re.compile('^(Error|Fatal):'))

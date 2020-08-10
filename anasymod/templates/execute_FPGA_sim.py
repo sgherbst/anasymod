@@ -3,11 +3,10 @@ from anasymod.config import EmuConfig
 from anasymod.util import back2fwd
 from anasymod.targets import FPGATarget
 
-
 class TemplEXECUTE_FPGA_SIM(JinjaTempl):
     def __init__(self, target: FPGATarget, start_time: float, stop_time: float, server_addr: str):
         '''
-    `   :param start_time:  Point in time from which recording run data will start
+        :param start_time:  Point in time from which recording run data will start
         :param stop_time:   Point in time where FPGA run will be stopped
         :param server_addr: Hardware server address for hw server launched by Vivado
         '''
@@ -127,6 +126,7 @@ endgroup
 set_property TRIGGER_COMPARE_VALUE gt{{subst.start_time_int}} [get_hw_probes trace_port_gen_i/{{subst.time_name}} -of_objects $my_hw_ila]
 
 # Capture setup
+
 # depth should always be "2" because unfortunately "1" is not a valid option
 set_property CONTROL.DATA_DEPTH 2 $my_hw_ila
 set_property CONTROL.WINDOW_COUNT {{subst.window_count}} $my_hw_ila
@@ -141,6 +141,8 @@ commit_hw_vio $emu_dec_thr_vio
 
 # Radix setup: analog probes
 {{subst.analog_probe_radix}}
+
+catch {{'{'}}set_property DISPLAY_RADIX SIGNED [get_hw_probes trace_port_gen_i/{{subst.time_name}}]{{'}'}}
 
 # Radix setup: digital probes
 {{subst.digital_probe_radix}}

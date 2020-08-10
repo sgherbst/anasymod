@@ -9,8 +9,8 @@ from anasymod.targets import CPUTarget
 from anasymod.config import EmuConfig
 
 class XceliumSimulator(Simulator):
-    def __init__(self, target: CPUTarget):
-        super().__init__( target=target)
+    def __init__(self, target: CPUTarget, flags=None):
+        super().__init__(target=target, flags=flags)
         self.unit = None
         self.id = None
 
@@ -100,6 +100,10 @@ class XceliumSimulator(Simulator):
                 cmd += ['-makelib']
             cmd += sources
             cmd += ['-endlib']
+
+        # add any additional user-supplied flags
+        for flag in self.flags:
+            cmd.append(str(flag))
 
         # write TCL file
         with open(self.cfg.xcelium_config.tcl_input_path, 'w') as f:

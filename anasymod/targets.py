@@ -50,7 +50,7 @@ class Target():
         self.cfg.update_config(subsection=self._name)
 
         # Initialize structure configuration
-        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, tstop=self.cfg.tstop, simctrl_path= self.expanded_simctrl_path)
+        self.str_cfg = StructureConfig(prj_cfg=self.prj_cfg, simctrl_path= self.expanded_simctrl_path)
 
     def set_tstop(self):
         """
@@ -93,7 +93,7 @@ class Target():
         else:
             #ToDO: needs to be cleaned up, should have individual module for pc simulation control
             with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:
-                ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg).render())
+                ctrl_file.write(ModuleVIOSimCtrl(scfg=self.str_cfg, plugin_includes=self.plugins).render())
             self.content.verilog_sources += [VerilogSource(files=os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'),
                                                            name='gen_ctrlwrap')]
 
@@ -130,7 +130,7 @@ class Target():
         # Generate time manager and add to target sources
         timemanager_path = os.path.join(self.prj_cfg.build_root, 'gen_time_manager.sv')
         with (open(timemanager_path, 'w')) as timemanager_file:
-            timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg).render())
+            timemanager_file.write(ModuleTimeManager(scfg=self.str_cfg, pcfg=self.prj_cfg, plugin_includes=self.plugins).render())
         self.content.verilog_sources += [VerilogSource(files=timemanager_path,
                                                        name='gen_time_manager')]
 
@@ -207,14 +207,14 @@ class FPGATarget(Target):
 
         if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
             print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
-            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl = VIOControlInfrastructure(prj_cfg=self.prj_cfg, plugin_includes=self.plugins)
             self.ctrl_api = VIOCtrlApi(result_path=self.cfg.vcd_path, result_path_raw=self.result_path_raw,
                                        result_type_raw=self.cfg.result_type_raw, pcfg=self.prj_cfg, scfg=self.str_cfg,
                                        bitfile_path=self.bitfile_path, ltxfile_path=self.ltxfile_path,
                                        float_type=self.float_type, debug=debug)
         elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg)
+            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg, plugin_includes=self.plugins)
             self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg)
         else:
             raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")

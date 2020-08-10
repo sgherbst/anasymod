@@ -11,6 +11,8 @@ from anasymod.config import EmuConfig
 from anasymod.enums import TraceUnitOperators
 from anasymod.sim_ctrl.datatypes import AnalogProbe, DigitalSignal
 from anasymod.wave import ConvertWaveform
+from anasymod.util import expand_path
+from anasymod.files import mkdir_p
 
 SERVER_PORT = 57937
 
@@ -21,7 +23,8 @@ class VIOCtrlApi(CtrlApi):
     necessary in the targeted system must have already been programmed.
     """
     def __init__(self, result_path_raw, result_type_raw, result_path, scfg: StructureConfig, pcfg: EmuConfig,
-                 bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False, float_type=False):
+                 bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False, float_type=False,
+                 dt_scale=1e-15):
         super().__init__()
         # set defaults
         if err_strs is None:
@@ -46,6 +49,8 @@ class VIOCtrlApi(CtrlApi):
         # TODO: is there a better way to access this information?
         self.analog_ctrl_outputs = {elem.name: elem for elem in self.scfg.analog_ctrl_outputs}
         self.analog_ctrl_inputs = {elem.name: elem for elem in self.scfg.analog_ctrl_inputs}
+
+        self.record_timeout = 0.0
 
     ### User Functions
 
@@ -100,15 +105,26 @@ class VIOCtrlApi(CtrlApi):
                                     stored in the results file, adding a sample_decimation will allow to only record
                                     every x sample.
         :param sample_count:        Number of samples to be recorded. This number shall not exceed that maximum ILA
-                                    depth defined during project setup.
+                                    depth defined during project setup AND needs to be a multiple of 2.
         """
+
+        # Compute timeout, that needs to be set for ila recording. Due to a bug in the ILA core, recording does not
+        # return, unless a timeout is specified, for recordings exceeding 0.26 s
+        self.record_timeout = 0.0
 
         trigger_obj = None
 
-        window_count = self.pcfg.ila_depth if sample_count is None else sample_count
-        window_count = window_count / 2
+        if sample_count:
+            # This solution I got from https://stackoverflow.com/questions/57025836/check-if-a-given-number-is-power-of-two-in-python
+            # and is checking if sample_count is a power of two using bit manipulations
+            if (sample_count & (sample_count-1) == 0) and sample_count != 0:
+                depth = sample_count
+            else:
+                raise Exception(f'ERROR: Sample count needs to be a power of 2, but is set to: {sample_count}')
+        else:
+            depth = self.pcfg.ila_depth
 
-        # Check, if provided tirgger_signal is a valid signal connected to the ILA
+        # Check, if provided trigger_signal is a valid signal connected to the ILA
         for probe in [self.scfg.time_probe] + self.scfg.analog_probes + self.scfg.digital_probes:
             if trigger_name == probe.name:
                 trigger_obj = probe
@@ -127,16 +143,24 @@ class VIOCtrlApi(CtrlApi):
                 raise Exception(
                     f'ERROR: trigger_value type for an analog trigger signal shall ne float, it is instead:{type(trigger_value)}')
             value_int = int(round(trigger_value * (2 ** (int(-trigger_obj.exponent)))))
-            trigger_value_int = f"{int(trigger_obj.width)}'u{value_int}"
+            trigger_value_as_bin = f"{int(trigger_obj.width)}'u{value_int}"
         elif isinstance(trigger_obj, DigitalSignal):
-            if isinstance(trigger_value, int):
-                trigger_value_int = f"{trigger_obj.width}'u{trigger_value}"
+            # For the time signal, conversion from float to int is necessary
+            if trigger_name in ['time', self.scfg.time_probe.name]:
+                # Convert trigger value to integer considering dt_scale
+                trigger_value_as_int = int(float(trigger_value) / float(self.pcfg.cfg.dt_scale))
+                # Represent as binary and expand to time_width
+                trigger_value_as_bin = f"{trigger_obj.width}'b{bin(trigger_value_as_int).replace('b', '').zfill(self.pcfg.cfg.time_width)}"
+                # Extend record_timeout according to time trigger
+                self.record_timeout += float(trigger_value)
+            elif isinstance(trigger_value, int):
+                trigger_value_as_bin = f"{trigger_obj.width}'u{trigger_value}"
             else:
                 p = set(trigger_value)
                 s = {'0', '1'}
 
                 if s == p or p == {'0'} or p == {'1'}:
-                    trigger_value_int = f"{trigger_obj.width}'b{trigger_value}"
+                    trigger_value_as_bin = f"{trigger_obj.width}'b{trigger_value}"
                 else:
                     raise Exception(f'ERROR: Provided trigger value:{trigger_value} is not valid for a digital trigger '
                                     f'signal, either provide and interger or binary string!')
@@ -145,13 +169,14 @@ class VIOCtrlApi(CtrlApi):
 
         self.sendline(f'set_property CONTROL.CAPTURE_MODE BASIC $ila_0_i')
         self.sendline(f'set_property CONTROL.TRIGGER_POSITION 0 $ila_0_i')
-        self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_int} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
+        self.sendline(f"set_property TRIGGER_COMPARE_VALUE {trigger_operator}{trigger_value_as_bin} [get_hw_probes trace_port_gen_i/{trigger_obj.name} -of_objects $ila_0_i]")
 
         # Data depth is set to 2, as 1 is not supported by Vivado's ILA Core
-        self.sendline(f'set_property CONTROL.DATA_DEPTH 2 $ila_0_i')
+        self.sendline(f'set_property CONTROL.DATA_DEPTH {depth} $ila_0_i')
 
         # Window count is set to half of the selected ILA depth
-        self.sendline(f'set_property CONTROL.WINDOW_COUNT {int(window_count)} $ila_0_i')
+        #self.sendline(f'set_property CONTROL.WINDOW_COUNT {int(window_count)} $ila_0_i')
+        self.sendline(f'set_property CONTROL.WINDOW_COUNT 1 $ila_0_i')
         self.sendline(f"set_property CAPTURE_COMPARE_VALUE eq1'b1 [get_hw_probes trace_port_gen_i/emu_dec_cmp -of_objects $ila_0_i]")
 
         # Set decimation threshold signal to value defined in sample_decimation if set
@@ -160,8 +185,16 @@ class VIOCtrlApi(CtrlApi):
                 self.set_param(name=self.scfg.dec_thr_ctrl.name, value=sample_decimation, timeout=30)
             else:
                 raise Exception(f'Provided sample_decimation value is of wrong type, expecting integer and got:{type(sample_decimation)}')
+        else:
+            sample_decimation = 0
 
         self.arm_trace_unit()
+
+        # conclude calculation of record_timeout by considering time needed to collect samples and representing
+        # over minutes
+
+        self.record_timeout += float(self.pcfg.cfg.dt) * depth * sample_decimation
+        self.record_timeout = self.record_timeout / 60
 
     def arm_trace_unit(self):
         """
@@ -178,19 +211,40 @@ class VIOCtrlApi(CtrlApi):
         :param result_file: Optionally, it is possible to provide a custom result file path.
         """
 
+        if result_file is not None:
+            # Expand provided path, paths relative to project root are also supported
+            result_path = expand_path(result_file, rel_path_reference=self.pcfg.root)
+
+            # Create raw result path by adding _raw to the filename
+            result_path_raw = os.path.join(os.path.dirname(result_path),
+                                           os.path.basename(os.path.splitext(result_path)[0]) + '_raw' +
+                                           os.path.splitext(result_path)[1])
+            print(f'Simulation results will be stored in:{result_path}')
+        else:
+            result_path = self.result_path
+            result_path_raw = self.result_path_raw
+
+        if not result_path:
+            raise Exception(f'ERROR: provided result_file:{result_file} is not valid!')
+
         # wait until trace buffer is full
-        self.sendline('wait_on_hw_ila $ila_0_i')
+        self.sendline(f'wait_on_hw_ila -timeout {self.record_timeout} $ila_0_i')
 
         # transmit and dump trace buffer data to a CSV file
         self.sendline('current_hw_ila_data [upload_hw_ila_data $ila_0_i]')
-        self.sendline(f'write_hw_ila_data -csv_file -force {{{self.result_path_raw if result_file is None else result_file}}} [current_hw_ila_data]')
+
+        if not os.path.isdir(os.path.dirname(result_path_raw)):
+            mkdir_p(os.path.dirname(result_path_raw))
+
+        self.sendline(f'write_hw_ila_data -csv_file -force {{{result_path_raw}}} [current_hw_ila_data]')
 
         # Convert to .vcd and from fixed-point to float
-        ConvertWaveform(result_path_raw=self.result_path_raw,
+        ConvertWaveform(result_path_raw=result_path_raw,
                         result_type_raw=self.result_type_raw,
-                        result_path=self.result_path,
+                        result_path=result_path,
                         str_cfg=self.scfg,
-                        float_type=self.float_type)
+                        float_type=self.float_type,
+                        dt_scale=self.pcfg.cfg.dt_scale)
 
     def refresh_param(self, name, timeout=30):
         """
@@ -249,24 +303,59 @@ class VIOCtrlApi(CtrlApi):
         """
         self.set_param(name=self.scfg.reset_ctrl.name, value=value, timeout=timeout)
 
-    def set_ctrl_mode(self, value, timeout=30):
-        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
-
-    def set_ctrl_data(self, value, timeout=30):
-        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
-
-    def stall_emu(self, timeout=30):
-        self.set_ctrl_mode(1, timeout=timeout)
-
     def get_emu_time_int(self, timeout=30):
+        """
+        Get current time of the FPGA simulation as an unscaled integer value.
+        :param timeout: Maximum time granted for operation to finish
+        """
         self.refresh_param('vio_0_i')
         emu_time_vio = self.get_param(name=self.scfg.emu_time_vio.name, timeout=timeout)
         return int(emu_time_vio)
 
     def get_emu_time(self, timeout=30):
+        """
+        Get current time of the FPGA simulation as a decimal value.
+        :param timeout: Maximum time granted for operation to finish
+        """
         return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
 
+    def set_ctrl_mode(self, value, timeout=30):
+        """
+        Set the control mode that shall be applied to stall the FPGA simulation.
+        :param value: Integer value setting the currently active control mode:
+                        0:  FPGA simulation is not stalled
+                        1:  FPGA simulation is immediately stalled
+                        2:  FPGA simulation is stalled, after time stored in *ctrl_data* has passed, starting from
+                            the point in time this mode has been selected.
+                        3:  FPGA simulation is stalled, once time value stored in *ctrl_data* has been reached
+        :param timeout: Maximum time granted for operation to finish
+        """
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
+
+    def set_ctrl_data(self, value, timeout=30):
+        """
+        Set a time value as unscaled integer.
+        :param value:  Unscaled integer value that represents a time. This value is interpreted according to
+        the selected ctrl_mode
+        :param timeout: Maximum time granted for operation to finish
+        """
+        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
+
+    def stall_emu(self, timeout=30):
+        """
+        Stall the FPGA simulation immediately.
+        :param timeout: Maximum time granted for operation to finish
+        """
+        self.set_ctrl_mode(1, timeout=timeout)
+
     def sleep_emu(self, t, timeout=30):
+        """
+        Stall FPGA simulation, after emulated time of *t* has passed, starting from the point in time this function was
+        called.
+        :param t: Time value that shall pass before FPGA simulation is stalled.
+        :param timeout: Maximum time granted for operation to finish
+        """
+
         # stall
         self.stall_emu()
 

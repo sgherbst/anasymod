@@ -1,0 +1,17 @@
+digital_ctrl_inputs:
+  a_in:
+    abspath: 'tb_i.a_in'
+    width: 8
+    init_value: 0
+  b_in:
+    abspath: 'tb_i.b_in'
+    width: 8
+    init_value: 0
+  mode_in:
+    abspath: 'tb_i.mode_in'
+    width: 8
+    init_value: 0
+digital_ctrl_outputs:
+  c_out:
+    abspath: 'tb_i.c_out'
+    width: 8

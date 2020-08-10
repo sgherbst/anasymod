@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
@@ -13,6 +14,8 @@ class VivadoTCLGenerator(CodeGenerator):
     def __init__(self, target: FPGATarget):
         super().__init__()
         self.target = target
+        self.subst = None
+        self.old_subst = None
 
     def create_project(self, project_name, project_directory, force=False, full_part_name=None,
                        board_part=None):
@@ -148,6 +151,17 @@ class VivadoTCLGenerator(CodeGenerator):
 
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
+
+    def subst_path(self, drive):
+        self.subst = drive
+        if os.path.exists(self.subst):
+            print(self.subst, " already exists, saving copy of existing subst path")
+            self.old_subst = back2fwd(str(pathlib.Path(self.subst).resolve()))
+            # deleting old subst
+            self.writeln('exec subst ' + self.subst + ' /d')
+        self.writeln('exec subst ' + self.subst + ' ' + back2fwd(os.path.dirname(self.target.project_root)))
+        project_root = self.subst + r"\\" + self.target.prj_cfg.vivado_config.project_name
+        return project_root
 
     def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False, err_str=None):
         # write the TCL script

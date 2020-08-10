@@ -7,8 +7,8 @@ from anasymod.files import get_from_anasymod
 from anasymod.structures.structure_config import StructureConfig
 
 class UARTControlInfrastructure(ControlInfrastructure):
-    def __init__(self, prj_cfg):
-        super().__init__(prj_cfg=prj_cfg)
+    def __init__(self, prj_cfg, plugin_includes):
+        super().__init__(prj_cfg=prj_cfg, plugin_includes=plugin_includes)
 
         # Initialize internal variables
         self._simctrlregmap_path = os.path.join(prj_cfg.build_root, 'gen_ctrlregmap.sv')

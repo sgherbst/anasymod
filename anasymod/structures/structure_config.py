@@ -5,8 +5,7 @@ from anasymod.base_config import BaseConfig
 from anasymod.config import EmuConfig
 from anasymod.sim_ctrl.datatypes import (
     DigitalSignal, DigitalCtrlInput, DigitalCtrlOutput,
-    AnalogProbe, AnalogCtrlInput, AnalogCtrlOutput
-)
+    AnalogCtrlInput, AnalogCtrlOutput, AnalogProbe)
 
 class StructureConfig():
     """
@@ -16,7 +15,7 @@ class StructureConfig():
     There is also a specific interface to flow plugins that allows modification due to some needs
     from the plugin side, e.g. additional clks, resets, ios to the host application or resources on the FPGA board.
     """
-    def __init__(self, prj_cfg: EmuConfig, tstop, simctrl_path, can_use_default_oscillator=True):
+    def __init__(self, prj_cfg: EmuConfig, simctrl_path, can_use_default_oscillator=True):
         # Internal variables
         self.i_addr_counter = 0
         self.o_addr_counter = 0
@@ -67,13 +66,9 @@ class StructureConfig():
 
         # add a default derived clock if needed
         if (self.num_dt_reqs == 0) and can_use_default_oscillator:
-            self._add_default_oscillator()
             self.use_default_oscillator = True
         else:
             self.use_default_oscillator = False
-
-        # add control block
-        self._add_ctrl_anasymod()
 
         #########################################################
         # Simulation control interfaces
@@ -100,10 +95,9 @@ class StructureConfig():
 
         # Add DigitalCtrlInput for reset
         self.reset_ctrl = DigitalCtrlInput(
+            abspath=None,
             name='emu_rst',
-            width=1,
-            abspath = None
-        )
+            width=1)
         self.reset_ctrl.i_addr = self._assign_i_addr()
         self.digital_ctrl_inputs += [self.reset_ctrl]
         self.special_ctrl_ios.add(self.reset_ctrl.name)
@@ -111,9 +105,9 @@ class StructureConfig():
         # Add DigitalCtrlInput for control signal 'emu_dec_thr' to manage decimation
         # ratio for capturing probe samples
         self.dec_thr_ctrl = DigitalCtrlInput(
+            abspath=None,
             name='emu_dec_thr',
-            width=int(prj_cfg.cfg.dec_bits),
-            abspath = None
+            width=int(prj_cfg.cfg.dec_bits)
         )
         self.dec_thr_ctrl.i_addr = self._assign_i_addr()
         self.digital_ctrl_inputs += [self.dec_thr_ctrl]
@@ -134,7 +128,7 @@ class StructureConfig():
         # a specific amount of time
         self.emu_ctrl_mode = DigitalCtrlInput(
             name='emu_ctrl_mode',
-            width=4,
+            width=2,
             abspath = None
         )
         self.emu_ctrl_mode.i_addr = self._assign_i_addr()
@@ -298,20 +292,13 @@ class StructureConfig():
         if sigs is None:
             print('No signals specified in simctrl.yaml.')
             return
-
-        # debug waveform dumping (simulation only)
-        if 'dump_debug' in sigs:
-            self.dump_debug = True
-        else:
-            self.dump_debug = False
-
         # Add analog probes to structure config
         if 'analog_probes' in sigs:
             print(f'Analog Probes: {list(sigs["analog_probes"].keys())}')
             for name, analog_probe in sigs['analog_probes'].items():
                 self.analog_probes.append(AnalogProbe.from_dict(name, analog_probe))
-        else:
-            print(f'No Analog Probes provided.')
+            else:
+                print(f'No Analog Probes provided.')
 
         # Add digital probes to structure config
         if 'digital_probes' in sigs:
@@ -360,32 +347,6 @@ class StructureConfig():
                 self.analog_ctrl_outputs.append(a_ctrl_o)
         else:
             print(f'No Analog Ctrl Outputs provided.')
-
-    def _add_default_oscillator(self):
-        self.clk_derived.append(
-            ClkDerived(
-                name='def_osc',
-                abspath_emu_dt='def_osc_i.__emu_dt',
-                abspath_emu_clk='def_osc_i.__emu_clk',
-                abspath_emu_rst='def_osc_i.__emu_rst',
-                abspath_dt_req='def_osc_i.__emu_dt_req'
-            )
-        )
-
-        # update counts
-        self.num_dt_reqs += 1
-        #self.num_gated_clks += 1
-
-    def _add_ctrl_anasymod(self):
-        self.clk_derived.append(
-            ClkDerived(
-                name='ctrl_blk',
-                abspath_emu_dt='ctrl_anasymod_i.__emu_dt',
-                abspath_emu_clk='ctrl_anasymod_i.__emu_clk',
-                abspath_emu_rst='ctrl_anasymod_i.__emu_rst',
-                abspath_dt_req='ctrl_anasymod_i.__emu_dt_req'
-            )
-        )
 
 class ClkIndependent(DigitalSignal):
     """

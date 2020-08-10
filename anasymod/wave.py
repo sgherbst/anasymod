@@ -1,9 +1,10 @@
 import numpy as np
 
 try:
-    from si_prefix import si_format
+    # import si-prefix from Inicio installation
+    from site_pip_packages.si_prefix import si_format
 except:
-    print('ERROR: Could not load si-prefix package!')
+    from si_prefix import si_format
 
 try:
     from vcd import VCDWriter
@@ -75,7 +76,10 @@ class ConvertWaveform():
 
                     # convert data to native Python float type (rather than numpy float)
                     # this is required for PyVCD
-                    probe_data[name] = [float(x) for x in probe_data[name]]
+                    try:
+                        probe_data[name] = [float(x) for x in probe_data[name]]
+                    except:
+                        probe_data[name] = [float(probe_data[name])]
 
             for digital_signal in scfg.digital_probes + [scfg.dec_cmp] + [scfg.time_probe]:
                 name = 'trace_port_gen_i/' + digital_signal.name
@@ -391,5 +395,6 @@ class ConvertWaveform():
 
     def sort_timestamp(self, element):
         return element[1]
+
     def get_pyvcd_timescale(self, val):
         return si_format(val, precision=0) + 's'

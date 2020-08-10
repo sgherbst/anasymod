@@ -1,0 +1,19 @@
+digital_ctrl_inputs:
+  t_lo_0:
+    abspath: 'tb_i.osc_0.t_lo'
+    width: 32
+  t_hi_0:
+    abspath: 'tb_i.osc_0.t_hi'
+    width: 32
+  t_lo_1:
+    abspath: 'tb_i.osc_1.t_lo'
+    width: 32
+  t_hi_1:
+    abspath: 'tb_i.osc_1.t_hi'
+    width: 32
+
+digital_ctrl_outputs:
+  clk_0:
+    abspath: 'tb_i.clk_0'
+  clk_1:
+    abspath: 'tb_i.clk_1'

@@ -5,11 +5,20 @@ from anasymod.structures.structure_config import StructureConfig
 from anasymod.sim_ctrl.datatypes import DigitalCtrlInput, DigitalCtrlOutput, DigitalSignal, AnalogCtrlInput, AnalogCtrlOutput
 
 class ModuleVIOSimCtrl(JinjaTempl):
-    def __init__(self, scfg: StructureConfig):
+    def __init__(self, scfg: StructureConfig, plugin_includes: list):
         super().__init__(trim_blocks=True, lstrip_blocks=True)
 
         ctrl_inputs = scfg.analog_ctrl_inputs + scfg.digital_ctrl_inputs
         ctrl_outputs = scfg.analog_ctrl_outputs + scfg.digital_ctrl_outputs
+
+        #####################################################
+        # Add plugin specific includes
+        #####################################################
+
+        self.plugin_includes = SVAPI()
+        for plugin in plugin_includes:
+            for include_statement in plugin.include_statements:
+                self.plugin_includes.writeln(f'{include_statement}')
 
         #####################################################
         # Define module ios
@@ -30,14 +39,14 @@ class ModuleVIOSimCtrl(JinjaTempl):
         ## Custom control IOs for pc sim control module
         self.pc_sim_crtl_ifc = SVAPI()
 
-        # Only generate instantiation if there is any custom ctrl signal available
-        ctrl_signals = ctrl_outputs + ctrl_inputs
-        custom_ctrl_signals = []
-        for ctrl_signal in ctrl_signals:
-            if not ctrl_signal.name in scfg.special_ctrl_ios:
-                custom_ctrl_signals.append(ctrl_signal)
+        # Only generate instantiation if there is any ctrl signal available, that is not a special control signal
+        has_custom_ctrl_signal = False
+        for ctrl_signal in (ctrl_outputs + ctrl_inputs):
+            if ctrl_signal.name not in scfg.special_ctrl_ios:
+                has_custom_ctrl_signal = True
+                break
 
-        if len(custom_ctrl_signals) != 0:
+        if has_custom_ctrl_signal:
             sim_ctrl_module = ModuleInst(api=self.pc_sim_crtl_ifc, name="sim_ctrl")
             for ctrl_output in ctrl_outputs:
                 if ctrl_output.name not in scfg.special_ctrl_ios:
@@ -86,7 +95,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
     TEMPLATE_TEXT = '''\
 `timescale 1ns/1ps
 
-`include "svreal.sv"
+{{subst.plugin_includes.text}}
 
 `default_nettype none
 {{subst.module_ifc.text}}
@@ -107,7 +116,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
     `endif // `ifdef DEC_THR_VAL_MSDSL
     assign emu_dec_thr = `DEC_THR_VAL_MSDSL;
 
-    // stall / run / sleep controls
+     // stall / run / sleep controls
     logic [((`TIME_WIDTH)-1):0] emu_ctrl_data_state;
     logic [3:0] emu_ctrl_mode_state;
     assign emu_ctrl_data = emu_ctrl_data_state;
@@ -115,6 +124,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
 
     // module for custom vio handling
     // NOTE: sim_ctrl module must be written and added to the project manually!!!
+
 {{subst.pc_sim_crtl_ifc.text}}
 `else
 	// VIO instantiation

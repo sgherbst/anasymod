@@ -1,5 +1,0 @@
-PROJECT:
-    dt:                 0.03333333333e-9
-CPU_TARGET:
-    sim:
-        tstop:          10e-9

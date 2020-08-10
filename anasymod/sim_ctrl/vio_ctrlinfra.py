@@ -5,8 +5,8 @@ from anasymod.structures.structure_config import StructureConfig
 from anasymod.templates.vio_wiz import TemplVIO
 
 class VIOControlInfrastructure(ControlInfrastructure):
-    def __init__(self, prj_cfg):
-        super().__init__(prj_cfg=prj_cfg)
+    def __init__(self, prj_cfg, plugin_includes):
+        super().__init__(prj_cfg=prj_cfg, plugin_includes=plugin_includes)
 
         # Initialize internal variables
 
@@ -17,7 +17,7 @@ class VIOControlInfrastructure(ControlInfrastructure):
 
         # Generate simulation control wrapper and add to target sources
         with (open(self._simctrlwrap_path, 'w')) as ctrl_file:
-           ctrl_file.write(ModuleVIOSimCtrl(scfg=str_cfg).render())
+           ctrl_file.write(ModuleVIOSimCtrl(scfg=str_cfg, plugin_includes=self.plugin_includes).render())
 
         content.verilog_sources += [VerilogSource(files=self._simctrlwrap_path, name='simctrlwrap')]
 

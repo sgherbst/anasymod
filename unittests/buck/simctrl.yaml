@@ -1,0 +1,17 @@
+analog_probes:
+    v_out_probe:
+        abspath:    'tb_i.v_out'
+        range:      10
+    i_ind_probe:
+        abspath:    'tb_i.i_ind'
+        range:      20
+digital_probes:
+    ls_probe:
+        abspath:    'tb_i.ls'
+        width:      1
+    hs_probe:
+        abspath:    'tb_i.hs'
+        width:      1
+    ls_en_probe:
+        abspath:    'tb_i.ls_en'
+        width:      1

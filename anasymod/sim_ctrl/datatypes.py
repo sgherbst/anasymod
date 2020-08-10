@@ -128,12 +128,12 @@ class AnalogSignal(_Signal):
         # w == calc_width(calc_range(w, e), e)
         return ((2**(width-1))-1)*(2**exponent)
 
+
     def float_to_fixed(self, val):
         return int(round(val*(2**(-self.exponent))))
 
     def fixed_to_float(self, val):
         return float(val*(2**(self.exponent)))
-
 
 class AnalogCtrlInput(AnalogSignal):
     """

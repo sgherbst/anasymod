@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 import shutil
 from anasymod.generators.xsct import XSCTTCLGenerator
@@ -69,8 +70,9 @@ class XSCTEmulation(XSCTTCLGenerator):
             ).text
         )
 
-        # run the build script
-        self.run('sdk.tcl')
+        # run the build script while checking for errors
+        err_str = re.compile(r'(: error:)|(make.*: \*\*\* .* Error \d+)')
+        self.run('sdk.tcl', err_str=err_str)
 
     def program(self, program_fpga=True, reset_system=True):
         # determine SDK path
@@ -89,5 +91,7 @@ class XSCTEmulation(XSCTTCLGenerator):
             ).text
         )
 
-        # run the programming script
+        # run the programming script. xsct appears to return an error code
+        # when the FPGA board is not plugged in or is not powered up, so
+        # parsing for errors doesn't appear to be necessary in this case)
         self.run('program.tcl')

@@ -19,8 +19,12 @@ class UARTCtrlApi(CtrlApi):
         # Initialize control config
         self.cfg = Config(cfg_file=prj_cfg.cfg_file)
 
-        self.vid_list = [1027]
-        self.pid_list = [24592]
+        # Save UART identification settings
+        self.uart_vid = prj_cfg.board.uart_vid
+        self.uart_pid = prj_cfg.board.uart_pid
+        self.uart_suffix = prj_cfg.board.uart_suffix
+
+        # Initialize port_list
         self.port_list = []
 
     ### User Functions
@@ -87,44 +91,74 @@ class UARTCtrlApi(CtrlApi):
 
     def _initialize(self):
         """
-        Initialize the control interface, this is usually done after the bitstream was programmed successfully on the FPGA.
+        Initialize the control interface, this is usually done after the bitstream was
+        programmed successfully on the FPGA.
         :return:
         """
+
         if self.cfg.comport is None:  # run auto search for finding the correct COM port
             # find all available COM ports
             comports = [port for port in ports.comports(include_links=True)]
+
             # check if any COM port is compliant to known vids and pids and if so store the device_id
             for port in comports:
-                if ((port.vid in self.vid_list) and (port.pid in self.pid_list)):
-                    self.port_list.append(port.device)
+                # filter out ports not matching VID (if provided)
+                if (self.uart_vid is not None) and (port.vid != self.uart_vid):
+                    continue
+                # filter out ports not matching PID (if provided)
+                if (self.uart_pid is not None) and (port.pid != self.uart_pid):
+                    continue
+                # filter out ports not matching location (if provided)
+                if (self.uart_suffix is not None) and (not port.location.endswith(self.uart_suffix)):
+                    continue
+                # if we get to this point, then all of the provided tests passed,
+                # so we can add the port to the port_list
+                self.port_list.append(port.device)
 
+            # indicate the specific error condition of no matching ports,
+            # to better communicate the problem to the user
+            if len(self.port_list) == 0:
+                raise Exception('Did not find any matching COM ports.')
+
+            # print a warning if multiple matching COM ports are detected,
+            # since it's possible that the wrong one will be selected if
+            # more than one can connect through PySerial
+            if len(self.port_list) > 1:
+                print('WARNING: Multiple COM ports matched search criteria, '
+                      'will use the first one that can successfully connect.')
+
+            # iterate through the matching ports, printing out each attempt
             for port in self.port_list:
                 try:
-                    self.ctrl_handler = serial.Serial(port, int(self.cfg.baud_rate), timeout=self.cfg.timeout,
-                                                      parity=self.cfg.parity, stopbits=self.cfg.stopbits,
-                                                      bytesize=self.cfg.bytesize)
+                    print(f'Trying to open {port} ... ', end='')
+                    self.ctrl_handler = self._open_serial_connection(port)
                     self.cfg.comport = port
+                    print('success.')
+                    break
                 except:
-                    pass
-            if self.cfg.comport is None:
-                raise Exception(
-                    f"ERROR: No COM port could be opened to enable connection to FPGA, found ports were: {self.port_list}.")
-
+                    print('failed.')
+            else:
+                raise Exception('ERROR: None of the matching COM ports could be opened.')
         else:
             try:
-                self.ctrl_handler = serial.Serial(self.cfg.comport, int(self.cfg.baud_rate), timeout=self.cfg.timeout,
-                                                  parity=self.cfg.parity, stopbits=self.cfg.stopbits,
-                                                  bytesize=self.cfg.bytesize)
+                self.ctrl_handler = self._open_serial_connection(self.cfg.comport)
             except:
-                raise Exception(f"ERROR: Provided COM port: {self.cfg.comport} could not ne opened for communication.")
+                raise Exception(f"ERROR: Provided COM port: {self.cfg.comport} could not be "
+                                f"opened for communication.")
+
+    def _open_serial_connection(self, port):
+        return serial.Serial(port, int(self.cfg.baud_rate), timeout=self.cfg.timeout,
+                             parity=self.cfg.parity, stopbits=self.cfg.stopbits,
+                             bytesize=self.cfg.bytesize)
 
     def _setup_ctrl(self, server_addr):
         """
-        Prepare instrumentation on the FPGA to allow interactive control.
+        Prepare instrumentation on the FPGA to allow interactive control.  Does not currently
+        do anything for the UART controller.
         :param server_addr: Address of remote hardware server
         :return:
         """
-        raise NotImplementedError("Base class was called to execute function")
+        pass
 
     def _expect_prompt(self, timeout=float('inf')):
         """
@@ -137,7 +171,8 @@ class UARTCtrlApi(CtrlApi):
     def _write(self, operation, name, value=None):
         # check is space is in any of the give input strings
         if ' ' in [operation, name, value]:
-            raise Exception(f"Blanks in any of the provided argument strings;{operation}, {name}, {value}; sent via control interface are not allowed!")
+            raise Exception(f"Blanks in any of the provided argument strings;{operation}, "
+                            f"{name}, {value}; sent via control interface are not allowed!")
 
         self.ctrl_handler.write((' '.join([str(operation), str(name), str(value) + '\r']).encode('utf-8')))
         self.ctrl_handler.flush()
@@ -172,7 +207,7 @@ class Config(BaseConfig):
         self.baud_rate = 115200
         """ type(int): Baudrate used for communication with UART on FPGA """
 
-        self.timeout = None
+        self.timeout = 30
         """ type(int): Timeout in seconds used when waiting for a response during data transmission """
 
         self.parity = serial.PARITY_NONE
