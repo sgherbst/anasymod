@@ -111,7 +111,7 @@ class VivadoEmulation(VivadoTCLGenerator):
         # create block diagram if needed
         # TODO: pass through configuration options
         if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
-            self.use_templ(TemplZynqGPIO(scfg.is_ultrascale))
+            self.use_templ(TemplZynqGPIO(is_ultrascale=scfg.is_ultrascale))
 
         # launch the build and wait for it to finish
         num_cores = min(int(self.target.prj_cfg.vivado_config.num_cores), 8)
