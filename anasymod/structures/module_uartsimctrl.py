@@ -21,7 +21,7 @@ class ModuleUARTSimCtrl(JinjaTempl):
         module.add_inputs(ctrl_outputs)
         module.add_outputs(ctrl_inputs)
         module.add_input(scfg.emu_clk)
-        if scfg.is_ultrascale:
+        if not scfg.is_ultrascale:
             module.add_inouts(TemplZynqGPIO.EXT_IOS)
         module.generate_header()
 
@@ -90,7 +90,7 @@ class ModuleUARTSimCtrl(JinjaTempl):
         bd.add_output(io_obj=self.zynq_gpio.i_ctrl, connection=self.zynq_gpio.i_ctrl)
         bd.add_output(io_obj=self.zynq_gpio.i_data, connection=self.zynq_gpio.i_data)
 
-        if scfg.is_ultrascale:
+        if not scfg.is_ultrascale:
             bd.add_inouts(io_objs=TemplZynqGPIO.EXT_IOS, connections=TemplZynqGPIO.EXT_IOS)
 
         bd.generate_instantiation()
