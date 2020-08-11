@@ -1,5 +1,9 @@
+import os, sys
+import time
+
 from anasymod.config import EmuConfig
 from anasymod.structures.structure_config import StructureConfig
+from .console_print import cprint_block_start, cprint_block_end
 
 class CtrlApi:
     """
@@ -7,9 +11,12 @@ class CtrlApi:
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self, pcfg: EmuConfig, scfg: StructureConfig):
+    def __init__(self, cwd, pcfg: EmuConfig, scfg: StructureConfig, prompt, debug):
         self.pcfg=pcfg
         self.scfg=scfg
+        self.cwd = cwd
+        self.prompt = prompt
+        self.debug = debug
 
     ### User Functions
 
@@ -205,8 +212,72 @@ class CtrlApi:
         :param timeout: Maximum time granted for shell to open
         :return:
         """
-        raise NotImplementedError("Base class was called to execute function")
+        before = ''
+        start_time = time.time()
+        lines_recv = 0
+        while (time.time() - start_time) < timeout:
+            remaining = timeout - (time.time() - start_time)
+            if remaining == float('inf'):
+                remaining = None
+            index = self.proc.expect(['\n', self.prompt], timeout=remaining)
+            if index == 0:
+                before += self.proc.before + '\n'
+                lines_recv += 1
+                if self.debug:
+                    if lines_recv == 2:
+                        cprint_block_start('RECV', 'cyan')
+                    if lines_recv >= 2:
+                        print(self.proc.before)
+            else:
+                break
+        if self.debug and lines_recv >= 2:
+            cprint_block_end('RECV', 'cyan')
+        return before
 
+    def _initialize_vivado_tcl(self):
+        """
+        Initialize the control interface, this is usually done after the bitstream was programmed successfully on the FPGA.
+        :return:
+        """
+
+        # log current status
+        print('Starting Vivado TCL interpreter.')
+        sys.stdout.flush()
+
+        # construct the command to launch Vivado
+        cmd = 'vivado '
+        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
+        cmd += '-nolog -nojournal -notrace -mode tcl'
+
+        # Use pexpect under linux for interactive vivado ctrl
+        if os.name == 'posix':
+            # Add Vivado to the path using the Windows PATH separator (semicolon)
+            # A copy of the environment is made to avoid side effects outside this function
+            # TODO: do this only if needed
+            env = os.environ.copy()
+            env['PATH'] += f':{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            # Launch Vivado
+            from pexpect import spawnu
+            self.proc = spawnu(command=cmd, cwd=self.cwd, env=env)
+        elif os.name == 'nt':
+            # Add Vivado to the path using the Windows PATH separator (semicolon)
+            # A copy of the environment is made to avoid side effects outside this function
+            # TODO: do this only if needed
+            env = os.environ.copy()
+            env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            os.environ['WEXPECT_SPAWN_CLASS'] = 'SpawnPipe'
+            # Launch Vivado
+            try:
+                # import patched wexpect from Inicio installation
+                from site_pip_packages.wexpect import spawn
+            except:
+                from wexpect import spawn
+            self.proc = spawn(command=cmd, cwd=self.cwd, env=env)
+        else:
+            raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
+
+        # wait for the prompt
+        self._expect_prompt(timeout=300)
 
     def __del__(self):
         """

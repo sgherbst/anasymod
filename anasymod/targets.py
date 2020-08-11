@@ -201,11 +201,11 @@ class FPGATarget(Target):
                                                   plugin_includes=self.plugins,
                                                   tcfg= self.cfg
                                                   )
-            self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg,
-                                        scfg=self.str_cfg,
-                                        content=self.content,
-                                        top_module=self.cfg.top_module,
-                                        project_root=self.project_root
+            self.ctrl_api = UARTCtrlApi(result_path=self.cfg.vcd_path, result_path_raw=self.result_path_raw,
+                                        result_type_raw=self.cfg.result_type_raw, prj_cfg=self.prj_cfg,
+                                        scfg=self.str_cfg, content=self.content, ltxfile_path=self.ltxfile_path,
+                                        top_module=self.cfg.top_module, project_root=self.project_root,
+                                        float_type=self.float_type
                                         )
         else:
             raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")

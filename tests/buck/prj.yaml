@@ -4,3 +4,6 @@ PROJECT:
 CPU_TARGET:
     sim:
         tstop:          100e-6
+FPGA_TARGET:
+    fpga:
+        fpga_sim_ctrl: 'UART_ZYNQ'
