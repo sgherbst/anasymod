@@ -5,7 +5,8 @@
 
 class TemplXSCTProgram:
     def __init__(self, sdk_path, bit_path, hw_path, tcl_path, cpu_filter='"ARM*#0"',
-                 sw_name='sw', program_fpga=True, reset_system=True):
+                 sw_name='sw', program_fpga=True, reset_system=True,
+                 is_ultrascale=False):
 
         # initialize text
         self.text = ''
@@ -24,7 +25,7 @@ class TemplXSCTProgram:
 
         self.loadhw(hw_path)
 
-        self.init_cpu(tcl_path)
+        self.init_cpu(tcl_path=tcl_path, is_ultrascale=is_ultrascale)
 
         self.download(str(sdk_path / sw_name / 'Debug' / sw_name) + '.elf')
 
@@ -63,11 +64,15 @@ class TemplXSCTProgram:
         self.line(f'loadhw "{hw_path}"')
         self.line()
 
-    def init_cpu(self, tcl_path):
+    def init_cpu(self, tcl_path, is_ultrascale):
         self.puts('Initializing the processor...')
         self.line(f'source "{tcl_path}"')
-        self.line('ps7_init')
-        self.line('ps7_post_config')
+        if is_ultrascale:
+            self.line('psu_init')
+            self.line('psu_post_config')
+        else:
+            self.line('ps7_init')
+            self.line('ps7_post_config')
         self.line()
 
     def download(self, elf_path):

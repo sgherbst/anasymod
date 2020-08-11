@@ -30,7 +30,10 @@ class XSCTEmulation(XSCTTCLGenerator):
 
     @property
     def tcl_path(self):
-        return self.impl_dir / 'ps7_init.tcl'
+        if self.target.prj_cfg.board.is_ultrascale:
+            return self.impl_dir / 'psu_init.tcl'
+        else:
+            return self.impl_dir / 'ps7_init.tcl'
 
     @property
     def hw_path(self):
@@ -58,6 +61,12 @@ class XSCTEmulation(XSCTTCLGenerator):
                     for file_ in src.files:
                         shutil.copy(str(file_), str(src_path / Path(file_).name))
 
+        # determine the processor name
+        if self.target.prj_cfg.board.is_ultrascale:
+            proc_name = 'psu_cortexa53_0'
+        else:
+            proc_name = 'ps7_cortexa9_0'
+
         # generate the build script
         self.write(
             TemplXSCTBuild(
@@ -65,6 +74,7 @@ class XSCTEmulation(XSCTTCLGenerator):
                 hw_path=self.hw_path,
                 version_year=self.version_year,
                 version_number=self.version_number,
+                proc_name=proc_name,
                 create=create,
                 build=build
             ).text
