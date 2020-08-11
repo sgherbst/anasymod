@@ -340,6 +340,11 @@ class Config(BaseConfig):
             sometimes has bugs, particularly when more complex Verilog features like hierarchical references and
             interfaces are used."""
 
+        self.vivado_stack = None
+        """ type(int) : Stack size used by Vivado.  If you are getting an error during synthesis that
+            looks like "Segmentation fault "$RDI_PROG"", try setting this to 2000 or higher
+            (https://www.xilinx.com/support/answers/64434.html)."""
+
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:

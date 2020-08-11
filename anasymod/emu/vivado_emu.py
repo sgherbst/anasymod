@@ -146,7 +146,7 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln('exec subst ' + self.subst + ' ' + self.old_subst)
 
         # run bitstream generation
-        self.run(filename=r"bitstream.tcl")
+        self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack)
 
     def run_FPGA(self, **kwargs):
         """
