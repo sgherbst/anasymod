@@ -89,6 +89,13 @@ class VivadoEmulation(VivadoTCLGenerator):
             # Setup Debug Hub
             constrs.use_templ(TemplDbgHub(target=self.target))
 
+            # Add false paths for Zynq control signals.  This is necessary in some cases
+            # to provide timing violations, since the ARM core is running on a different
+            # clock that the emulator circuitry.  This is a real problem, but is handled
+            # in firmware with handshaking and very short delays.
+            if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+                constrs.writeln('set_false_path -through [get_pins sim_ctrl_gen_i/zynq_gpio_i/*]')
+
             # write master constraints to file and add to project
             master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
             constrs.write_to_file(master_constr_path)
