@@ -10,6 +10,7 @@ class PYNQ_Z1():
     board_part = 'www.digilentinc.com:pynq-z1:part0:1.0'
     full_part_name = 'xc7z020clg400-1'
     short_part_name = 'xc7z020'
+    bram = 4.9e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [1027]
@@ -25,6 +26,7 @@ class ARTY_A7():
     board_part = None
     full_part_name = 'xc7a35ticsg324-1L'
     short_part_name = 'xc7a35'
+    bram = 1.8e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
@@ -39,6 +41,7 @@ class ARTY_200T_CUSTOM_LIDAR():
     board_part = None
     full_part_name = 'xc7a200tfbg484-2L'
     short_part_name = 'xc7a200'
+    bram = 13e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
@@ -52,6 +55,7 @@ class TE0720():
     board_part = None
     full_part_name = 'xc7z020clg484-1'
     short_part_name = 'xc7z020'
+    bram = 4.9e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [1027] # might need adjustment
     uart_zynq_pid = [24592] # might need adjustment
@@ -66,6 +70,7 @@ class VC707():
     board_part = None
     full_part_name = 'XC7VX485T-2FFG1761C'
     short_part_name = 'XC7VX485T'
+    bram = 37e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
@@ -79,6 +84,7 @@ class ZC702():
     board_part = 'xilinx.com:zc702:part0:1.4'
     full_part_name = 'xc7z020clg484-1'
     short_part_name = 'xc7z020'
+    bram = 4.9e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
@@ -92,6 +98,7 @@ class ULTRA96():
     board_part = None
     full_part_name = 'xczu3eg-sbva484-???'
     short_part_name = 'xczu3eg'
+    bram = None
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [1027] # might need adjustment
     uart_zynq_pid = [24592] # might need adjustment
@@ -106,6 +113,7 @@ class ZC706():
     board_part = 'xilinx.com:zc706:part0:1.4'
     full_part_name = 'xc7z045ffg900-2'
     short_part_name = 'xc7z045'
+    bram = 19.2e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [4292]

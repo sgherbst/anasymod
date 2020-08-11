@@ -23,6 +23,20 @@ class VivadoEmulation(VivadoTCLGenerator):
         super().__init__(target=target)
 
     def build(self):
+        # Check if on-chip memory is sufficient on selected FPGA board
+        if self.target.prj_cfg.board.bram is not None:
+            bits_per_sample = 0
+            probes = (self.target.str_cfg.digital_probes + self.target.str_cfg.analog_probes +
+                      [self.target.str_cfg.time_probe] + [self.target.str_cfg.dec_cmp])
+            for probe in probes:
+                bits_per_sample += int(probe.width)
+            if (bits_per_sample * self.target.prj_cfg.ila_depth) > (self.target.prj_cfg.board.bram * 8):
+                raise(f'ERROR: Number ob samples to be recorded does not fit on FPGA board, please either select a '
+                      f'board with more block memory, or change the ila_depth')
+        else:
+            print(f'WARNING: Check for sufficient BRAM could not be conducted, '
+                  f'not enough information given in board definition!')
+
         scfg = self.target.str_cfg
         """ type : StructureConfig """
         project_root = self.target.project_root

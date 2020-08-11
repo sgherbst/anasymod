@@ -5,6 +5,7 @@ from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
 from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo, EDIFFile
 from anasymod.targets import FPGATarget
+from anasymod.enums import FPGASimCtrl
 
 class VivadoTCLGenerator(CodeGenerator):
     """
@@ -31,8 +32,11 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # specify the board part if known
         if board_part is not None:
-            self.writeln(f'if {{[catch {{set_property board_part {board_part} [current_project]}}]}} '
+            if self.target.prj_cfg.board.fpga_sim_ctrl is not FPGASimCtrl.UART_ZYNQ:
+                self.writeln(f'if {{[catch {{set_property board_part {board_part} [current_project]}}]}} '
                          f'{{puts "WARNING: Could not not set board_part:{board_part}"}}')
+            else:
+                self.writeln(f'set_property board_part {board_part} [current_project]')
 
     def add_project_sources(self, content):
         """

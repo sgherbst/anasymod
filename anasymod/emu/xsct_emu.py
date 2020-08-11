@@ -1,5 +1,8 @@
-from pathlib import Path
 import shutil
+import re
+
+from pathlib import Path
+
 from anasymod.generators.xsct import XSCTTCLGenerator
 
 from anasymod.templates.xsct_build import TemplXSCTBuild
@@ -17,6 +20,8 @@ class XSCTEmulation(XSCTTCLGenerator):
         self.top_module = top_module
         self.project_root = project_root
         self.content = content
+
+        self.err_str = re.compile('^(Failed)')
 
     @property
     def impl_dir(self):
@@ -36,7 +41,7 @@ class XSCTEmulation(XSCTTCLGenerator):
 
     @property
     def hw_path(self):
-        if self.version_year < 2020:
+        if self.pcfg.xsct_config.version_year < 2020:
             return self.impl_dir / f'{self.top_module}.sysdef'
         else:
             return self.impl_dir / f'{self.top_module}.xsa'
@@ -65,15 +70,15 @@ class XSCTEmulation(XSCTTCLGenerator):
             TemplXSCTBuild(
                 sdk_path=sdk_path,
                 hw_path=self.hw_path,
-                version_year=self.version_year,
-                version_number=self.version_number,
+                version_year=self.pcfg.xsct_config.version_year,
+                version_number=self.pcfg.xsct_config.version_number,
                 create=create,
                 build=build
             ).text
         )
 
         # run the build script
-        self.run('sdk.tcl')
+        self.run('sdk.tcl', err_str=self.err_str)
 
     def program(self, program_fpga=True, reset_system=True, server_addr=None):
         # determine SDK path
@@ -94,4 +99,4 @@ class XSCTEmulation(XSCTTCLGenerator):
         )
 
         # run the programming script
-        self.run('program.tcl')
+        self.run('program.tcl', err_str=self.err_str)
