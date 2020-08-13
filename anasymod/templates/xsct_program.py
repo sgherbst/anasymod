@@ -106,6 +106,11 @@ class TemplXSCTProgram:
             self.puts('Calling psu_ps_pl_reset_config...')
             self.line('psu_ps_pl_reset_config')
             self.line('after 1000')  # TODO: is this needed?
+
+            self.puts('Magic writes... :-(')
+            self.line('mwr 0xffff0000 0x14000000')
+            self.line('mwr 0xFD1A0104 0x380E')
+            self.line('after 1000')  # TODO: is this needed?
         else:
             self.line('ps7_init')
             self.line('ps7_post_config')
