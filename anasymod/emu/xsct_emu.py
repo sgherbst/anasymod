@@ -84,7 +84,7 @@ class XSCTEmulation(XSCTTCLGenerator):
         err_str = re.compile(r'(: error:)|(make.*: \*\*\* .* Error \d+)')
         self.run('sdk.tcl', err_str=err_str)
 
-    def program(self, program_fpga=True, reset_system=True):
+    def program(self, **kwargs):
         # determine SDK path
         sdk_path = (Path(self.target.project_root) /
                     f'{self.target.prj_cfg.vivado_config.project_name}.sdk')
@@ -96,8 +96,8 @@ class XSCTEmulation(XSCTTCLGenerator):
                 bit_path=self.bit_path,
                 hw_path=self.hw_path,
                 tcl_path=self.tcl_path,
-                program_fpga=program_fpga,
-                reset_system=reset_system
+                is_ultrascale=self.target.prj_cfg.board.is_ultrascale,
+                **kwargs
             ).text
         )
 
