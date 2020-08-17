@@ -21,7 +21,7 @@ class VIOControlInfrastructure(ControlInfrastructure):
 
         content.verilog_sources += [VerilogSource(files=self._simctrlwrap_path, name='simctrlwrap')]
 
-    def gen_ctrl_infrastructure(self, str_cfg: StructureConfig, content):
+    def gen_ctrl_infrastructure(self, content):
         """
         Generate RTL design for FPGA specific control infrastructure, depending on the interface selected for communication.
         For VIO control, no additional RTL sources need to be generated.

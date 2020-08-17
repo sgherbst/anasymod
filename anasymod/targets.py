@@ -88,7 +88,7 @@ class Target():
 
         # Build control structure and add all sources to project
         if self.ctrl is not None:
-            self.ctrl.gen_ctrlwrapper(content=self.content)
+            self.ctrl.gen_ctrlwrapper(str_cfg=self.str_cfg, content=self.content)
         else:
             #ToDO: needs to be cleaned up, should have individual module for pc simulation control
             with (open(os.path.join(self.prj_cfg.build_root, 'gen_ctrlwrap.sv'), 'w')) as ctrl_file:

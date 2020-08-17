@@ -23,7 +23,7 @@ class UARTControlInfrastructure(ControlInfrastructure):
         # beneficial/at least there should be a script for creating the .bd file for a
         # new Vivado version, also add binary path to xsct interface
 
-    def gen_ctrlwrapper(self, content):
+    def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for control infrastructure. This will generate the register map, add the
         block diagram including the zynq PS and add the firmware running on the zynq PS.

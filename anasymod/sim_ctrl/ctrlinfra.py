@@ -12,7 +12,7 @@ class ControlInfrastructure():
         self._simctrlwrap_path = os.path.join(self.pcfg.build_root, 'gen_ctrlwrap.sv')
         self.plugin_includes = plugin_includes
 
-    def gen_ctrlwrapper(self, content):
+    def gen_ctrlwrapper(self, str_cfg: StructureConfig, content):
         """
         Generate RTL design for base control infrastructure, depending on the interface selected for communication.
         """
