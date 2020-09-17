@@ -120,5 +120,5 @@ class ZCU106(FPGA_Board):
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_vid = 4292
     uart_pid = 60017
-    uart_suffix = '.3'  # needed since this board has four com ports under the same VID/PID
+    uart_suffix = '.0'  # needed since this board has four com ports under the same VID/PID
     is_ultrascale = True
