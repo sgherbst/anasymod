@@ -1,0 +1,6 @@
+verilog_sources:
+  sim_ctrl:
+    files: './*.*v'
+functional_models:
+  filter:
+    files: './my_filter.py'

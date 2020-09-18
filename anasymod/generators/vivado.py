@@ -162,8 +162,8 @@ class VivadoTCLGenerator(CodeGenerator):
         if os.path.exists(self.subst):
             print(self.subst, " already exists, saving copy of existing subst path")
             self.old_subst = back2fwd(str(pathlib.Path(self.subst).resolve()))
-            # deleting old subst
-            self.writeln('exec subst ' + self.subst + ' /d')
+        # deleting old subst
+        self.writeln('[catch {exec subst ' + self.subst + ' /d}]')
         self.writeln('exec subst ' + self.subst + ' ' + back2fwd(os.path.dirname(self.target.project_root)))
         project_root = self.subst + r"\\" + self.target.prj_cfg.vivado_config.project_name
         return project_root

@@ -270,8 +270,8 @@ class UARTCtrlApi(CtrlApi):
         :return:
         """
         self._write(name=self.cfg.set_operation_prefix+name, value=value)
-        #if self._read():
-        #    raise Exception(f"ERROR: Couldn't properly write: {self.cfg.set_operation_prefix+name}={value} command to FPGA.")
+        if self._read():
+            raise Exception(f"ERROR: Couldn't properly write: {self.cfg.set_operation_prefix+name}={value} command to FPGA.")
 
     def set_reset(self, value, timeout=30):
         """

@@ -100,7 +100,10 @@ int main() {
         for k, v in self.setter_dict.items():
             retval += f'''
                     {cond_str} (cmd == SET_{v}) {{
-                        set_{v}(arg1);
+                        set_{v}(arg1)\n;
+''' + \
+r'''                      
+                        xil_printf("\r\n");
 '''
             cond_str = '} else if'
 

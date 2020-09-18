@@ -1,0 +1,4 @@
+analog_probes:
+    v_out_probe:
+        abspath:    'tb_i.v_out'
+        range:      5

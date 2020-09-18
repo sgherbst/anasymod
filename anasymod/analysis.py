@@ -414,12 +414,16 @@ class Analysis():
         # Return ctrl handle for interactive control
         return ctrl_handle
 
-    def simulate(self, unit=None, id=None, convert_waveform=True):
+    def simulate(self, unit=None, id=None, convert_waveform=True, flags=None):
         """
-        Run simulation on a pc target.
+        Run simulation on a pc target.  'flags' contains a list of simulator-specific
+        flags, as a sort of escape hatch for features that are not yet supported
+        natively through anasymod.
         """
-
-        shutil.rmtree(self._prj_cfg.build_root) # Remove target speciofic build dir to make sure there is no legacy
+        # Remove target-specific build dir to make sure there are no old files.
+        # However, don't fail when certain files can't be removed, because that
+        # might indicate that a waveform window is open
+        shutil.rmtree(self._prj_cfg.build_root, ignore_errors=True)
         mkdir_p(self._prj_cfg.build_root)
         self._setup_targets(target=self.act_cpu_target, gen_structures=True)
 
@@ -441,7 +445,7 @@ class Analysis():
 
         # run simulation
 
-        sim = sim_cls(target=target)
+        sim = sim_cls(target=target, flags=flags)
 
         if self.args.simulator_name == "xrun":
             sim.unit = unit

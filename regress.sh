@@ -1,7 +1,3 @@
-# create virtual environment
-$ANASYMOD_PYTHON -m venv venv
-source venv/bin/activate
-
 # upgrade pip
 python -m pip install --upgrade pip
 
@@ -16,14 +12,28 @@ pip install -e .
 
 # specify python location (needed for msdsl)
 export PYTHON_MSDSL=`which python`
-echo $$PYTHON_MSDSL
+echo $PYTHON_MSDSL
 
-# run tests
-pytest --cov-report=xml --cov=anasymod unittests tests -v -r s -s
-# for the unittests, the test target can be specified by adding
-# --target <target_name> to the pytest call, while the argument
-# --classification <classification> can be used to select,
-# which set of tests shall be executed (basic, weekend, ...)
+# use a default target if not specified
+if [[ -z "$ANASYMOD_TARGET" ]]; then
+    ANASYMOD_TARGET=sim_icarus
+fi
+
+# run simulation-based tests.  optional arguments:
+# --target <target_name> to specify the simulator (sim_icarus, sim_vivado, etc.)
+# --classification <classification> to select which tests are run (basic, weekend, etc.)
+pytest --cov-report=xml -v -r s -s \
+    --cov=anasymod --target=$ANASYMOD_TARGET unittests
+
+# if we're on the FPGA server, then run some tests on the FPGA board
+# note that --cov-append is used so that we added to the previously
+# collected coverage data
+if [[ -n "${FPGA_SERVER}" ]]; then
+    pytest --cov-report=xml --cov-append -v -r s -s \
+        --cov=anasymod --target=emulate_vivado \
+        unittests/basic_sim/test_basic_sim.py::TestBasicSIM::test_firmware \
+        unittests/basic_sim/test_basic_sim.py::TestBasicSIM::test_rc
+fi
 
 # upload coverage information
 bash <(curl -s https://codecov.io/bash)

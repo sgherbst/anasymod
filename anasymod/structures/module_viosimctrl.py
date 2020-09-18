@@ -106,7 +106,7 @@ class ModuleVIOSimCtrl(JinjaTempl):
     assign emu_rst = emu_rst_state;
     initial begin
         @(posedge emu_clk);
-        #((0.1/(`EMU_CLK_FREQ))*1s);
+        #(((0.1/(`EMU_CLK_FREQ))*1s)+(1.0/(`EMU_CLK_FREQ))*{{subst.rst_clkcycles}}*1s));
         emu_rst_state = 1'b0;
     end
 

@@ -12,6 +12,7 @@ from anasymod.templates.ila import TemplILA
 from anasymod.templates.zynq_gpio import TemplZynqGPIO
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
+from anasymod.sim_ctrl.ctrlapi import CtrlApi
 
 class VivadoEmulation(VivadoTCLGenerator):
     """
@@ -176,7 +177,7 @@ class VivadoEmulation(VivadoTCLGenerator):
         self.use_templ(TemplEXECUTE_FPGA_SIM(target=self.target, **kwargs))
         self.run(filename='run_FPGA.tcl', interactive=False)
 
-    def launch_FPGA(self, server_addr: str):
+    def launch_FPGA(self, server_addr: str) -> CtrlApi:
         """
         Run the FPGA in interactive mode. This means FPGA will be programmed and
         control interfaces prepared. After that interactive communication with FPGA

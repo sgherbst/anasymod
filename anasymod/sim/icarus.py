@@ -41,6 +41,10 @@ class IcarusSimulator(Simulator):
             for src in sources.gen_files:
                 cmd.append(src)
 
+        # add any additional user-supplied flags
+        for flag in self.flags:
+            cmd.append(str(flag))
+
         # run iverilog
         call(cmd, cwd=self.cfg.build_root)
 
