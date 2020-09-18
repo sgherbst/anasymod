@@ -97,6 +97,7 @@ class XSCTEmulation(XSCTTCLGenerator):
                 hw_path=self.hw_path,
                 tcl_path=self.tcl_path,
                 is_ultrascale=self.target.prj_cfg.board.is_ultrascale,
+                xsct_install_dir=self.xsct_install_dir,
                 **kwargs
             ).text
         )

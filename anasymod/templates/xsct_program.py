@@ -5,11 +5,23 @@
 # 4. https://github.com/analogdevicesinc/no-OS/blob/master/scripts/xsdb.tcl
 # 5. https://www.xilinx.com/html_docs/xilinx2018_1/SDK_Doc/xsct/use_cases/xsdb_debug_app_zynqmp.html
 
+from pathlib import Path
+
 class TemplXSCTProgram:
     def __init__(self, sdk_path, bit_path, hw_path, tcl_path,
                  sw_name='sw', program_fpga=True, reset_system=True,
                  loadhw=True, init_cpu=True, download=True,
-                 run=True, connect=True, is_ultrascale=False):
+                 run=True, connect=True, is_ultrascale=False,
+                 xsct_install_dir=None):
+
+        # save settings
+        self.sdk_path = sdk_path
+        self.bit_path = bit_path
+        self.hw_path = hw_path
+        self.tcl_path = tcl_path
+        self.sw_name = sw_name
+        self.is_ultrascale = is_ultrascale
+        self.xsct_install_dir = xsct_install_dir
 
         # initialize text
         self.text = ''
@@ -22,33 +34,51 @@ class TemplXSCTProgram:
         if connect:
             self.connect()
 
+        # load utility functions for Zynq MP
+        if is_ultrascale:
+            self.puts('Load utility functions for Zynq MP.')
+            zynqmp_utils_tcl = (Path(self.xsct_install_dir) / 'scripts' /
+                                'vitis' / 'util' / 'zynqmp_utils.tcl')
+            self.line(f'source "{zynqmp_utils_tcl}"')
+            self.line()
+
         # reset_system
         if reset_system:
             self.reset_system()
 
         # program_fpga
         if program_fpga:
-            self.program_fpga(bit_path=bit_path,
-                              is_ultrascale=is_ultrascale)
+            self.program_fpga()
 
         # loadhw
         if loadhw:
             self.loadhw(hw_path)
 
+        # disable access protection for dow, mrd, and mwr commands
+        if is_ultrascale:
+            self.puts('Disable access protection for dow, mrd, and mwr commands.')
+            self.line('configparams force-mem-access 1')
+            self.line()
+
         # init_cpu
         if init_cpu:
-            self.init_cpu(tcl_path=tcl_path,
-                          is_ultrascale=is_ultrascale)
+            self.init_cpu()
 
         # download
         if download:
-            self.download(elf_path=str(sdk_path / sw_name / 'Debug' / sw_name) + '.elf',
-                          is_ultrascale=is_ultrascale)
+            self.download()
+
+        # enable access protection for dow, mrd, and mwr commands
+        if is_ultrascale:
+            self.puts('Enable access protection for dow, mrd, and mwr commands.')
+            self.line('configparams force-mem-access 0')
+            self.line()
 
         # run
         if run:
             self.run()
 
+        # print message indicating that program has been loaded
         self.puts("Program started.")
 
     def line(self, s='', nl='\n'):
@@ -68,58 +98,67 @@ class TemplXSCTProgram:
     def reset_system(self):
         self.puts('Resetting the system...')
         self.set_target('APU*')
-        self.line('stop')
-        self.line('rst')
+        if self.is_ultrascale:
+            self.line('rst -system')
+            self.line('after 3000')
+        else:
+            self.line('stop')
+            self.line('rst')
         self.line()
 
-    def program_fpga(self, bit_path, is_ultrascale):
+    def program_fpga(self):
         self.puts('Programming the FPGA...')
-        if is_ultrascale:
+        if self.is_ultrascale:
             self.set_target('PSU')
         else:
             self.set_target('xc7z*')
-        self.line(f'fpga "{bit_path}"')
+        self.line(f'fpga "{self.bit_path}"')
         self.line()
 
     def loadhw(self, hw_path):
         self.puts('Setting up the debugger...')
-        self.line(f'loadhw "{hw_path}"')
+        self.set_target('APU*')
+        cmd = []
+        cmd += ['loadhw']
+        cmd += ['-hw', f'"{hw_path}"']
+        if self.is_ultrascale:
+            cmd += ['-mem-ranges [list {0x80000000 0xbfffffff} '
+                                      '{0x400000000 0x5ffffffff} '
+                                      '{0x1000000000 0x7fffffffff}]']
+            cmd += ['-regs']
+        self.line(' '.join(cmd))
         self.line()
 
-    def init_cpu(self, tcl_path, is_ultrascale):
+    def init_cpu(self):
         self.puts('Initializing the processor...')
-        self.set_target('APU*')
-        self.line(f'source "{tcl_path}"')
-        if is_ultrascale:
-            self.puts('Calling psu_init...')
-            self.line('psu_init')
-            self.line('after 1000')  # TODO: is this needed?
-
-            self.puts('Calling psu_post_config...')
-            self.line('psu_post_config')
-            self.line('after 1000')  # TODO: is this needed?
-
-            self.puts('Calling psu_ps_pl_isolation_removal...')
-            self.line('psu_ps_pl_isolation_removal')
-            self.line('after 1000')  # TODO: is this needed?
-
-            self.puts('Calling psu_ps_pl_reset_config...')
-            self.line('psu_ps_pl_reset_config')
-            self.line('after 1000')  # TODO: is this needed?
-
-            self.puts('Magic writes... :-(')
-            self.line('mwr 0xffff0000 0x14000000')
-            self.line('mwr 0xFD1A0104 0x380E')
-            self.line('after 1000')  # TODO: is this needed?
+        if self.is_ultrascale:
+            # set the boot mode
+            self.set_target('APU*')
+            self.line('set mode [expr [mrd -value 0xFF5E0200] & 0xf]')
+            # reset the processor
+            self.set_target('*A53*#0')
+            self.line('rst -processor')
+            # download the FSBL ELF is located
+            fsbl_path = (Path(self.sdk_path) / 'top' / 'export' / 'top' /
+                         'sw' / 'top' / 'boot' / 'fsbl.elf')
+            self.line(f'dow "{fsbl_path}"')
+            # wait for FSBL to finish running
+            self.line('set bp_0_6_fsbl_bp [bpadd -addr &XFsbl_Exit]')
+            self.line('con -block -timeout 60')
+            self.line('bpremove $bp_0_6_fsbl_bp')
         else:
+            self.set_target('APU*')
+            self.line(f'source "{self.tcl_path}"')
             self.line('ps7_init')
             self.line('ps7_post_config')
         self.line()
 
-    def download(self, elf_path, is_ultrascale):
+    def download(self):
+        elf_path = str(self.sdk_path / self.sw_name / 'Debug' / self.sw_name) + '.elf'
         self.puts('Downloading the program...')
-        if is_ultrascale:
-            self.set_target('*Cortex-A53 #0*')
+        if self.is_ultrascale:
+            self.set_target('*A53*#0')
+            self.line('rst -processor')
         else:
             self.set_target('*Cortex-A9 MPCore #0*')
         self.line(f'dow "{elf_path}"')
