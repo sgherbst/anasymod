@@ -1,4 +1,5 @@
 import os.path
+import subprocess
 
 from anasymod.generators.vivado import VivadoTCLGenerator
 from anasymod.generators.codegen import CodeGenerator
@@ -24,6 +25,8 @@ class VivadoEmulation(VivadoTCLGenerator):
         super().__init__(target=target)
 
     def build(self):
+        #subst drive
+        drive = 'V:'
         # Check if on-chip memory is sufficient on selected FPGA board
         if self.target.prj_cfg.board.bram is not None:
             bits_per_sample = 0
@@ -45,7 +48,8 @@ class VivadoEmulation(VivadoTCLGenerator):
         # subst command to substitute project directory to a drive letter
         if os.name == 'nt':
             if len(back2fwd(self.target.project_root)) > 80:
-                project_root = self.subst_path(drive='V:')
+
+                project_root = self.subst_path(drive=drive)
 
         # create a new project
         self.create_project(
@@ -164,7 +168,21 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln('exec subst ' + self.subst + ' ' + self.old_subst)
 
         # run bitstream generation
-        self.run(filename=r"bitstream.tcl")
+        ret_error = self.run(filename=r"bitstream.tcl")
+        if os.name == 'nt':
+            if ret_error:
+                #remove and restore drive substitutions
+                if self.subst:
+                    try:
+                        subprocess.call(f'subst {drive} /d', shell=True)
+                    except:
+                        print(f'WARNING: Removing mapped drive:{drive} did not work.')
+                    if self.old_subst:
+                        try:
+                            subprocess.call(f'subst {drive} {self.old_subst}', shell=True)
+                        except:
+                            print(f'WARNING: Mapping of drive:{drive} to network path: {self.old_subst} did not work.')
+
 
     def run_FPGA(self, **kwargs):
         """

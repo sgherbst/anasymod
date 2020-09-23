@@ -357,16 +357,18 @@ class UARTCtrlApi(CtrlApi):
         # check is space is in any of the give input strings
         if ' ' in [name, value]:
             raise Exception(f"Blanks in any of the provided argument strings;{name}, {value}; sent via control interface are not allowed!")
-
-        self.ctrl_handler.write((' '.join([str(name), str(value) + '\r']).encode('utf-8')))
+        if value:
+            self.ctrl_handler.write((f'{str(name)} {str(value)}\n'.encode('utf-8')))
+        else:
+            self.ctrl_handler.write((f'{str(name)}\n'.encode('utf-8')))
         self.ctrl_handler.flush()
 
     def _read(self, count=1):
         for idx in range(count):
-            result = self.ctrl_handler.readline()
+            result = self.ctrl_handler.readline().decode('utf-8').rstrip()
 
             if result not in ['', None]:
-                return int(result.decode("utf-8").rstrip())
+                return int(result)
         raise Exception(f"ERROR: Couldn't read from FPGA after:{count} attempts.")
 
     def _setup_ila_ctrl(self, server_addr):

@@ -12,13 +12,11 @@ module sim_ctrl (
         a_in = a;
         b_in = b;
         mode_in = mode;
-        #(10e-9*1s);
         $display("a=%0d,\tb=%0d,\tmode=%0d\t->\tc=%0d\t(expct=%0d)",
                  a, b, mode, c_out, expct);
         if (!(c_out === expct)) begin
             $error("Output mismatch.");
         end
-        #(10e-9*1s);
     endtask
 
     initial begin

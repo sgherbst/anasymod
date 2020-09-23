@@ -168,7 +168,7 @@ class VivadoTCLGenerator(CodeGenerator):
         project_root = self.subst + r"\\" + self.target.prj_cfg.vivado_config.project_name
         return project_root
 
-    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False, err_str=None):
+    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False, err_str=None, return_error=False):
         # write the TCL script
         tcl_script = os.path.join(self.target.prj_cfg.build_root, filename)
         self.write_to_file(tcl_script)
@@ -184,7 +184,11 @@ class VivadoTCLGenerator(CodeGenerator):
             cmd.append('-nojournal')
 
         # run the script
-        call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
+        ret_error = call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
+        if return_error:
+            return ret_error
+        else:
+            return 0
 
     @property
     def version_year(self):

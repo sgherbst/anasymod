@@ -103,7 +103,7 @@ int main() {
                         set_{v}(arg1)\n;
 ''' + \
 r'''                      
-                        xil_printf("\r\n");
+                        xil_printf("0\r\n");
 '''
             cond_str = '} else if'
 
