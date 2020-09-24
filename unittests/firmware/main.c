@@ -8,11 +8,13 @@
 #define SET_MODE 3
 #define GET_C 4
 
+#define BUF_SIZE 32
+
 int main() {
     // character buffering
     u32 idx = 0;
     char rcv;
-    char buf [32];
+    char buf [BUF_SIZE];
     
     // command processing;
     u32 cmd;
@@ -29,7 +31,12 @@ int main() {
         if ((rcv == ' ') || (rcv == '\t') || (rcv == '\r') || (rcv == '\n')) {
             // whitespace
             if (idx > 0) {
-                buf[idx++] = '\0';
+                // pad rest of the string with null characters
+                // this appears to be necessary to prevent
+                // memory corruption
+                for (; idx<BUF_SIZE; idx++) {
+                    buf[idx] = '\0';
+                }
                 if (nargs == 0) {
                     if (strcmp(buf, "HELLO") == 0) {
                         xil_printf("Hello World!\r\n");
@@ -46,13 +53,13 @@ int main() {
                         cmd = SET_MODE;
                         nargs++;
                     } else if (strcmp(buf, "GET_C") == 0) {
-                        xil_printf("%0d\r\n", get_c_out());
+                        xil_printf("%u\r\n", get_c_out());
                         nargs = 0;
                     } else {
 	                    xil_printf("ERROR: Unknown command\r\n");
                     }
                 } else if (nargs == 1) {
-                    sscanf(buf, "%lu", &arg1);
+                    sscanf(buf, "%u", &arg1);
                     if (cmd == SET_A) {
                         set_a_in(arg1);
                     } else if (cmd == SET_B) {

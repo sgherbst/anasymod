@@ -13,10 +13,12 @@ class XSCTTCLGenerator(CodeGenerator):
     """
 
     def __init__(self, target: FPGATarget, xsct=None, version=None,
-                 version_year=None, version_number=None):
+                 version_year=None, version_number=None,
+                 xsct_install_dir=None):
         super().__init__()
 
         self._xsct = xsct
+        self._xsct_install_dir = xsct_install_dir
         self._version = version
         self._version_year = version_year
         self._version_number = version_number
@@ -38,6 +40,12 @@ class XSCTTCLGenerator(CodeGenerator):
         if self._xsct is None:
             self._xsct = shutil.which('xsct')
         return self._xsct
+
+    @property
+    def xsct_install_dir(self):
+        if self._xsct_install_dir is None:
+            self._xsct_install_dir = Path(self.xsct).resolve().parent.parent
+        return self._xsct_install_dir
 
     @property
     def version(self):
