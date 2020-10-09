@@ -357,7 +357,7 @@ class UARTCtrlApi(CtrlApi):
         # check is space is in any of the give input strings
         if ' ' in [name, value]:
             raise Exception(f"Blanks in any of the provided argument strings;{name}, {value}; sent via control interface are not allowed!")
-        if value:
+        if value is not None:
             self.ctrl_handler.write((f'{str(name)} {str(value)}\n'.encode('utf-8')))
         else:
             self.ctrl_handler.write((f'{str(name)}\n'.encode('utf-8')))
