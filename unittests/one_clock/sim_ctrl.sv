@@ -31,6 +31,7 @@ module sim_ctrl (
 
     initial begin
         wait_emu_reset();
+
         // get the time of the first rising edge
         @(posedge clk_i);
         #(1e-9*1s);
@@ -43,6 +44,18 @@ module sim_ctrl (
 
 	// check several periods
 	for (i=0; i<10; i=i+1) begin
+            // check the low duration
+            @(posedge clk_i);
+            #(1e-9*1s);
+            t_rise = get_emu_time();
+	    t_dur_lo = t_rise - t_last_fall;
+	    if (!isclose(t_dur_lo, t_lo_val, 1e-15)) begin
+                $error("%0d(a) Low duration out of spec: %0e", i, t_dur_lo);
+	    end else begin
+                $display("%0d(a) Low duration in spec: %0e", i, t_dur_lo);
+	    end
+            t_last_rise = t_rise;
+
             // check the high duration
             @(negedge clk_i);
             #(1e-9*1s);
@@ -54,18 +67,6 @@ module sim_ctrl (
                 $display("%0d(b) High duration in spec: %0e", i, t_dur_hi);
 	    end
             t_last_fall = t_fall;
-        
-            // check the low duration
-            @(posedge clk_i);
-            #(1e-9*1s);
-            t_rise = get_emu_time();
-        t_dur_lo = t_rise - t_last_fall;
-        if (!isclose(t_dur_lo, t_lo_val, 1e-15)) begin
-                $error("%0d(a) Low duration out of spec: %0e", i, t_dur_lo);
-        end else begin
-                $display("%0d(a) Low duration in spec: %0e", i, t_dur_lo);
-        end
-            t_last_rise = t_rise;
         end
 
 	// finish the simulation

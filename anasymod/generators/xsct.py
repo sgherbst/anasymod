@@ -13,7 +13,8 @@ class XSCTTCLGenerator(CodeGenerator):
     """
 
     def __init__(self, pcfg: EmuConfig,xsct=None, version=None,
-                 version_year=None, version_number=None):
+                 version_year=None, version_number=None,
+                 xsct_install_dir=None):
         super().__init__()
 
         self.pcfg = pcfg

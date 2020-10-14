@@ -461,7 +461,7 @@ class TestBasicSIM():
 
     @basic
     @pytest.mark.skipif(
-        pytest.config.getoption("--target") in [Target.sim_vivado, Target.sim_icarus, Target.sim_xcelium],
+        pytest.config.getoption("--target") in [Target.sim_xcelium],
         reason='testcase not meant for running emulation'
     )
     def test_firmware(self):
@@ -520,7 +520,7 @@ class TestBasicSIM():
 
     @basic
     @pytest.mark.skipif(
-        pytest.config.getoption("--target") in [Target.sim_vivado, Target.sim_icarus, Target.sim_xcelium],
+        pytest.config.getoption("--target") in [Target.sim_xcelium],
         reason='testcase not meant for running emulation'
     )
     def test_function(self):
@@ -617,7 +617,7 @@ class TestBasicSIM():
 
     @basic
     @pytest.mark.skipif(
-        pytest.config.getoption("--target") in [Target.sim_vivado, Target.sim_icarus, Target.sim_xcelium, Target.emulate_vivado],
+        pytest.config.getoption("--target") in [Target.build_vivado, Target.emulate_vivado],
         reason='testcase not meant for running emulation'
     )
     def test_one_clock(self):
@@ -633,7 +633,7 @@ class TestBasicSIM():
 
     @basic
     @pytest.mark.skipif(
-        pytest.config.getoption("--target") in [Target.sim_vivado, Target.sim_icarus, Target.sim_xcelium, Target.emulate_vivado],
+        pytest.config.getoption("--target") in [Target.build_vivado, Target.emulate_vivado],
         reason='testcase not meant for running emulation'
     )
     def test_multi_clock(self):

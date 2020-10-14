@@ -70,6 +70,9 @@ class StructureConfig():
         else:
             self.use_default_oscillator = False
 
+        # make note of whether this is an UltraScale board
+        self.is_ultrascale = prj_cfg.board.is_ultrascale
+
         #########################################################
         # Simulation control interfaces
         #########################################################

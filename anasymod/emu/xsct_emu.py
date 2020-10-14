@@ -37,7 +37,10 @@ class XSCTEmulation(XSCTTCLGenerator):
 
     @property
     def tcl_path(self):
-        return self.impl_dir / 'ps7_init.tcl'
+        if self.pcfg.board.is_ultrascale:
+            return self.impl_dir / 'psu_init.tcl'
+        else:
+            return self.impl_dir / 'ps7_init.tcl'
 
     @property
     def hw_path(self):
@@ -65,6 +68,12 @@ class XSCTEmulation(XSCTTCLGenerator):
                     for file_ in src.files:
                         shutil.copy(str(file_), str(src_path / Path(file_).name))
 
+        # determine the processor name
+        if self.pcfg.board.is_ultrascale:
+            proc_name = 'psu_cortexa53_0'
+        else:
+            proc_name = 'ps7_cortexa9_0'
+
         # generate the build script
         self.write(
             TemplXSCTBuild(
@@ -72,6 +81,7 @@ class XSCTEmulation(XSCTTCLGenerator):
                 hw_path=self.hw_path,
                 version_year=self.pcfg.xsct_config.version_year,
                 version_number=self.pcfg.xsct_config.version_number,
+                proc_name=proc_name,
                 create=create,
                 build=build
             ).text
@@ -81,7 +91,7 @@ class XSCTEmulation(XSCTTCLGenerator):
         err_str = re.compile(r'(: error:)|(make.*: \*\*\* .* Error \d+)')
         self.run('sdk.tcl', err_str=err_str)
 
-    def program(self, program_fpga=True, reset_system=True, server_addr=None):
+    def program(self, **kwargs):
         # determine SDK path
         sdk_path = (Path(self.project_root) /
                     f'{self.pcfg.vivado_config.project_name}.sdk')
@@ -93,9 +103,9 @@ class XSCTEmulation(XSCTTCLGenerator):
                 bit_path=self.bit_path,
                 hw_path=self.hw_path,
                 tcl_path=self.tcl_path,
-                program_fpga=program_fpga,
-                reset_system=reset_system,
-                server_addr=server_addr
+                is_ultrascale=self.pcfg.board.is_ultrascale,
+                xsct_install_dir=self.pcfg.xsct_config.xsct_install_dir,
+                **kwargs
             ).text
         )
 

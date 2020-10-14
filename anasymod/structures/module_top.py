@@ -47,7 +47,8 @@ class ModuleTop(JinjaTempl):
         module = ModuleInst(api=self.module_ifc, name='top')
         module.add_inputs(scfg.clk_i)
         if ((target.cfg.fpga_sim_ctrl is not None) and
-                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ)):
+                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ) and
+                (not pcfg.board.is_ultrascale)):
             module.add_inouts(TemplZynqGPIO.EXT_IOS)
         module.generate_header()
 
@@ -122,7 +123,8 @@ class ModuleTop(JinjaTempl):
 
         ## Wire through Zynq connections if needed
         if ((target.cfg.fpga_sim_ctrl is not None) and
-                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ)):
+                (target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ) and
+                (not pcfg.board.is_ultrascale)):
             sim_ctrl_inst.add_inouts(TemplZynqGPIO.EXT_IOS,
                                      connections=TemplZynqGPIO.EXT_IOS)
 

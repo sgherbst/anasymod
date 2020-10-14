@@ -168,13 +168,31 @@ class VivadoTCLGenerator(CodeGenerator):
         project_root = self.subst + r"\\" + self.target.prj_cfg.vivado_config.project_name
         return project_root
 
-    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, interactive=False, err_str=None, return_error=False):
+    def run(self, filename=r"run.tcl", nolog=True, nojournal=True, stack=None,
+            interactive=False, err_str=None, return_error=False):
         # write the TCL script
         tcl_script = os.path.join(self.target.prj_cfg.build_root, filename)
         self.write_to_file(tcl_script)
 
         # assemble the command
-        cmd = [self.target.prj_cfg.vivado_config.vivado, '-mode', 'tcl' if interactive else 'batch', '-source', tcl_script]
+        cmd = []
+        cmd += [self.target.prj_cfg.vivado_config.vivado]
+
+        # Specify stack size if needed.  Xilinx suggests this
+        # can sometimes fix segfault issues:
+        # https://www.xilinx.com/support/answers/64434.html
+        if stack:
+            cmd += ['-stack', f'{stack}']
+
+        # run mode
+        if interactive:
+            cmd += ['-mode', 'tcl']
+        else:
+            cmd += ['-mode', 'batch']
+
+        # script location
+        cmd += ['-source', tcl_script]
+
         # inserting lsf_opts after vivado call:
         cmd[1:1] = self.target.prj_cfg.vivado_config.lsf_opts.split()
 

@@ -6,6 +6,7 @@ class FPGA_Board():
     uart_vid = None
     uart_pid = None
     uart_suffix = None
+    is_ultrascale = False
 
 class PYNQ_Z1(FPGA_Board):
     """
@@ -136,4 +137,6 @@ class ZCU106(FPGA_Board):
     short_part_name = 'xczu7ev'
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [4292]
-    uart_zynq_pid = [60000]
+    uart_zynq_pid = [60017]
+    uart_suffix = '.0'  # needed since this board has four com ports under the same VID/PID
+    is_ultrascale = True

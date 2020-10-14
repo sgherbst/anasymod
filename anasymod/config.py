@@ -6,6 +6,7 @@ import shutil
 
 from sys import platform
 from glob import glob
+from pathlib import Path
 from anasymod.files import get_full_path, mkdir_p
 from anasymod.util import vivado_search_key
 from os import environ as env
@@ -180,7 +181,7 @@ class VivadoConfig():
 
 class XSCTConfig():
     def __init__(self, parent: EmuConfig, xsct=None, version=None,
-                 version_year=None, version_number=None):
+                 version_year=None, version_number=None, xsct_install_dir=None):
         # save reference to parent config
         self.parent = parent
 
@@ -204,6 +205,7 @@ class XSCTConfig():
                 self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
 
         self._xsct = xsct
+        self._xsct_install_dir = xsct_install_dir
 
         # version, year, number
         self._version = version
@@ -218,6 +220,12 @@ class XSCTConfig():
         if self._xsct is None:
             self._xsct = find_tool(name='xsct', hints=self.hints)
         return self._xsct
+
+    @property
+    def xsct_install_dir(self):
+        if self._xsct_install_dir is None:
+            self._xsct_install_dir = Path(self.xsct).resolve().parent.parent
+        return self._xsct_install_dir
 
     @property
     def version(self):
@@ -403,6 +411,11 @@ class Config(BaseConfig):
             better synthesis results.  'rebuilt' is a trade-off between readability and performance, but
             sometimes has bugs, particularly when more complex Verilog features like hierarchical references and
             interfaces are used."""
+
+        self.vivado_stack = None
+        """ type(int) : Stack size used by Vivado.  If you are getting an error during synthesis that
+            looks like "Segmentation fault "$RDI_PROG"", try setting this to 2000 or higher
+            (https://www.xilinx.com/support/answers/64434.html)."""
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
