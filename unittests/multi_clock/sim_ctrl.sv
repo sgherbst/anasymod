@@ -1,4 +1,4 @@
-`timescale 1s/1ns
+`timescale 1ns/1ns
 
 module sim_ctrl #(
     parameter integer num_osc = 2

@@ -1,4 +1,4 @@
-`timescale 1s/1ns
+`timescale 1ns/1ns
 
 module osc_checker #(
     parameter integer index=0,
