@@ -63,13 +63,13 @@ def cleanup_test_env():
     #        shutil.rmtree( folder)
     #    except:
     #        pass
-#
-    #list_files_delete = []
-    #for file in list_files_delete:
-    #    try:
-    #        shutil.rmtree(os.path.join(os.path.dirname(__file__), file))
-    #    except:
-    #        pass
+
+    list_files_delete = []
+    for file in list_files_delete:
+        try:
+            shutil.rmtree(os.path.join(os.path.dirname(__file__), file))
+        except:
+            pass
 
 def run_target(test_name, test_root=anasymod_test_root, should_probe=True,
                interactive=False, debug=False, has_firmware=False):
