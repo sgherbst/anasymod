@@ -92,8 +92,8 @@ class ZC702(FPGA_Board):
     bram = 4.9e6
     dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
-    uart_zynq_vid = 4292
-    uart_zynq_pid = 60000
+    uart_zynq_vid = [4292]
+    uart_zynq_pid = [60000]
 
 class ULTRA96(FPGA_Board):
     """

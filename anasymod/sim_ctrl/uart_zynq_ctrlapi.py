@@ -50,8 +50,18 @@ class UARTCtrlApi(CtrlApi):
         # Initialize control config
         self.cfg = Config(cfg_file=prj_cfg.cfg_file)
 
-        self.vid_list = self.pcfg.board.uart_zynq_vid
-        self.pid_list = self.pcfg.board.uart_zynq_pid
+        vid = self.pcfg.board.uart_zynq_vid
+        if isinstance(vid, list):
+            self.vid_list = vid
+        else:
+            self.vid_list = [vid]
+
+        pid = self.pcfg.board.uart_zynq_pid
+        if isinstance(pid, list):
+            self.pid_list = pid
+        else:
+            self.pid_list = [pid]
+
         self.port_list = []
     ### User Functions
 
