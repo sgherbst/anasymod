@@ -39,14 +39,17 @@ class TemplXSCTBuild:
 
     def setws(self, sdk_path):
         self.comment('set the work directory')
-        self.line(f'setws "{sdk_path}"')
+        self.line(f'setws "{sdk_path.as_posix()}"')
         self.line()
 
     def app_create(self, hw_name, hw_path, sw_name, proc_name,
                    template_name, os_name):
         if self.version_year < 2020:
+            hw_path_hdf = hw_path.with_suffix('.hdf')
             self.comment('create the hardware configuration')
-            self.line(f'createhw -name {hw_name} -hwspec "{hw_path}"')
+            self.line(f'file copy -force "{hw_path.as_posix()}" "{hw_path_hdf.as_posix()}"')
+            self.line(f'createhw -name {hw_name} -hwspec "{hw_path_hdf.as_posix()}"')
+            #self.line(f'createhw -name {hw_name} -hwspec "C:/Inicio_dev/fpga_flow/anasymod/tests/firmware/build/fpga/prj/prj.sdk/top.hdf"')
             self.line()
             self.comment('create the software configuration')
             self.line(f'createapp -name {sw_name} -hwproject {hw_name} '
@@ -54,7 +57,7 @@ class TemplXSCTBuild:
             self.line()
         else:
             self.comment('create the app configuration')
-            self.line(f'app create -name {sw_name} -hw "{hw_path}" -os {os_name}'
+            self.line(f'app create -name {sw_name} -hw "{hw_path.as_posix()}" -os {os_name}'
                       f' -proc {proc_name} -template "{template_name}"')
             self.line()
 

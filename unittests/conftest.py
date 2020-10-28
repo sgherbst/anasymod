@@ -6,7 +6,7 @@ def pytest_addoption(parser):
         help="Select for which Run Time Environment test should be executed.")
     parser.addoption("--classification", action="store", default="basic",
                      help="Select what classification of test should be executed.")
-    parser.addoption("--target", action="store", default='sim_icarus',
+    parser.addoption("--target", action="store", default='emulate_vivado',
                      help="Select for which target the test should be executed.")
 
 """

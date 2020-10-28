@@ -29,7 +29,7 @@ int init_GPIO();
 void set_{v}(u32 val);
 '''
 
-        # add setter declarations
+        # add getter declarations
         for k, v in self.getter_dict.items():
             retval += f'''
 u32 get_{v}();

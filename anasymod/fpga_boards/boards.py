@@ -18,9 +18,11 @@ class PYNQ_Z1(FPGA_Board):
     board_part = 'www.digilentinc.com:pynq-z1:part0:1.0'
     full_part_name = 'xc7z020clg400-1'
     short_part_name = 'xc7z020'
+    bram = 4.9e6
+    dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
-    uart_vid = 1027
-    uart_pid = 24592
+    uart_zynq_vid = [1027]
+    uart_zynq_pid = [24592]
     uart_suffix = '.1'  # needed since this board has two com ports under the same VID/PID
 
 class ARTY_A7(FPGA_Board):
@@ -32,6 +34,8 @@ class ARTY_A7(FPGA_Board):
     clk_freq = 100e6
     full_part_name = 'xc7a35ticsg324-1L'
     short_part_name = 'xc7a35'
+    bram = 1.8e6
+    dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
 class ARTY_200T_CUSTOM_LIDAR(FPGA_Board):
@@ -44,6 +48,8 @@ class ARTY_200T_CUSTOM_LIDAR(FPGA_Board):
     clk_freq = 50e6
     full_part_name = 'xc7a200tfbg484-2L'
     short_part_name = 'xc7a200'
+    bram = 13e6
+    dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
 class TE0720(FPGA_Board):
@@ -55,7 +61,10 @@ class TE0720(FPGA_Board):
     clk_freq = 33.333333e6
     full_part_name = 'xc7z020clg484-1'
     short_part_name = 'xc7z020'
+    bram = 4.9e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    uart_zynq_vid = [1027] # might need adjustment
+    uart_zynq_pid = [24592] # might need adjustment
 
 class VC707(FPGA_Board):
     """
@@ -66,6 +75,8 @@ class VC707(FPGA_Board):
     clk_freq = 200e6
     full_part_name = 'XC7VX485T-2FFG1761C'
     short_part_name = 'XC7VX485T'
+    bram = 37e6
+    dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
 
 class ZC702(FPGA_Board):
@@ -78,9 +89,11 @@ class ZC702(FPGA_Board):
     board_part = 'xilinx.com:zc702:part0:1.4'
     full_part_name = 'xc7z020clg484-1'
     short_part_name = 'xc7z020'
+    bram = 4.9e6
+    dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.VIVADO_VIO]
-    uart_vid = 4292
-    uart_pid = 60000
+    uart_zynq_vid = [4292]
+    uart_zynq_pid = [60000]
 
 class ULTRA96(FPGA_Board):
     """
@@ -91,7 +104,10 @@ class ULTRA96(FPGA_Board):
     clk_freq = 26e6
     full_part_name = 'xczu3eg-sbva484-???'
     short_part_name = 'xczu3eg'
+    bram = None
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    uart_zynq_vid = [1027] # might need adjustment
+    uart_zynq_pid = [24592] # might need adjustment
 
 class ZC706(FPGA_Board):
     """
@@ -103,9 +119,11 @@ class ZC706(FPGA_Board):
     board_part = 'xilinx.com:zc706:part0:1.4'
     full_part_name = 'xc7z045ffg900-2'
     short_part_name = 'xc7z045'
+    bram = 19.2e6
+    dbg_hub_clk_freq = 100e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
-    uart_vid = 4292
-    uart_pid = 60000
+    uart_zynq_vid = [4292]
+    uart_zynq_pid = [60000]
 
 class ZCU106(FPGA_Board):
     """
@@ -118,7 +136,7 @@ class ZCU106(FPGA_Board):
     full_part_name = 'xczu7ev-ffvc1156-2-e'
     short_part_name = 'xczu7ev'
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
-    uart_vid = 4292
-    uart_pid = 60017
+    uart_zynq_vid = [4292]
+    uart_zynq_pid = [60017]
     uart_suffix = '.0'  # needed since this board has four com ports under the same VID/PID
     is_ultrascale = True

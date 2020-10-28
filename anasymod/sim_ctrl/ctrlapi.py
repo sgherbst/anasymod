@@ -1,11 +1,22 @@
+import os, sys
+import time
+
+from anasymod.config import EmuConfig
+from anasymod.structures.structure_config import StructureConfig
+from .console_print import cprint_block_start, cprint_block_end
+
 class CtrlApi:
     """
     Start an interactive control interface to HW target for running regression tests or design exploration/debug.
     For FPGA/Emulators, as a pre-requisit, bitstream must have been created and programmed. Additionally any eSW
     necessary in the targeted system must have already been programmed.
     """
-    def __init__(self):
-        pass
+    def __init__(self, cwd, pcfg: EmuConfig, scfg: StructureConfig, prompt, debug):
+        self.pcfg=pcfg
+        self.scfg=scfg
+        self.cwd = cwd
+        self.prompt = prompt
+        self.debug = debug
 
     ### User Functions
 
@@ -126,7 +137,7 @@ class CtrlApi:
         Get current time of the FPGA simulation as a decimal value.
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
 
     def set_ctrl_mode(self, value, timeout=30):
         """
@@ -139,7 +150,7 @@ class CtrlApi:
                         3:  FPGA simulation is stalled, once time value stored in *ctrl_data* has been reached
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
 
     def set_ctrl_data(self, value, timeout=30):
         """
@@ -148,14 +159,14 @@ class CtrlApi:
         the selected ctrl_mode
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
 
     def stall_emu(self, timeout=30):
         """
         Stall the FPGA simulation immediately.
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+        self.set_ctrl_mode(1, timeout=timeout)
 
     def sleep_emu(self, t, timeout=30):
         """
@@ -164,7 +175,19 @@ class CtrlApi:
         :param t: Time value that shall pass before FPGA simulation is stalled.
         :param timeout: Maximum time granted for operation to finish
         """
-        raise NotImplementedError("Base class was called to execute function")
+
+        # stall
+        self.stall_emu()
+
+        # set up in sleep mode
+        t_next = t + self.get_emu_time(timeout=timeout)
+        t_next_int = int(round(t_next / self.pcfg.cfg.dt_scale))
+        self.set_ctrl_data(t_next_int)
+        self.set_ctrl_mode(2)
+
+        # wait for enough time to pass
+        while(self.get_emu_time_int() < t_next_int):
+            pass
 
     ### Utility Functions
 
@@ -189,8 +212,72 @@ class CtrlApi:
         :param timeout: Maximum time granted for shell to open
         :return:
         """
-        raise NotImplementedError("Base class was called to execute function")
+        before = ''
+        start_time = time.time()
+        lines_recv = 0
+        while (time.time() - start_time) < timeout:
+            remaining = timeout - (time.time() - start_time)
+            if remaining == float('inf'):
+                remaining = None
+            index = self.proc.expect(['\n', self.prompt], timeout=remaining)
+            if index == 0:
+                before += self.proc.before + '\n'
+                lines_recv += 1
+                if self.debug:
+                    if lines_recv == 2:
+                        cprint_block_start('RECV', 'cyan')
+                    if lines_recv >= 2:
+                        print(self.proc.before)
+            else:
+                break
+        if self.debug and lines_recv >= 2:
+            cprint_block_end('RECV', 'cyan')
+        return before
 
+    def _initialize_vivado_tcl(self):
+        """
+        Initialize the control interface, this is usually done after the bitstream was programmed successfully on the FPGA.
+        :return:
+        """
+
+        # log current status
+        print('Starting Vivado TCL interpreter.')
+        sys.stdout.flush()
+
+        # construct the command to launch Vivado
+        cmd = 'vivado '
+        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
+        cmd += '-nolog -nojournal -notrace -mode tcl'
+
+        # Use pexpect under linux for interactive vivado ctrl
+        if os.name == 'posix':
+            # Add Vivado to the path using the Windows PATH separator (semicolon)
+            # A copy of the environment is made to avoid side effects outside this function
+            # TODO: do this only if needed
+            env = os.environ.copy()
+            env['PATH'] += f':{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            # Launch Vivado
+            from pexpect import spawnu
+            self.proc = spawnu(command=cmd, cwd=self.cwd, env=env)
+        elif os.name == 'nt':
+            # Add Vivado to the path using the Windows PATH separator (semicolon)
+            # A copy of the environment is made to avoid side effects outside this function
+            # TODO: do this only if needed
+            env = os.environ.copy()
+            env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
+            os.environ['WEXPECT_SPAWN_CLASS'] = 'SpawnPipe'
+            # Launch Vivado
+            try:
+                # import patched wexpect from Inicio installation
+                from site_pip_packages.wexpect import spawn
+            except:
+                from wexpect import spawn
+            self.proc = spawn(command=cmd, cwd=self.cwd, env=env)
+        else:
+            raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
+
+        # wait for the prompt
+        self._expect_prompt(timeout=300)
 
     def __del__(self):
         """

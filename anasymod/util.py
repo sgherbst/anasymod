@@ -53,7 +53,7 @@ def tee_output(fd, err_str=None):
     # Return flag indicating whether an error was found
     return found_err
 
-def call(args, cwd=None, wait=True, err_str=None):
+def call(args, cwd=None, wait=True, err_str=None, return_error=False):
     # run a command and optionally check for error strings in the output
     # modified from: https://github.com/leonardt/fault/blob/master/fault/subprocess_run.py
     # print command string with proper escaping so that
@@ -75,7 +75,12 @@ def call(args, cwd=None, wait=True, err_str=None):
 
             # check for an error in the output text
             if found_err is not None:
-                raise OutputError(f'Found {err_str} in output of subprocess: {found_err}')
+                if return_error:
+                    return found_err
+                else:
+                    raise OutputError(f'Found {err_str} in output of subprocess: {found_err}')
+            else:
+                return 0
     else:
         Popen(args=args, cwd=cwd, stdout=sys.stdout, stderr=sys.stdout)
 

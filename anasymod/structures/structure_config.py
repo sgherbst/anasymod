@@ -392,5 +392,5 @@ class Config(BaseConfig):
     def __init__(self, prj_cfg: EmuConfig):
         super().__init__(cfg_file=prj_cfg.cfg_file, section=ConfigSections.STRUCTURE)
 
-        self.rst_clkcycles = 1
+        self.rst_clkcycles = 0
         """ type(int) : number of clk cycles, the initial emu_rst signal shall be active. """
