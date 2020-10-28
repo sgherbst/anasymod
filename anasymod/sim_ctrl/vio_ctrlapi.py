@@ -2,7 +2,7 @@ import sys, os
 import time
 from numbers import Number
 from pathlib import Path
-from .console_print import cprint_block, cprint_block_start, cprint_block_end
+from .console_print import cprint_block
 from anasymod.sim_ctrl.ctrlapi import CtrlApi
 from anasymod.generators.gen_api import CodeGenerator
 from anasymod.templates.launch_FPGA_sim import TemplLAUNCH_FPGA_SIM
@@ -25,7 +25,7 @@ class VIOCtrlApi(CtrlApi):
     def __init__(self, result_path_raw, result_type_raw, result_path, scfg: StructureConfig, pcfg: EmuConfig,
                  bitfile_path, ltxfile_path, cwd=None, prompt='Vivado% ', err_strs=None, debug=False, float_type=False,
                  dt_scale=1e-15):
-        super().__init__()
+        super().__init__(pcfg=pcfg, scfg=scfg, cwd=cwd, prompt=prompt, debug=debug)
         # set defaults
         if err_strs is None:
             err_strs = ['ERROR', 'FATAL']
@@ -33,14 +33,9 @@ class VIOCtrlApi(CtrlApi):
         self.result_path_raw = result_path_raw
         self.result_type_raw = result_type_raw
         self.result_path = result_path
-        self.pcfg = pcfg
-        self.scfg = scfg
         self.float_type = float_type
 
         # save settings
-        self.cwd = cwd
-        self.prompt = prompt
-        self.debug = debug
         self.err_strs = err_strs
         self.bitfile_path = bitfile_path
         self.ltxfile_path = ltxfile_path
@@ -312,63 +307,6 @@ class VIOCtrlApi(CtrlApi):
         emu_time_vio = self.get_param(name=self.scfg.emu_time_vio.name, timeout=timeout)
         return int(emu_time_vio)
 
-    def get_emu_time(self, timeout=30):
-        """
-        Get current time of the FPGA simulation as a decimal value.
-        :param timeout: Maximum time granted for operation to finish
-        """
-        return self.get_emu_time_int(timeout=timeout) * self.pcfg.cfg.dt_scale
-
-    def set_ctrl_mode(self, value, timeout=30):
-        """
-        Set the control mode that shall be applied to stall the FPGA simulation.
-        :param value: Integer value setting the currently active control mode:
-                        0:  FPGA simulation is not stalled
-                        1:  FPGA simulation is immediately stalled
-                        2:  FPGA simulation is stalled, after time stored in *ctrl_data* has passed, starting from
-                            the point in time this mode has been selected.
-                        3:  FPGA simulation is stalled, once time value stored in *ctrl_data* has been reached
-        :param timeout: Maximum time granted for operation to finish
-        """
-        self.set_param(name=self.scfg.emu_ctrl_mode.name, value=value, timeout=timeout)
-
-    def set_ctrl_data(self, value, timeout=30):
-        """
-        Set a time value as unscaled integer.
-        :param value:  Unscaled integer value that represents a time. This value is interpreted according to
-        the selected ctrl_mode
-        :param timeout: Maximum time granted for operation to finish
-        """
-        self.set_param(name=self.scfg.emu_ctrl_data.name, value=value, timeout=timeout)
-
-    def stall_emu(self, timeout=30):
-        """
-        Stall the FPGA simulation immediately.
-        :param timeout: Maximum time granted for operation to finish
-        """
-        self.set_ctrl_mode(1, timeout=timeout)
-
-    def sleep_emu(self, t, timeout=30):
-        """
-        Stall FPGA simulation, after emulated time of *t* has passed, starting from the point in time this function was
-        called.
-        :param t: Time value that shall pass before FPGA simulation is stalled.
-        :param timeout: Maximum time granted for operation to finish
-        """
-
-        # stall
-        self.stall_emu()
-
-        # set up in sleep mode
-        t_next = t + self.get_emu_time(timeout=timeout)
-        t_next_int = int(round(t_next / self.pcfg.cfg.dt_scale))
-        self.set_ctrl_data(t_next_int)
-        self.set_ctrl_mode(2)
-
-        # wait for enough time to pass
-        while(self.get_emu_time_int() < t_next_int):
-            pass
-
     ### Utility Functions
 
     @classmethod
@@ -390,44 +328,7 @@ class VIOCtrlApi(CtrlApi):
         :return:
         """
 
-        # log current status
-        print('Starting Vivado TCL interpreter.')
-        sys.stdout.flush()
-
-        # construct the command to launch Vivado
-        cmd = 'vivado '
-        cmd += self.pcfg.vivado_config.lsf_opts_ls + ' '
-        cmd += '-nolog -nojournal -notrace -mode tcl'
-
-        # Use pexpect under linux for interactive vivado ctrl
-        if os.name == 'posix':
-            # Add Vivado to the path using the Windows PATH separator (semicolon)
-            # A copy of the environment is made to avoid side effects outside this function
-            # TODO: do this only if needed
-            env = os.environ.copy()
-            env['PATH'] += f':{os.path.dirname(self.pcfg.vivado_config.vivado)}'
-            # Launch Vivado
-            from pexpect import spawnu
-            self.proc = spawnu(command=cmd, cwd=self.cwd, env=env)
-        elif os.name == 'nt':
-            # Add Vivado to the path using the Windows PATH separator (semicolon)
-            # A copy of the environment is made to avoid side effects outside this function
-            # TODO: do this only if needed
-            env = os.environ.copy()
-            env['PATH'] += f';{os.path.dirname(self.pcfg.vivado_config.vivado)}'
-            os.environ['WEXPECT_SPAWN_CLASS'] = 'SpawnPipe'
-            # Launch Vivado
-            try:
-                # import patched wexpect from Inicio installation
-                from site_pip_packages.wexpect import spawn
-            except:
-                from wexpect import spawn
-            self.proc = spawn(command=cmd, cwd=self.cwd, env=env)
-        else:
-            raise Exception(f'No supported OS was detected, supported OS for interactive control are windows and linux.')
-
-        # wait for the prompt
-        self._expect_prompt(timeout=300)
+        super()._initialize_vivado_tcl()
 
     def _setup_ctrl(self, server_addr):
         """
@@ -441,29 +342,6 @@ class VIOCtrlApi(CtrlApi):
                                                ltxfile_path=self.ltxfile_path, server_addr=server_addr))
         codegen.write_to_file(launch_script)
         self.source(script=launch_script)
-
-    def _expect_prompt(self, timeout=float('inf')):
-        before = ''
-        start_time = time.time()
-        lines_recv = 0
-        while (time.time() - start_time) < timeout:
-            remaining = timeout - (time.time() - start_time)
-            if remaining == float('inf'):
-                remaining = None
-            index = self.proc.expect(['\n', self.prompt], timeout=remaining)
-            if index == 0:
-                before += self.proc.before + '\n'
-                lines_recv += 1
-                if self.debug:
-                    if lines_recv == 2:
-                        cprint_block_start('RECV', 'cyan')
-                    if lines_recv >= 2:
-                        print(self.proc.before)
-            else:
-                break
-        if self.debug and lines_recv >= 2:
-            cprint_block_end('RECV', 'cyan')
-        return before
 
     def __del__(self):
         try:

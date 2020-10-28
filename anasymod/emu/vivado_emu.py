@@ -1,4 +1,5 @@
 import os.path
+import subprocess
 
 from anasymod.generators.vivado import VivadoTCLGenerator
 from anasymod.generators.codegen import CodeGenerator
@@ -24,6 +25,22 @@ class VivadoEmulation(VivadoTCLGenerator):
         super().__init__(target=target)
 
     def build(self):
+        #subst drive
+        drive = 'V:'
+        # Check if on-chip memory is sufficient on selected FPGA board
+        if self.target.prj_cfg.board.bram is not None:
+            bits_per_sample = 0
+            probes = (self.target.str_cfg.digital_probes + self.target.str_cfg.analog_probes +
+                      [self.target.str_cfg.time_probe] + [self.target.str_cfg.dec_cmp])
+            for probe in probes:
+                bits_per_sample += int(probe.width)
+            if (bits_per_sample * self.target.prj_cfg.ila_depth) > (self.target.prj_cfg.board.bram * 8):
+                raise(f'ERROR: Number ob samples to be recorded does not fit on FPGA board, please either select a '
+                      f'board with more block memory, or change the ila_depth')
+        else:
+            print(f'WARNING: Check for sufficient BRAM could not be conducted, '
+                  f'not enough information given in board definition!')
+
         scfg = self.target.str_cfg
         """ type : StructureConfig """
         project_root = self.target.project_root
@@ -31,7 +48,8 @@ class VivadoEmulation(VivadoTCLGenerator):
         # subst command to substitute project directory to a drive letter
         if os.name == 'nt':
             if len(back2fwd(self.target.project_root)) > 80:
-                project_root = self.subst_path(drive='V:')
+
+                project_root = self.subst_path(drive=drive)
 
         # create a new project
         self.create_project(
@@ -115,8 +133,7 @@ class VivadoEmulation(VivadoTCLGenerator):
         # generate all IPs
         self.writeln('generate_target all [get_ips]')
 
-        # create block diagram if needed
-        # TODO: pass through configuration options
+        # create additional Hardware for control interface
         if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             self.use_templ(TemplZynqGPIO(is_ultrascale=scfg.is_ultrascale))
 
@@ -153,7 +170,21 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln('exec subst ' + self.subst + ' ' + self.old_subst)
 
         # run bitstream generation
-        self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack)
+        ret_error = self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack, return_error=True)
+        if os.name == 'nt':
+            if ret_error:
+                #remove and restore drive substitutions
+                if self.subst:
+                    try:
+                        subprocess.call(f'subst {drive} /d', shell=True)
+                    except:
+                        print(f'WARNING: Removing mapped drive:{drive} did not work.')
+                    if self.old_subst:
+                        try:
+                            subprocess.call(f'subst {drive} {self.old_subst}', shell=True)
+                        except:
+                            print(f'WARNING: Mapping of drive:{drive} to network path: {self.old_subst} did not work.')
+
 
     def run_FPGA(self, **kwargs):
         """

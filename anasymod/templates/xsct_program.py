@@ -1,3 +1,5 @@
+from anasymod.util import back2fwd
+
 # References:
 # 1. https://www.xilinx.com/html_docs/xilinx2018_1/SDK_Doc/xsct/use_cases/xsdb_standalone_app_debug.html
 # 2. https://github.com/Digilent/Arty-Z7-20-linux_bd/blob/master/sdk/.sdk/launch_scripts/xilinx_c-c%2B%2B_application_(system_debugger)/system_debugger_using_debug_video.elf_on_local.tcl
@@ -8,11 +10,11 @@
 from pathlib import Path
 
 class TemplXSCTProgram:
-    def __init__(self, sdk_path, bit_path, hw_path, tcl_path,
+    def __init__(self, sdk_path, bit_path, hw_path, tcl_path, pcfg,
                  sw_name='sw', program_fpga=True, reset_system=True,
                  loadhw=True, init_cpu=True, download=True,
                  run=True, connect=True, is_ultrascale=False,
-                 xsct_install_dir=None):
+                 xsct_install_dir=None, server_addr=None):
 
         # save settings
         self.sdk_path = sdk_path
@@ -22,6 +24,7 @@ class TemplXSCTProgram:
         self.sw_name = sw_name
         self.is_ultrascale = is_ultrascale
         self.xsct_install_dir = xsct_install_dir
+        self.pcfg  = pcfg
 
         # initialize text
         self.text = ''
@@ -32,7 +35,7 @@ class TemplXSCTProgram:
 
         # connect
         if connect:
-            self.connect()
+            self.connect(server_addr=server_addr)
 
         # load utility functions for Zynq MP
         if is_ultrascale:
@@ -90,9 +93,12 @@ class TemplXSCTProgram:
     def set_target(self, pattern):
         self.line(f'targets -set -filter {{name =~ "{pattern}"}}')
 
-    def connect(self):
+    def connect(self, server_addr):
         self.puts('Connecting to the HW server...')
-        self.line('connect')
+        if server_addr is not None:
+            self.line(f'connect -url {server_addr}')
+        else:
+            self.line('connect')
         self.line()
 
     def reset_system(self):
@@ -112,15 +118,19 @@ class TemplXSCTProgram:
             self.set_target('PSU')
         else:
             self.set_target('xc7z*')
-        self.line(f'fpga "{self.bit_path}"')
+        self.line(f'fpga "{self.bit_path.as_posix()}"')
         self.line()
 
     def loadhw(self, hw_path):
+        if self.pcfg.vivado_config.version_year < 2020:
+            # For Vivado 2018.2, it is necessary to use the .hdf rather than the .sysdef file.
+            hw_path = hw_path.with_suffix('.hdf')
+
         self.puts('Setting up the debugger...')
         self.set_target('APU*')
         cmd = []
         cmd += ['loadhw']
-        cmd += ['-hw', f'"{hw_path}"']
+        cmd += ['-hw', f'"{hw_path.as_posix()}"']
         if self.is_ultrascale:
             cmd += ['-mem-ranges [list {0x80000000 0xbfffffff} '
                                       '{0x400000000 0x5ffffffff} '
@@ -148,7 +158,7 @@ class TemplXSCTProgram:
             self.line('bpremove $bp_0_6_fsbl_bp')
         else:
             self.set_target('APU*')
-            self.line(f'source "{self.tcl_path}"')
+            self.line(f'source "{self.tcl_path.as_posix()}"')
             self.line('ps7_init')
             self.line('ps7_post_config')
         self.line()
@@ -161,7 +171,7 @@ class TemplXSCTProgram:
             self.line('rst -processor')
         else:
             self.set_target('*Cortex-A9 MPCore #0*')
-        self.line(f'dow "{elf_path}"')
+        self.line(f'dow "{back2fwd(elf_path)}"')
         self.line()
 
     def run(self):

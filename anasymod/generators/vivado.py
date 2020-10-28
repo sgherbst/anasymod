@@ -5,6 +5,7 @@ from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
 from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo, EDIFFile
 from anasymod.targets import FPGATarget
+from anasymod.enums import FPGASimCtrl
 
 class VivadoTCLGenerator(CodeGenerator):
     """
@@ -31,7 +32,11 @@ class VivadoTCLGenerator(CodeGenerator):
 
         # specify the board part if known
         if board_part is not None:
-            self.writeln(f'set_property board_part {board_part} [current_project]')
+            if self.target.prj_cfg.board.fpga_sim_ctrl is not FPGASimCtrl.UART_ZYNQ:
+                self.writeln(f'if {{[catch {{set_property board_part {board_part} [current_project]}}]}} '
+                         f'{{puts "WARNING: Could not not set board_part:{board_part}"}}')
+            else:
+                self.writeln(f'set_property board_part {board_part} [current_project]')
 
     def add_project_sources(self, content):
         """
@@ -157,14 +162,14 @@ class VivadoTCLGenerator(CodeGenerator):
         if os.path.exists(self.subst):
             print(self.subst, " already exists, saving copy of existing subst path")
             self.old_subst = back2fwd(str(pathlib.Path(self.subst).resolve()))
-            # deleting old subst
-            self.writeln('exec subst ' + self.subst + ' /d')
+        # deleting old subst
+        self.writeln('[catch {exec subst ' + self.subst + ' /d}]')
         self.writeln('exec subst ' + self.subst + ' ' + back2fwd(os.path.dirname(self.target.project_root)))
         project_root = self.subst + r"\\" + self.target.prj_cfg.vivado_config.project_name
         return project_root
 
     def run(self, filename=r"run.tcl", nolog=True, nojournal=True, stack=None,
-            interactive=False, err_str=None):
+            interactive=False, err_str=None, return_error=False):
         # write the TCL script
         tcl_script = os.path.join(self.target.prj_cfg.build_root, filename)
         self.write_to_file(tcl_script)
@@ -197,7 +202,11 @@ class VivadoTCLGenerator(CodeGenerator):
             cmd.append('-nojournal')
 
         # run the script
-        call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
+        ret_error = call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
+        if return_error:
+            return ret_error
+        else:
+            return 0
 
     @property
     def version_year(self):

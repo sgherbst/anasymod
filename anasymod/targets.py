@@ -8,16 +8,15 @@ from anasymod.structures.structure_config import StructureConfig
 from anasymod.structures.module_top import ModuleTop
 from anasymod.structures.module_clk_manager import ModuleClkManager
 from anasymod.sources import VerilogSource, VerilogHeader, FirmwareFile
-from anasymod.sim_ctrl.uart_ctrlinfra import UARTControlInfrastructure
+from anasymod.sim_ctrl.uart_zynq_ctrlinfra import UARTControlInfrastructure
 from anasymod.sim_ctrl.vio_ctrlinfra import VIOControlInfrastructure
 from anasymod.structures.module_traceport import ModuleTracePort
 from anasymod.structures.module_emu_clks import ModuleEmuClks
 from anasymod.structures.module_time_manager import ModuleTimeManager
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
-from anasymod.sim_ctrl.uart_ctrlapi import UARTCtrlApi
+from anasymod.sim_ctrl.uart_zynq_ctrlapi import UARTCtrlApi
 from anasymod.files import anasymod_root, anasymod_header
 from anasymod.util import expand_searchpaths
-from anasymod.structures.firmware_gpio import FirmwareGPIO
 
 from anasymod.structures.module_viosimctrl import ModuleVIOSimCtrl
 
@@ -134,22 +133,6 @@ class Target():
         self.content.verilog_sources += [VerilogSource(files=timemanager_path,
                                                        name='gen_time_manager')]
 
-    def gen_firmware(self):
-        # Generate firmware
-        gpio_fw = FirmwareGPIO(scfg=self.str_cfg)
-
-        # Write header code
-        gpio_hdr = os.path.join(self.prj_cfg.build_root, 'gpio_funcs.h')
-        with open(gpio_hdr, 'w') as f:
-            f.write(gpio_fw.hdr_text)
-        self.content.firmware_files += [FirmwareFile(files=gpio_hdr, name='gpio_hdr')]
-
-        # Write implementation code
-        gpio_src = os.path.join(self.prj_cfg.build_root, 'gpio_funcs.c')
-        with open(gpio_src, 'w') as f:
-            f.write(gpio_fw.src_text)
-        self.content.firmware_files += [FirmwareFile(files=gpio_src, name='gpio_src')]
-
     @property
     def project_root(self):
         return os.path.join(self.prj_cfg.build_root, self.prj_cfg.vivado_config.project_name)
@@ -194,7 +177,7 @@ class FPGATarget(Target):
         Generate toplevel, IPCore wrappers, debug/ctrl infrastructure for FPGA and clk manager.
         """
         super().gen_structure()
-        self.ctrl.gen_ctrl_infrastructure(str_cfg=self.str_cfg, content=self.content)
+        self.ctrl.gen_ctrl_infrastructure(content=self.content)
 
     def setup_ctrl_ifc(self, debug=False):
         """
@@ -203,7 +186,6 @@ class FPGATarget(Target):
 
         :rtype: ControlInfrastructure
         """
-        #ToDo: This should only be executed for FPGA simulation!
 
         if self.cfg.fpga_sim_ctrl == FPGASimCtrl.VIVADO_VIO:
             print("No direct control interface from anasymod selected, Vivado VIO interface enabled.")
@@ -214,10 +196,20 @@ class FPGATarget(Target):
                                        float_type=self.float_type, debug=debug)
         elif self.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
             print("Direct anasymod FPGA simulation control via UART enabled.")
-            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg, plugin_includes=self.plugins)
-            self.ctrl_api = UARTCtrlApi(prj_cfg=self.prj_cfg)
+            self.ctrl = UARTControlInfrastructure(prj_cfg=self.prj_cfg,
+                                                  scfg=self.str_cfg,
+                                                  plugin_includes=self.plugins,
+                                                  tcfg= self.cfg
+                                                  )
+            self.ctrl_api = UARTCtrlApi(result_path=self.cfg.vcd_path, result_path_raw=self.result_path_raw,
+                                        result_type_raw=self.cfg.result_type_raw, prj_cfg=self.prj_cfg,
+                                        scfg=self.str_cfg, content=self.content, ltxfile_path=self.ltxfile_path,
+                                        top_module=self.cfg.top_module, project_root=self.project_root,
+                                        float_type=self.float_type
+                                        )
         else:
             raise Exception("ERROR: No FPGA simulation control was selected, shutting down.")
+
 
     @property
     def probe_cfg_path(self):
@@ -254,6 +246,9 @@ class Config(BaseConfig):
 
         self.custom_top = False
         """ type(bool) : indicates, whether or not a custom top is used. """
+
+        self.custom_zynq_firmware = False
+        """ type(bool) : indicates, whether or not a custom firmware for zynq PS to control USB_UART is used. """
 
         self.vcd_name = f"{self.top_module}_{name}.vcd"
         """ type(str) : name of the converted vcd simulation result file. """

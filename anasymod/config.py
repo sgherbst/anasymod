@@ -6,6 +6,7 @@ import shutil
 
 from sys import platform
 from glob import glob
+from pathlib import Path
 from anasymod.files import get_full_path, mkdir_p
 from anasymod.util import vivado_search_key
 from os import environ as env
@@ -57,6 +58,9 @@ class EmuConfig:
 
         # Vivado configuration
         self.vivado_config = VivadoConfig(parent=self)
+
+        # XSCT configuration
+        self.xsct_config = XSCTConfig(parent=self)
 
         # GtkWave configuration
         self.gtkwave_config = GtkWaveConfig(parent=self)
@@ -159,6 +163,74 @@ class VivadoConfig():
     def version(self):
         if self._version is None:
             self._version = pathlib.Path(self.vivado).parent.parent.name
+        return self._version
+
+    @property
+    def version_year(self):
+        if self._version_year is None:
+            self._version_year = re.match(r'(\d+)\.(\d+)', self.version).groups()[0]
+            self._version_year = int(self._version_year)
+        return self._version_year
+
+    @property
+    def version_number(self):
+        if self._version_number is None:
+            self._version_number = re.match(r'(\d+)\.(\d+)', self.version).groups()[1]
+            self._version_number = int(self._version_number)
+        return self._version_number
+
+class XSCTConfig():
+    def __init__(self, parent: EmuConfig, xsct=None, version=None,
+                 version_year=None, version_number=None, xsct_install_dir=None):
+        # save reference to parent config
+        self.parent = parent
+
+        # set project name
+        self.project_name = 'prj'
+        # intermediate variables for generic Xilinx path
+        if platform in {'win32', 'cygwin'}:
+            xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
+            xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
+        # set path to vivado binary
+        self.hints = [lambda: os.path.join(env['XSCT_INSTALL_PATH'], 'bin'),
+                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "SDK", xilinx_version, "bin" ),]
+        # lsf options for tcl mode of Vivado
+        self.lsf_opts_ls = ''
+        self.lsf_opts = parent.cfg.lsf_opts
+        if platform in {'linux', 'linux2'}:
+            sorted_dirs = sorted(glob('/tools/Xilinx/Vivado/*.*'), key=vivado_search_key)
+            self.hints.extend(lambda: os.path.join(dir_, 'bin') for dir_ in sorted_dirs)
+            if 'CAMINO' in os.environ:
+                self.lsf_opts = "-eh_ram 70000 -eh_ncpu 8 -eh_ui inicio_batch"
+                self.lsf_opts_ls = "-eh_ram 70000 -eh_ncpu 8 -eh_dispatch LS_SHELL"
+
+        self._xsct = xsct
+        self._xsct_install_dir = xsct_install_dir
+
+        # version, year, number
+        self._version = version
+        self._version_year = version_year
+        self._version_number = version_number
+
+        # set various project options
+        self.num_cores = multiprocessing.cpu_count()
+
+    @property
+    def xsct(self):
+        if self._xsct is None:
+            self._xsct = find_tool(name='xsct', hints=self.hints)
+        return self._xsct
+
+    @property
+    def xsct_install_dir(self):
+        if self._xsct_install_dir is None:
+            self._xsct_install_dir = Path(self.xsct).resolve().parent.parent
+        return self._xsct_install_dir
+
+    @property
+    def version(self):
+        if self._version is None:
+            self._version = pathlib.Path(self.xsct).parent.parent.name
         return self._version
 
     @property
