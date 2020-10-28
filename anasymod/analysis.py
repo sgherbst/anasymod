@@ -918,7 +918,7 @@ class Analysis():
                       content=target.content,
                       project_root=target.project_root,
                       top_module=target.cfg.top_module
-                      ).program(server_addr=server_addr, *args, **kwargs)
+                      ).program(server_addr=server_addr, **kwargs)
 
 def main():
     Analysis(op_mode='commandline')
