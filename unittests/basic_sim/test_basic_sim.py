@@ -101,8 +101,6 @@ def run_target(test_name, test_root=anasymod_test_root, should_probe=True,
             # build the emulator bitstream (and firmware if necessary)
             ana = setup_target(test_name, test_root, 'fpga', synthesizer='vivado')
             ana.build()
-        #if has_firmware:
-        #        ana.build_firmware()
 
             # stop at this point if only running the build target, using a custom
             # exception handled through the regression testing framework
@@ -469,6 +467,65 @@ class TestBasicSIM():
         #ToDo: path to readmem file for function does not work on windows, separators are stripped
         try:
             ctrl: UARTCtrlApi = run_target('firmware', interactive=True,
+                                           has_firmware=True)
+        except MyException:
+            return
+        except:
+            raise Exception
+
+        # only continue further if running the emulate_vivado target
+        if pytest.config.getoption("--target") != Target.emulate_vivado:
+            return
+
+        # short name for the low-level PySerial object
+        ser = ctrl.ctrl_handler
+
+        # simple test
+        ser.write(f'HELLO\n'.encode('utf-8'))
+        out = ser.readline().decode('utf-8').strip()
+        print(f'Got output: "{out}"')
+        if out != 'Hello World!':
+            raise Exception('Output mismatch.')
+
+        # detailed test
+        def run_test(a, b, mode, expct):
+            # write inputs
+            ctrl.set_param(name='a_in', value=a)
+            ctrl.set_param(name='b_in', value=b)
+            ctrl.set_param(name='mode_in', value=mode)
+
+            # get output
+            c = int(ctrl.get_param(name='c_out'))
+            print(f'a={a}, b={b}, mode={mode} -> c={c} (expct={expct})')
+
+            if c != expct:
+                raise Exception('Output mismatch.')
+
+        # try out different operating modes
+        run_test(12, 34, 0, 46)
+        run_test(45, 10, 1, 35)
+        run_test(10, 44, 2, 34)
+        run_test(3, 7, 3, 21)
+        run_test(9, 1, 4, 4)
+        run_test(9, 1, 5, 18)
+        run_test(2, 32, 6, 8)
+        run_test(3, 3, 7, 24)
+        run_test(56, 78, 8, 42)
+
+        # quit the program
+        print('Quitting the program...')
+        ser.write('EXIT\n'.encode('utf-8'))
+
+    @basic
+    @pytest.mark.skipif(
+        pytest.config.getoption("--target") in [Target.sim_xcelium],
+        reason='testcase not meant for running emulation'
+    )
+    def test_custom_firmware(self):
+        print("Running firmware sim")
+        #ToDo: path to readmem file for function does not work on windows, separators are stripped
+        try:
+            ctrl: UARTCtrlApi = run_target('custom_firmware', interactive=True,
                                            has_firmware=True)
         except MyException:
             return

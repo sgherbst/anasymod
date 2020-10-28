@@ -10,7 +10,7 @@ from anasymod.util import back2fwd
 from pathlib import Path
 
 class TemplXSCTProgram:
-    def __init__(self, sdk_path, bit_path, hw_path, tcl_path,
+    def __init__(self, sdk_path, bit_path, hw_path, tcl_path, pcfg,
                  sw_name='sw', program_fpga=True, reset_system=True,
                  loadhw=True, init_cpu=True, download=True,
                  run=True, connect=True, is_ultrascale=False,
@@ -24,6 +24,7 @@ class TemplXSCTProgram:
         self.sw_name = sw_name
         self.is_ultrascale = is_ultrascale
         self.xsct_install_dir = xsct_install_dir
+        self.pcfg  = pcfg
 
         # initialize text
         self.text = ''
@@ -121,14 +122,15 @@ class TemplXSCTProgram:
         self.line()
 
     def loadhw(self, hw_path):
-        # For Vivado 2018.2, it is necessary to use the .hdf rather than the .sysdef file.
-        hw_path_hdf = hw_path.with_suffix('.hdf')
+        if self.pcfg.vivado_config.version_year < 2020:
+            # For Vivado 2018.2, it is necessary to use the .hdf rather than the .sysdef file.
+            hw_path = hw_path.with_suffix('.hdf')
 
         self.puts('Setting up the debugger...')
         self.set_target('APU*')
         cmd = []
         cmd += ['loadhw']
-        cmd += ['-hw', f'"{hw_path_hdf.as_posix()}"']
+        cmd += ['-hw', f'"{hw_path.as_posix()}"']
         if self.is_ultrascale:
             cmd += ['-mem-ranges [list {0x80000000 0xbfffffff} '
                                       '{0x400000000 0x5ffffffff} '

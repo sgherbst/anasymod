@@ -903,6 +903,23 @@ class Analysis():
                       top_module=target.cfg.top_module
                       ).build(*args, **kwargs)
 
+    def _program_firmware(self, server_addr=None, *args, **kwargs):
+        # create target object, but don't generate instrumentation structure again in case target object does not exist yet
+        if not hasattr(self, self.act_fpga_target):
+            self._setup_targets(target=self.act_fpga_target)
+
+        # check if bitstream was generated for active fpga target
+        target = getattr(self, self.act_fpga_target)
+        if not os.path.isfile(getattr(target, 'bitfile_path')):
+            raise Exception(f'Bitstream for active FPGA target was not generated beforehand; please do so before running emulation.')
+
+        # program the firmware
+        XSCTEmulation(pcfg=target.prj_cfg,
+                      content=target.content,
+                      project_root=target.project_root,
+                      top_module=target.cfg.top_module
+                      ).program(server_addr=server_addr, *args, **kwargs)
+
 def main():
     Analysis(op_mode='commandline')
 
