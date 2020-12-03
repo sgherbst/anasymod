@@ -302,6 +302,8 @@ class ModuleTop(JinjaTempl):
         # Instantiate testbench
         #####################################################
         self.tb_inst_ifc = SVAPI()
+        for clk_indep_elem in scfg.clk_independent:
+            self.tb_inst_ifc.gen_signal(clk_indep_elem)
         tb_inst = ModuleInst(api=self.tb_inst_ifc, name='tb')
         tb_inst.add_inputs(scfg.clk_independent, connections=scfg.clk_independent)
         tb_inst.generate_instantiation()
