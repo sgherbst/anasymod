@@ -21,8 +21,9 @@ class ConvertWaveform():
     Convert raw result files to vcd and also make sure fixed-point datatypes are properly converted to a floating point
     representation. Currently supported raw result datatypes are vcd and csv.
     """
-    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path, float_type=True, emu_time_scaled=True,
-                 debug=False, dt_scale=1e-15):
+    def __init__(self, str_cfg, result_type_raw, result_path_raw, result_path,
+                 float_type=True, emu_time_scaled=True, debug=False,
+                 dt_scale=1e-15):
         """
 
         :param str_cfg: structure config object used in current project.
@@ -133,14 +134,22 @@ class ConvertWaveform():
                     prev_timestep = float('-inf')
                     for k, timestamp in enumerate(probe_data['trace_port_gen_i/' + scfg.time_probe.name]):
                         # break if the current timestep is less than the previous one, since that means
-                        # wrapping has occurred
-                        if timestamp < prev_timestep:
+                        # wrapping has occurred.  (only if emu_time_scaled is True, meaning that
+                        # we're using emu_time on the x axis, not cycle number)
+                        if emu_time_scaled and (timestamp < prev_timestep):
                             break
                         prev_timestep = timestamp
 
+                        # Set the x-axis value according to emu_time_scaled: True means use
+                        # emu_time, and False means use the cycle number
+                        if emu_time_scaled:
+                            chg_val = timestamp
+                        else:
+                            chg_val = k
+
                         # iterate over all signals and log their change at this timestamp
                         for sig, scaled_data in probe_data.items():
-                            writer.change(reg[sig], timestamp, scaled_data[k])
+                            writer.change(reg[sig], chg_val, scaled_data[k])
 
         elif result_type_raw == ResultFileTypes.VCD:
             vcd_file_name = result_path_raw
