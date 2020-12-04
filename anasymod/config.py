@@ -417,6 +417,12 @@ class Config(BaseConfig):
             looks like "Segmentation fault "$RDI_PROG"", try setting this to 2000 or higher
             (https://www.xilinx.com/support/answers/64434.html)."""
 
+        self.no_time_manager = False
+        """ type(bool) : If True, do not instantiate the emu_clk generator, default oscillator,
+            time manager, time control signals, and instead simply wire emu_clk_2x directly
+            to emu_clk.  This can help the design run at higher frequencies, if no time management
+            is required. """
+
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:
