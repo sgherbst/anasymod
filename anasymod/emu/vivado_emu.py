@@ -125,6 +125,12 @@ class VivadoEmulation(VivadoTCLGenerator):
             for file in xci_file.files:
                 self.writeln(f'read_ip "{back2fwd(file)}"')
 
+        # read user-provided TCL scripts
+        self.writeln('# Custom user-provided TCL scripts')
+        for tcl_file in self.target.content.tcl_files:
+            for file in tcl_file.files:
+                self.writeln(f'source "{back2fwd(file)}"')
+
         # upgrade IPs as necessary
         self.writeln('if {[get_ips] ne ""} {')
         self.writeln('    upgrade_ip [get_ips]')
