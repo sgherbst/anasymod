@@ -53,14 +53,14 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        curl -L https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.tar.gz > iverilog-files.tar.gz
-        tar xzvf iverilog-files.tar.gz
-        echo `realpath iverilog-files` >> $GITHUB_PATH
+        curl -L https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-v11-20201123-x64.tar.gz > iverilog-v11-20201123-x64.tar.gz
+        tar xzvf iverilog-v11-20201123-x64.tar.gz
+        echo `realpath iverilog/bin` >> $GITHUB_PATH
       shell: bash
     - name: Run regression test
       run: |
-        iverilog-files/iverilog.exe -V
-        iverilog-files/iverilog.exe -h
+        iverilog/bin/iverilog.exe -V
+        iverilog/bin/iverilog.exe -h
         source regress.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
