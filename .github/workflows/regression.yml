@@ -53,12 +53,9 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        mkdir iverilog
-        cd iverilog
-        curl -O https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.zip
-        unzip iverilog-files.zip
-        cd ..
-        realpath iverilog >> $GITHUB_PATH
+        curl -O https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.tar.gz
+        tar xzvf iverilog-files.tar.gz
+        realpath iverilog-files >> $GITHUB_PATH
       shell: bash
     - name: Run regression test
       run: source regress.sh
