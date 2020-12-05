@@ -53,7 +53,7 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
-        curl -O https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.tar.gz
+        curl -L https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.tar.gz > iverilog-files.tar.gz
         tar xzvf iverilog-files.tar.gz
         realpath iverilog-files >> $GITHUB_PATH
       shell: bash
