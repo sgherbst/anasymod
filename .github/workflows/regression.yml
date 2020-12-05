@@ -55,10 +55,13 @@ jobs:
       run: |
         curl -L https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.tar.gz > iverilog-files.tar.gz
         tar xzvf iverilog-files.tar.gz
-        realpath iverilog-files >> $GITHUB_PATH
       shell: bash
     - name: Run regression test
-      run: source regress.sh
+      run: |
+        echo `ls iverilog-files`
+        echo `realpath iverilog-files`
+        echo `realpath iverilog-files` >> $GITHUB_PATH
+        source regress.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         ANASYMOD_PYTHON: python3.7
