@@ -37,4 +37,4 @@ if [[ -n "${FPGA_SERVER}" ]]; then
 fi
 
 # upload coverage information
-bash <(curl -s https://codecov.io/bash)
+curl -s https://codecov.io/bash | bash
