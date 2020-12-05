@@ -59,9 +59,16 @@ jobs:
       shell: bash
     - name: Run regression test
       run: |
-        iverilog/bin/iverilog.exe -V
-        iverilog/bin/iverilog.exe -h
+        iverilog.exe -V
+        echo $?
+        iverilog.exe -h
+        echo $?
+        iverilog -V
+        echo $?
+        iverilog -h
+        echo $?
         source regress.sh
+        echo $?
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         ANASYMOD_PYTHON: python3.7
