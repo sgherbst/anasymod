@@ -2,7 +2,6 @@ import numpy as np
 from pathlib import Path
 from argparse import ArgumentParser
 from msdsl import MixedSignalModel, VerilogGenerator
-from msdsl.assignment import SyncRomAssignment
 
 def myfunc(x):
     # clip input
