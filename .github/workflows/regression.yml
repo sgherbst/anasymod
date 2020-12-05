@@ -62,6 +62,7 @@ jobs:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       shell: bash
     - name: Archive debugging artifacts
+      if: always()
       uses: actions/upload-artifact@v2
       with:
         name: debug-artifacts-windows
