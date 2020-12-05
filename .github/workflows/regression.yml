@@ -55,7 +55,7 @@ jobs:
       run: |
         mkdir iverilog
         cd iverilog
-        wget https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.zip
+        curl -O https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-files.zip
         unzip iverilog-files.zip
         cd ..
         realpath iverilog >> $GITHUB_PATH
