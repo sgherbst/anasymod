@@ -24,6 +24,13 @@ def gen_model(order, numel, build_dir):
     real_func = m.make_function(myfunc, domain=[-np.pi, +np.pi],
                                 order=order, numel=numel)
 
+    for k, table in enumerate(real_func.tables):
+        print(f'*** real_func.tables[{k}] ***')
+        print(type(table.path))
+        print(table.path)
+        print(table.path.as_posix())
+        print(f'"{table.path.as_posix()}"')
+
     # apply function
     m.set_from_sync_func(m.out, real_func, m.in_)
 

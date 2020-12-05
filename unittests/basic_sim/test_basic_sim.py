@@ -2,18 +2,6 @@
 
 # NOTE: for interactive debug, add -s to py.test run in order to have stdout and stderr no longer captured by py.test!
 
-# Test Python
-from pathlib import Path
-import sys
-THIS_DIR = Path(__file__).resolve().parent
-TOP_DIR = THIS_DIR.parent.parent
-IMPORT_DIR = TOP_DIR / 'import_test'
-sys.path.append(str(IMPORT_DIR))
-from importlib import import_module
-def test_aaa_python():
-    i = import_module('import_test.plugin')
-    i.run_plugin()
-
 from anasymod.analysis import Analysis
 from anasymod.util import OutputError
 from anasymod.sim_ctrl.vio_ctrlapi import VIOCtrlApi
