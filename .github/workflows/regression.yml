@@ -67,4 +67,4 @@ jobs:
       with:
         name: debug-artifacts-windows
         path: |
-          **/model.sv
+          **/models/default/main/*.*v
