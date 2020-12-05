@@ -3,25 +3,16 @@
 # NOTE: for interactive debug, add -s to py.test run in order to have stdout and stderr no longer captured by py.test!
 
 # Test Python
-import os
-from shutil import which
-from anasymod.util import call
+from pathlib import Path
+import sys
+THIS_DIR = Path(__file__).resolve().parent
+TOP_DIR = THIS_DIR.parent.parent
+IMPORT_DIR = TOP_DIR / 'import_test'
+sys.path.append(str(IMPORT_DIR))
+from importlib import import_module
 def test_aaa_python():
-    if 'PYTHON_MSDSL' in os.environ:
-        python_name = os.environ['PYTHON_MSDSL']
-    else:
-        python_name = which('python')
-
-    print('*** PYTHON_NAME ***')
-    print(python_name)
-    print('*** PYTHON_CALL ***')
-    call([python_name, '-c',
-          "from pathlib import Path;"
-          "a=Path('a\\\\b\\\\c');"
-          "print(type(a));"
-          "print(a);"
-          "print(a.as_posix())"
-    ])
+    i = import_module('import_test.plugin')
+    i.run_plugin()
 
 from anasymod.analysis import Analysis
 from anasymod.util import OutputError
