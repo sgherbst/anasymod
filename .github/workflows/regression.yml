@@ -60,8 +60,21 @@ jobs:
       run: |
         export ICARUS_INSTALL_PATH=`realpath iverilog`
         echo $ICARUS_INSTALL_PATH
+        python -c "from pathlib import Path; a=Path('a\\\\b\\\\c'); print(type(a)); print(a); print(a.as_posix())"
         source regress.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         ANASYMOD_PYTHON: python3.7
       shell: bash
+
+  windows2:
+    runs-on: windows-latest
+    steps:
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Run regression test
+      run: |
+        python -c "from pathlib import Path; a=Path('a\\\\b\\\\c'); print(type(a)); print(a); print(a.as_posix())"
+      shell: powershell
