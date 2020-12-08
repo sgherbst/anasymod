@@ -197,7 +197,7 @@ class VIOCtrlApi(CtrlApi):
         """
         self.sendline('run_hw_ila $ila_0_i')
 
-    def wait_on_and_dump_trace(self, result_file=None):
+    def wait_on_and_dump_trace(self, result_file=None, emu_time_scaled=True):
         """
         Wait until the trace unit stopped recording data. Transmit this data to the host PC, store by default to the raw
         result file path, or a custom path provided by the user, and convert analog values from fixed-point to float.
@@ -239,7 +239,8 @@ class VIOCtrlApi(CtrlApi):
                         result_path=result_path,
                         str_cfg=self.scfg,
                         float_type=self.float_type,
-                        dt_scale=self.pcfg.cfg.dt_scale)
+                        dt_scale=self.pcfg.cfg.dt_scale,
+                        emu_time_scaled=emu_time_scaled)
 
     def refresh_param(self, name, timeout=30):
         """

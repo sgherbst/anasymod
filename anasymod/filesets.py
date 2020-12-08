@@ -1,7 +1,8 @@
 import os, yaml
 from anasymod.sources import (Sources, VerilogSource, VerilogHeader, VHDLSource,
                               SubConfig, XCIFile, XDCFile, MEMFile, BDFile,
-                              FunctionalModel, IPRepo, EDIFFile, FirmwareFile)
+                              FunctionalModel, IPRepo, EDIFFile, FirmwareFile,
+                              TCLFile)
 from anasymod.defines import Define
 from anasymod.util import expand_searchpaths
 
@@ -31,6 +32,9 @@ class Filesets():
 
         self._xci_files = []
         """:type : List[XCIFile]"""
+
+        self._tcl_files = []
+        """:type : List[TCLFile]"""
 
         self._xdc_files = []
         """:type : List[XDCFile]"""
@@ -148,6 +152,13 @@ class Filesets():
                                                fileset=cfg['xci_files'][xci_file]['fileset'] if 'fileset' in cfg['xci_files'][xci_file].keys() else 'default',
                                                config_path=cfg_path,
                                                name=xci_file))
+        if 'tcl_files' in cfg.keys(): # Add TCL files to filesets
+            print(f'TCL Files: {[key for key in cfg["tcl_files"].keys()]}')
+            for tcl_file in cfg['tcl_files'].keys():
+                self._tcl_files.append(TCLFile(files=cfg['tcl_files'][tcl_file]['files'],
+                                               fileset=cfg['tcl_files'][tcl_file]['fileset'] if 'fileset' in cfg['tcl_files'][tcl_file].keys() else 'default',
+                                               config_path=cfg_path,
+                                               name=tcl_file))
         if 'xdc_files' in cfg.keys(): # Add constraint files to filesets
             print(f'XDC Files: {[key for key in cfg["xdc_files"].keys()]}')
             for xdc_file in cfg['xdc_files'].keys():
@@ -238,6 +249,9 @@ class Filesets():
         # Read in xcifile objects to fileset dict
         self._add_to_fileset_dict(name='xci_files', container=self._expand_source_paths(self._xci_files))
 
+        # Read in tclfile objects to fileset dict
+        self._add_to_fileset_dict(name='tcl_files', container=self._expand_source_paths(self._tcl_files))
+
         # Read in xdcfile objects to fileset dict
         self._add_to_fileset_dict(name='xdc_files', container=self._expand_source_paths(self._xdc_files))
 
@@ -291,6 +305,9 @@ class Filesets():
 
     def add_xci_file(self, xci_file: XCIFile):
         self._xci_files.append(xci_file)
+
+    def add_tcl_file(self, tcl_file: TCLFile):
+        self._tcl_files.append(tcl_file)
 
     def add_xdc_file(self, xdc_file: XDCFile):
         self._xdc_files.append(xdc_file)

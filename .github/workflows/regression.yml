@@ -13,7 +13,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.7
     - name: Install dependencies
@@ -22,15 +22,13 @@ jobs:
       run: source regress.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        ANASYMOD_PYTHON: python3.7
-
   mac:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: 3.7
     - name: Install dependencies
@@ -40,4 +38,33 @@ jobs:
       run: source regress.sh
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        ANASYMOD_PYTHON: python3.7
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        curl -L https://github.com/sgherbst/anasymod/releases/download/bogus/iverilog-v11-20201123-x64.tar.gz > iverilog-v11-20201123-x64.tar.gz
+        tar xzvf iverilog-v11-20201123-x64.tar.gz
+      shell: bash
+    - name: Run regression test
+      run: |
+        export ICARUS_INSTALL_PATH=`realpath iverilog`
+        echo $ICARUS_INSTALL_PATH
+        source regress.sh
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      shell: bash
+    - name: Archive debugging artifacts
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: debug-artifacts-windows
+        path: |
+          **/models/default/main/*.*v

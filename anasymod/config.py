@@ -106,6 +106,8 @@ class EmuConfig:
             return ZC702()
         elif self.cfg.board_name == BoardNames.ZC706:
             return ZC706()
+        elif self.cfg.board_name == BoardNames.ZCU102:
+            return ZCU102()
         elif self.cfg.board_name == BoardNames.ZCU106:
             return ZCU106()
         elif self.cfg.board_name == BoardNames.ARTY_200T_CUSTOM_LIDAR:
@@ -122,12 +124,17 @@ class VivadoConfig():
         # set project name
         self.project_name = 'prj'
         # intermediate variables for generic Xilinx path
+        self.hints = []
+        self.hints += [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin')]
         if platform in {'win32', 'cygwin'}:
-            xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
-            xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
-        # set path to vivado binary
-        self.hints = [lambda: os.path.join(env['VIVADO_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin" ),]
+            try:
+                xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
+                xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
+                self.hints += [
+                    lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "Vivado", xilinx_version, "bin")
+                ]
+            except:
+                print('Skipping INICIO_TOOLS hint for Vivado.')
         # lsf options for tcl mode of Vivado
         self.lsf_opts_ls = ''
         self.lsf_opts = parent.cfg.lsf_opts
@@ -188,12 +195,17 @@ class XSCTConfig():
         # set project name
         self.project_name = 'prj'
         # intermediate variables for generic Xilinx path
+        self.hints = []
+        self.hints += [lambda: os.path.join(env['XSCT_INSTALL_PATH'], 'bin')]
         if platform in {'win32', 'cygwin'}:
-            xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
-            xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
-        # set path to vivado binary
-        self.hints = [lambda: os.path.join(env['XSCT_INSTALL_PATH'], 'bin'),
-                      lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "SDK", xilinx_version, "bin" ),]
+            try:
+                xilinx_version_path = parent.cfg_dict['TOOLS_xilinx']
+                xilinx_version = "20" + ".".join(xilinx_version_path.split(".")[0:2]).split("-")[1]
+                self.hints += [
+                    lambda: os.path.join(parent.cfg_dict['INICIO_TOOLS'], xilinx_version_path, "SDK", xilinx_version, "bin")
+                ]
+            except:
+                print('Skipping INICIO_TOOLS hint for XSCT.')
         # lsf options for tcl mode of Vivado
         self.lsf_opts_ls = ''
         self.lsf_opts = parent.cfg.lsf_opts
@@ -416,6 +428,12 @@ class Config(BaseConfig):
         """ type(int) : Stack size used by Vivado.  If you are getting an error during synthesis that
             looks like "Segmentation fault "$RDI_PROG"", try setting this to 2000 or higher
             (https://www.xilinx.com/support/answers/64434.html)."""
+
+        self.no_time_manager = False
+        """ type(bool) : If True, do not instantiate the emu_clk generator, default oscillator,
+            time manager, time control signals, and instead simply wire emu_clk_2x directly
+            to emu_clk.  This can help the design run at higher frequencies, if no time management
+            is required. """
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

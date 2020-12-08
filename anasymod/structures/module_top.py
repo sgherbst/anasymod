@@ -31,6 +31,17 @@ class ModuleTop(JinjaTempl):
         self.result_path_raw = back2fwd(target.result_path_raw)
 
         #####################################################
+        # Retrieve general configuration settings
+        #####################################################
+
+        # TODO: clean this up; there is no need to generate
+        # the time manager infrastructure if it isn't going
+        # to be instantiated.  Plus, it is a bit odd that
+        # the emu_clk frequency ends up being twice what is
+        # expected, when this option is set.
+        self.no_time_manager = pcfg.cfg.no_time_manager
+
+        #####################################################
         # Add plugin specific includes
         #####################################################
 
@@ -302,6 +313,8 @@ class ModuleTop(JinjaTempl):
         # Instantiate testbench
         #####################################################
         self.tb_inst_ifc = SVAPI()
+        for clk_indep_elem in scfg.clk_independent:
+            self.tb_inst_ifc.gen_signal(clk_indep_elem)
         tb_inst = ModuleInst(api=self.tb_inst_ifc, name='tb')
         tb_inst.add_inputs(scfg.clk_independent, connections=scfg.clk_independent)
         tb_inst.generate_instantiation()
@@ -389,6 +402,7 @@ logic emu_clk, emu_clk_2x;
 // Clock generator
 {{subst.clk_gen_ifc.text}}
 
+{% if not subst.no_time_manager %}
 // Emulation Clks Generator
 {{subst.emu_clks_inst_ifc.text}}
 
@@ -404,6 +418,13 @@ logic emu_clk, emu_clk_2x;
 
 // control signals
 {{subst.ctrl_anasymod_inst_ifc.text}}
+{% else %}
+// This is a bit of a hack for now, to allow users to avoid
+// using the time manager if they want to run at really
+// high frequencies.  emu_clk will run *twice* as fast as
+// specified because no_time_manager was set.
+assign emu_clk = emu_clk_2x;
+{% endif %}
 
 // Assignment for derived clks
 {{subst.derived_clk_assigns.text}}

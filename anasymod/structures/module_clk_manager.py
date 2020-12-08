@@ -56,14 +56,15 @@ class ModuleClkManager(JinjaTempl):
 
 `ifdef SIMULATION_MODE_MSDSL
 	// emulator clock sequence
-	logic emu_clk_2x_state = 1'b0;
+	logic emu_clk_2x_state;
 {% for clk in subst.independent_clks %}
-	logic {{clk.name}}_state= 1'b0;
+	logic {{clk.name}}_state;
 {% endfor %}
 	
 	initial begin
 		// since the reset signal is initially "1", this delay+posedge will
 		// cause the MSDSL templates to be reset
+	    emu_clk_2x_state = 1'b0;
 	    #((0.25/(`EMU_CLK_FREQ))*1s);
 	    emu_clk_2x_state = 1'b1;
 
@@ -72,17 +73,17 @@ class ModuleClkManager(JinjaTempl):
 	        #((0.25/(`EMU_CLK_FREQ))*1s);
 	        emu_clk_2x_state = ~emu_clk_2x_state;
 	    end
-	    
+	end
+
 {% for clk in subst.independent_clks %}
+    initial begin
+        {{clk.name}}_state = 1'b0;
 	    forever begin
-	        // TODO: investigate whether these clocks periods should be
-	        // related to `EMU_CLK_FREQ / `DT_MSDSL or not (since they are
-	        // independent)
-	        #(({{0.50 * (subst.emu_clk.freq / clk.freq)}}*`DT_MSDSL)*1s);
+	        #(({{0.5/clk.freq}})*1s);
 	        {{clk.name}}_state = ~{{clk.name}}_state;
 	    end
+    end
 {% endfor %}
-	end
 	
 	// output assignment
 	assign emu_clk_2x = emu_clk_2x_state;

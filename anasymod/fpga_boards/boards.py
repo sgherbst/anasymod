@@ -125,6 +125,22 @@ class ZC706(FPGA_Board):
     uart_zynq_vid = [4292]
     uart_zynq_pid = [60000]
 
+class ZCU102(FPGA_Board):
+    """
+    Container to store ZCU102 FPGA board specific properties.
+    """
+    clk_pin = ['G21', 'F21']
+    clk_io = 'LVDS_25'
+    clk_freq = 125e6
+    board_part = 'xilinx.com:zcu102:part0:3.3'
+    full_part_name = 'xczu9eg-ffvb1156-2-e'
+    short_part_name = 'xczu9eg'
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    uart_zynq_vid = [4292]
+    uart_zynq_pid = [60017]
+    uart_suffix = '.0'  # needed since this board has four com ports under the same VID/PID
+    is_ultrascale = True
+
 class ZCU106(FPGA_Board):
     """
     Container to store ZCU106 FPGA board specific properties.
