@@ -104,7 +104,7 @@ class ULTRA96(FPGA_Board):
     clk_freq = 26e6
     full_part_name = 'xczu3eg-sbva484-???'
     short_part_name = 'xczu3eg'
-    bram = None
+    bram = 7.6e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [1027] # might need adjustment
     uart_zynq_pid = [24592] # might need adjustment
@@ -135,6 +135,7 @@ class ZCU102(FPGA_Board):
     board_part = 'xilinx.com:zcu102:part0:3.3'
     full_part_name = 'xczu9eg-ffvb1156-2-e'
     short_part_name = 'xczu9eg'
+    bram = 32.1e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [4292]
     uart_zynq_pid = [60017]
@@ -151,6 +152,7 @@ class ZCU106(FPGA_Board):
     board_part = 'xilinx.com:zcu106:part0:2.5'
     full_part_name = 'xczu7ev-ffvc1156-2-e'
     short_part_name = 'xczu7ev'
+    bram = 11.0e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [4292]
     uart_zynq_pid = [60017]
