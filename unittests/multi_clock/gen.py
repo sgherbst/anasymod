@@ -1,6 +1,6 @@
 from pathlib import Path
 from argparse import ArgumentParser
-from msdsl import MixedSignalModel, VerilogGenerator
+from msdsl import MixedSignalModel, VerilogGenerator, clamp_op, to_uint
 from msdsl.expr.extras import if_
 
 def main():
@@ -18,7 +18,6 @@ def main():
     m.add_digital_input('emu_rst')
     m.add_digital_output('dt_req', 32)
     m.add_digital_input('emu_dt', 32)
-    m.add_digital_input('neg_emu_dt', 32)  # TODO: cleanup
     m.add_digital_output('clk_val')
     m.add_digital_input('t_lo', 32)
     m.add_digital_input('t_hi', 32)
@@ -35,11 +34,12 @@ def main():
     m.bind_name('dt_req_next', if_(m.prev_clk_val, m.t_lo, m.t_hi))
 
     # increment the time request
-    m.bind_name('dt_req_incr', m.dt_req + m.neg_emu_dt)
+    m.bind_name('dt_req_incr', m.dt_req - m.emu_dt)
 
     # determine the next period
     m.bind_name('dt_req_imm', if_(m.req_grant, m.dt_req_next, m.dt_req_incr))
-    m.set_next_cycle(m.dt_req, m.dt_req_imm[31:0], clk=m.emu_clk, rst=m.emu_rst)
+    m.bind_name('dt_req_clamped', to_uint(clamp_op(m.dt_req_imm, 0, (1<<32)-1)))  # TODO: cleanup
+    m.set_next_cycle(m.dt_req, m.dt_req_clamped, clk=m.emu_clk, rst=m.emu_rst)
 
     # determine the output filename
     filename = Path(a.output).resolve() / f'{m.module_name}.sv'
