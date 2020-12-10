@@ -1,6 +1,6 @@
 from pathlib import Path
 from argparse import ArgumentParser
-from msdsl import MixedSignalModel, VerilogGenerator, to_uint, clamp_op
+from msdsl import MixedSignalModel, VerilogGenerator
 from msdsl.expr.extras import if_
 
 def main():
