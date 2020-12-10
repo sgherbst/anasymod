@@ -38,7 +38,7 @@ def main():
 
     # determine the next period
     m.bind_name('dt_req_imm', if_(m.req_grant, m.dt_req_next, m.dt_req_incr))
-    m.bind_name('dt_req_clamped', to_uint(clamp_op(m.dt_req_imm, 0, (1<<32)-1)))  # TODO: cleanup
+    m.bind_name('dt_req_clamped', to_uint(clamp_op(m.dt_req_imm, 0, (1<<31)-1), width=32))  # TODO: cleanup
     m.set_next_cycle(m.dt_req, m.dt_req_clamped, clk=m.emu_clk, rst=m.emu_rst)
 
     # determine the output filename
