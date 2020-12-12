@@ -129,9 +129,9 @@ class ZCU102(FPGA_Board):
     """
     Container to store ZCU102 FPGA board specific properties.
     """
-    clk_pin = ['G21', 'F21']
-    clk_io = 'LVDS_25'
-    clk_freq = 125e6
+    clk_pin = ['AL8', 'AL7']
+    clk_io = 'DIFF_SSTL12'
+    clk_freq = 300e6
     board_part = 'xilinx.com:zcu102:part0:3.3'
     full_part_name = 'xczu9eg-ffvb1156-2-e'
     short_part_name = 'xczu9eg'
