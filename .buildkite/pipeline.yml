@@ -3,7 +3,7 @@ steps:
     command: |
       # set up environment
       source /cad/modules/tcl/init/bash
-      module load base xcelium
+      module load base xcelium/19.03.003
       export ANASYMOD_TARGET=sim_xcelium
       printenv
 
