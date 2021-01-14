@@ -14,7 +14,8 @@ class TemplXSCTProgram:
                  sw_name='sw', program_fpga=True, reset_system=True,
                  loadhw=True, init_cpu=True, download=True,
                  run=True, connect=True, is_ultrascale=False,
-                 xsct_install_dir=None, server_addr=None):
+                 xsct_install_dir=None, no_rev_check=False,
+                 server_addr=None):
 
         # save settings
         self.sdk_path = sdk_path
@@ -24,6 +25,7 @@ class TemplXSCTProgram:
         self.sw_name = sw_name
         self.is_ultrascale = is_ultrascale
         self.xsct_install_dir = xsct_install_dir
+        self.no_rev_check = no_rev_check
         self.pcfg  = pcfg
 
         # initialize text
@@ -42,7 +44,7 @@ class TemplXSCTProgram:
             self.puts('Load utility functions for Zynq MP.')
             zynqmp_utils_tcl = (Path(self.xsct_install_dir) / 'scripts' /
                                 'vitis' / 'util' / 'zynqmp_utils.tcl')
-            self.line(f'source "{zynqmp_utils_tcl}"')
+            self.line(f'source "{zynqmp_utils_tcl.as_posix()}"')
             self.line()
 
         # reset_system
@@ -118,7 +120,12 @@ class TemplXSCTProgram:
             self.set_target('PSU')
         else:
             self.set_target('xc7z*')
-        self.line(f'fpga "{self.bit_path.as_posix()}"')
+        cmd = []
+        cmd += ['fpga']
+        cmd += ['-f', f'"{self.bit_path.as_posix()}"']
+        if self.no_rev_check:
+            cmd += ['-no-revision-check']
+        self.line(' '.join(cmd))
         self.line()
 
     def loadhw(self, hw_path):
@@ -151,7 +158,7 @@ class TemplXSCTProgram:
             # download the FSBL ELF is located
             fsbl_path = (Path(self.sdk_path) / 'top' / 'export' / 'top' /
                          'sw' / 'top' / 'boot' / 'fsbl.elf')
-            self.line(f'dow "{fsbl_path}"')
+            self.line(f'dow "{fsbl_path.as_posix()}"')
             # wait for FSBL to finish running
             self.line('set bp_0_6_fsbl_bp [bpadd -addr &XFsbl_Exit]')
             self.line('con -block -timeout 60')

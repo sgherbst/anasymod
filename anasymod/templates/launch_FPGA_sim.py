@@ -21,8 +21,9 @@ class TemplLAUNCH_FPGA_SIM(JinjaTempl):
         # are problems with the debug hub clock
         self.jtag_freq = str(int(pcfg.cfg.jtag_freq))
 
-        # set the "short" device name which is used to distinguish the FPGA part from other USB devices
+        # save some parameters from the board configuration
         self.device_name = pcfg.board.short_part_name
+        self.no_rev_check = pcfg.board.no_rev_check
 
         # Set aliases for VIOs
         self.ctrl_io_aliases = SVAPI()
@@ -71,6 +72,13 @@ connect_hw_server -url {{subst.server_addr}}
 {% endif %}
 set_property PARAM.FREQUENCY {{subst.jtag_freq}} [get_hw_targets]
 open_hw_target
+
+{% if subst.no_rev_check %}
+# Don't check revision compatibility between the bitstream
+# and FPGA.  This is needed for some boards that use
+# engineering samples.
+set_param xicom.use_bitstream_version_check false 
+{% endif %}
 
 # Configure files to be programmed
 set my_hw_device [get_hw_devices {{subst.device_name}}*]

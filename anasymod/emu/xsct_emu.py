@@ -105,6 +105,7 @@ class XSCTEmulation(XSCTTCLGenerator):
                 tcl_path=self.tcl_path,
                 is_ultrascale=self.pcfg.board.is_ultrascale,
                 xsct_install_dir=self.pcfg.xsct_config.xsct_install_dir,
+                no_rev_check=self.pcfg.board.no_rev_check,
                 pcfg=self.pcfg,
                 **kwargs
             ).text
