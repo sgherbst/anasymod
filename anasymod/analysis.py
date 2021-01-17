@@ -1,4 +1,4 @@
-import shutil, zipfile, filecmp, errno
+import shutil, zipfile, filecmp, errno, time
 import os.path
 import yaml
 import numpy as np
@@ -330,8 +330,11 @@ class Analysis():
 
         VivadoEmulation(target=target).build()
 
-        # Build firmware for ctrl infrastructure if needed
+        # Build firmware for ctrl infrastructure if needed, first
+        # waiting a short time for outputs from Vivado to sync
+        # to disk.  This seems to be an issue with NFS.
         if target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
+            time.sleep(1)
             self._build_firmware(*args, **kwargs)
 
         statpro.statpro_update(statpro.FEATURES.anasymod_build_vivado)

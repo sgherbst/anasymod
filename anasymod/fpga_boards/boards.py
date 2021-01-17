@@ -7,6 +7,7 @@ class FPGA_Board():
     uart_pid = None
     uart_suffix = None
     is_ultrascale = False
+    no_rev_check = False
 
 class PYNQ_Z1(FPGA_Board):
     """
@@ -104,7 +105,7 @@ class ULTRA96(FPGA_Board):
     clk_freq = 26e6
     full_part_name = 'xczu3eg-sbva484-???'
     short_part_name = 'xczu3eg'
-    bram = None
+    bram = 7.6e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [1027] # might need adjustment
     uart_zynq_pid = [24592] # might need adjustment
@@ -129,17 +130,19 @@ class ZCU102(FPGA_Board):
     """
     Container to store ZCU102 FPGA board specific properties.
     """
-    clk_pin = ['G21', 'F21']
-    clk_io = 'LVDS_25'
-    clk_freq = 125e6
-    board_part = 'xilinx.com:zcu102:part0:3.3'
+    clk_pin = ['AL8', 'AL7']
+    clk_io = 'DIFF_SSTL12'
+    clk_freq = 300e6
+    board_part = 'xilinx.com:zcu102:part0:3.2'
     full_part_name = 'xczu9eg-ffvb1156-2-e'
-    short_part_name = 'xczu9eg'
+    short_part_name = 'xczu9'
+    bram = 32.1e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [4292]
     uart_zynq_pid = [60017]
     uart_suffix = '.0'  # needed since this board has four com ports under the same VID/PID
     is_ultrascale = True
+    no_rev_check = True  # needed in case the FPGA is an engineering sample
 
 class ZCU106(FPGA_Board):
     """
@@ -151,6 +154,7 @@ class ZCU106(FPGA_Board):
     board_part = 'xilinx.com:zcu106:part0:2.5'
     full_part_name = 'xczu7ev-ffvc1156-2-e'
     short_part_name = 'xczu7ev'
+    bram = 11.0e6
     fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
     uart_zynq_vid = [4292]
     uart_zynq_pid = [60017]

@@ -62,6 +62,8 @@ class UARTCtrlApi(CtrlApi):
         else:
             self.pid_list = [pid]
 
+        self.uart_suffix = self.pcfg.board.uart_suffix
+
         self.port_list = []
     ### User Functions
 
@@ -325,7 +327,8 @@ class UARTCtrlApi(CtrlApi):
             # check if any COM port is compliant to known vids and pids and if so store the device_id
             for port in comports:
                 if ((port.vid in self.vid_list) and (port.pid in self.pid_list)):
-                    self.port_list.append(port.device)
+                    if (self.uart_suffix is None) or (port.location.endswith(self.uart_suffix)):
+                        self.port_list.append(port.device)
 
             for port in self.port_list:
                 try:
