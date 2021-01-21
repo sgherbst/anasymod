@@ -207,6 +207,8 @@ class Analysis():
                 self.filesets._firmware_files.append(source)
             elif isinstance(source, XCIFile):
                 self.filesets._xci_files.append(source)
+            elif isinstance(source, IncludeDir):
+                self.filesets._include_dirs.append(source)
             elif isinstance(source, TCLFile):
                 self.filesets._tcl_files.append(source)
             elif isinstance(source, XDCFile):

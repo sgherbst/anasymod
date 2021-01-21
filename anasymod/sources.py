@@ -75,6 +75,10 @@ class VerilogHeader(Sources):
     def generate(self):
         self.dump()
 
+class IncludeDir(Sources):
+    def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None):
+        super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)
+
 class VHDLSource(Sources):
     def __init__(self, files: Union[list, str], name, library=None, fileset=r"default", config_path=None, version=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)

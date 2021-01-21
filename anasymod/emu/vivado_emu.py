@@ -69,6 +69,9 @@ class VivadoEmulation(VivadoTCLGenerator):
         # set define variables
         self.add_project_defines(content=self.target.content, fileset='[current_fileset]')
 
+        # set the include directory paths (if applicable)
+        self.add_include_dirs(content=self.target.content, fileset='[current_fileset]')
+
         # specify the level of flattening to use
         self.set_property(
             'STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY',

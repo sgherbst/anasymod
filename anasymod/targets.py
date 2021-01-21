@@ -287,6 +287,8 @@ class Content():
         """:type : List[FirmwareFile]"""
         self.xci_files = []
         """:type : List[XCIFile]"""
+        self.include_dirs = []
+        """:type : List[IncludeDir]"""
         self.tcl_files = []
         """:type : List[TCLFile]"""
         self.xdc_files = []

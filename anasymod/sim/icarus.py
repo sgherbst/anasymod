@@ -24,9 +24,14 @@ class IcarusSimulator(Simulator):
 
         # add include directories, remove filename from paths and create a list of inc dirs removing duplicates
         inc_dirs = set()
+
         for sources in self.target.content.verilog_headers:
             for src in sources.files:
                 inc_dirs.add(os.path.dirname(src))
+
+        for sources in self.target.content.include_dirs:
+            for src in sources.files:
+                inc_dirs.add(src)
 
         for inc_dir in inc_dirs:
             cmd.extend(['-I', inc_dir])

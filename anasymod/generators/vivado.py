@@ -3,7 +3,8 @@ import pathlib
 
 from anasymod.util import call, back2fwd
 from anasymod.generators.codegen import CodeGenerator
-from anasymod.sources import VerilogSource, MEMFile, BDFile, IPRepo, EDIFFile
+from anasymod.sources import (VerilogSource, MEMFile, BDFile, IPRepo,
+                              EDIFFile, IncludeDir)
 from anasymod.targets import FPGATarget
 from anasymod.enums import FPGASimCtrl
 
@@ -139,6 +140,20 @@ class VivadoTCLGenerator(CodeGenerator):
                     define_list.append(f"{k}")
 
         self.set_property('verilog_define', f"{{{' '.join(define_list)}}}", fileset)
+
+    def add_include_dirs(self, content, fileset):
+        # create a flat list of include directories
+        inc_dir_list = []
+        for include_dir in content.include_dirs:
+            if include_dir.files:
+                inc_dir_list.extend(include_dir.files)
+
+        # format directory strings
+        inc_dir_list = ['"' + back2fwd(inc_dir) + '"' for inc_dir in inc_dir_list]
+
+        # define the "include directories"
+        if len(inc_dir_list) > 0:
+            self.set_property('include_dirs', '{ ' + ' '.join(inc_dir_list) + ' }', fileset)
 
     def add_files(self, files, norecurse=True, fileset=None):
         if files is None or len(files) == 0:

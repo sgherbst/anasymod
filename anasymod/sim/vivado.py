@@ -21,6 +21,9 @@ class VivadoSimulator(Simulator):
         # set define variables
         v.add_project_defines(content=self.target.content, fileset='[get_filesets {sim_1 sources_1}]')
 
+        # set the include directory paths (if applicable)
+        v.add_include_dirs(content=self.target.content, fileset='[get_filesets {sim_1 sources_1}]')
+
         # launch the simulation
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')
         v.writeln('launch_simulation')

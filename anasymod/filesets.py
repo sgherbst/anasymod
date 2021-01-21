@@ -2,7 +2,7 @@ import os, yaml
 from anasymod.sources import (Sources, VerilogSource, VerilogHeader, VHDLSource,
                               SubConfig, XCIFile, XDCFile, MEMFile, BDFile,
                               FunctionalModel, IPRepo, EDIFFile, FirmwareFile,
-                              TCLFile)
+                              TCLFile, IncludeDir)
 from anasymod.defines import Define
 from anasymod.util import expand_searchpaths
 
@@ -20,6 +20,9 @@ class Filesets():
 
         self._verilog_headers = []
         """:type : List[VerilogHeader]"""
+
+        self._include_dirs = []
+        """:type : List[IncludeDir]"""
 
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
@@ -122,6 +125,13 @@ class Filesets():
                                                            fileset=cfg['verilog_headers'][verilog_header]['fileset'] if 'fileset' in cfg['verilog_headers'][verilog_header].keys() else 'default',
                                                            config_path=cfg_path,
                                                            name=verilog_header))
+        if 'include_dirs' in cfg.keys(): # Add include directories to filesets
+            print(f'Include Directories: {[key for key in cfg["include_dirs"].keys()]}')
+            for include_dir in cfg['include_dirs'].keys():
+                self._include_dirs.append(IncludeDir(files=cfg['include_dirs'][include_dir]['files'],
+                                                     fileset=cfg['include_dirs'][include_dir]['fileset'] if 'fileset' in cfg['include_dirs'][include_dir].keys() else 'default',
+                                                     config_path=cfg_path,
+                                                     name=include_dir))
         if 'vhdl_sources' in cfg.keys(): # Add VHDL sources to filesets
             print(f'VHDL Sources: {[key for key in cfg["vhdl_sources"].keys()]}')
             for vhdl_source in cfg['vhdl_sources'].keys():
@@ -237,6 +247,9 @@ class Filesets():
         # Read in verilog header objects to fileset dict
         self._add_to_fileset_dict(name='verilog_headers', container=self._expand_source_paths(self._verilog_headers))
 
+        # Read in include directory objects to fileset dict
+        self._add_to_fileset_dict(name='include_dirs', container=self._expand_source_paths(self._include_dirs))
+
         # Read in vhdlsource objects to fileset dict
         self._add_to_fileset_dict(name='vhdl_sources', container=self._expand_source_paths(self._vhdl_sources))
 
@@ -293,6 +306,9 @@ class Filesets():
             self._verilog_headers.append(source)
         if isinstance(source, VHDLSource):
             self._vhdl_sources.append(source)
+
+    def add_include_dir(self, include_dir: IncludeDir):
+        self._include_dirs.append(include_dir)
 
     def add_define(self, define: Define):
         self._defines.append(define)
