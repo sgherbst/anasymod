@@ -8,6 +8,7 @@ pip install wheel
 pip install "pytest<5" pytest-cov
 
 # temporary fix
+pip install numpy
 pip install cvxpy==1.1.7
 
 # install anasymod
