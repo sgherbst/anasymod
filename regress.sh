@@ -7,6 +7,9 @@ python -m pip install --upgrade pip
 pip install wheel
 pip install "pytest<5" pytest-cov
 
+# temporary fix
+pip install cvxpy==1.1.7
+
 # install anasymod
 pip install -e .
 
