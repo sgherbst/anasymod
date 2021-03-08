@@ -13,7 +13,7 @@ with open('README.md', 'r') as fh:
 
 install_requires=[
     'svreal>=0.2.7',
-    'msdsl>=0.3.6',
+    'msdsl>=0.3.7.dev4',
     'jinja2',
     'pyvcd',
     'pyserial',

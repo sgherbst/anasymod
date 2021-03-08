@@ -1,0 +1,10 @@
+derived_clks:
+  tb_emu_io:
+    abspath: 'tb_i'
+    emu_clk: 'emu_clk'
+    emu_rst: 'emu_rst'
+    emu_dt: 'emu_dt'
+    dt_req: 'dt_req'
+#  ext_dt:
+#    abspath: 'tb_i'
+#    dt_req: 'ext_dt'
