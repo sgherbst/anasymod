@@ -118,7 +118,7 @@ module tb;
 
     `MAKE_CONST_REAL(1.0, txp);
     `MAKE_CONST_REAL(-1.0, txn);
-    `MAKE_REAL(tx_drv_o, 1.1);
+    `MAKE_SHORT_REAL(tx_drv_o, 1.1);  // short real used to reduce DSP utilization
     `ITE_INTO_REAL(prbs_o, txp, txn, tx_drv_o);
 
     // channel

@@ -14,11 +14,11 @@ module sim_ctrl #(
     `ASSIGN_CONST_REAL(62.5e-12, thi);
 
     initial begin
-        // wait for emulator reset to complete
-        wait_emu_reset();
+        // clamp the maximum emulator timestep
+	set_max_emu_dt(100e-12);	
 
         // wait a certain amount of time
-        sleep_emu(10e-9);
+	#(10us);
 
         // end simulation
         $finish;

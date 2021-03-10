@@ -23,7 +23,7 @@ THIS_DIR = Path(__file__).resolve().parent
 BUILD_DIR = THIS_DIR / 'build'
 TOP_DIR = THIS_DIR.parent.parent
 
-def run_target(target, interactive=False, debug=False):
+def run_target(target, interactive=True, debug=False):
     if target.startswith('models'):
         create_models()
     elif target.startswith('sim'):

@@ -6,5 +6,5 @@ PROJECT:
   flatten_hierarchy': 'none'
   vivado_stack: 2000
   ila_depth: 1024
-#  cpu_debug_mode: 1
-#  cpu_debug_hierarchies: [[0, "top.tb_i"]]
+# cpu_debug_mode: 1
+# cpu_debug_hierarchies: [[0, "top"]]

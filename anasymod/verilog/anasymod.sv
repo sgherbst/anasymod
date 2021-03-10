@@ -31,3 +31,11 @@ task sleep_emu(input real t);
         wait_emu_cycle();
     end
 endtask
+
+task set_max_emu_dt(input real t);
+    longint tgt;
+    tgt = longint'(t/(`DT_SCALE));
+
+    force top.sim_ctrl_gen_i.emu_ctrl_data_state = tgt;
+    force top.sim_ctrl_gen_i.emu_ctrl_mode_state = 3;
+endtask
