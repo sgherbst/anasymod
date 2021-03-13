@@ -28,7 +28,8 @@
 
 module tb;
     // parameters
-    localparam real dtmax = 62.5e-12;
+    localparam real ui = 62.5e-12;
+    localparam real dtmax = 31.25e-12;
 
     // uncomment to force a maximum timestep
     // (* dont_touch = "true" *) logic [((`DT_WIDTH)-1):0] ext_dt;
@@ -45,15 +46,15 @@ module tb;
     logic [20:0] sr;
 
     // oscillator period signals
-    (* dont_touch = "true" *) `MAKE_REAL(tlo, dtmax);
-    (* dont_touch = "true" *) `MAKE_REAL(thi, dtmax);
-    `MAKE_REAL(osc_period, dtmax);
+    (* dont_touch = "true" *) `MAKE_REAL(tlo, ui);
+    (* dont_touch = "true" *) `MAKE_REAL(thi, ui);
+    `MAKE_REAL(osc_period, ui);
 
     // oscillator signals
     logic clk_en;
 
     // dt scaling signals
-    `MAKE_REAL(dt, dtmax);
+    `MAKE_REAL(dt, ui);
     `MAKE_REAL(dt_rel, 1.1);
 
     // real-valued in signal chain

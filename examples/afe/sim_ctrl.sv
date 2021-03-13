@@ -15,7 +15,7 @@ module sim_ctrl #(
 
     initial begin
         // clamp the maximum emulator timestep
-	set_max_emu_dt(100e-12);	
+	set_max_emu_dt(31.25e-12);	
 
         // wait a certain amount of time
 	#(10us);

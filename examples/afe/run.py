@@ -52,13 +52,14 @@ def setup_target(target, simulator=None, synthesizer=None, viewer=None):
     return ana
 
 
-def create_models(ui=62.5e-12, gbw=40e9, npts=4, func_numel=512, dt_width=32, dt_scale=1e-15,
-                  real_type=RealType.FixedPoint):
+def create_models(ui=62.5e-12, gbw=40e9, npts=4, spline_order=3, func_numel=512,
+                  dt_width=32, dt_scale=1e-15, real_type=RealType.FixedPoint,
+                  dtmax=31.25e-12):
     print('Running model generator...')
 
     # generate channel step response
     t_orig, v_orig = s4p_to_step(TOP_DIR / 'peters_01_0605_B1_thru.s4p', dt=0.1e-12, T=10e-9)
-    t_step = np.linspace(2e-9, 6e-9, func_numel)
+    t_step = np.linspace(2e-9, 6e-9, 40001)  # i.e., 0.1 ps spacing
     v_step = interp1d(t_orig, v_orig)(t_step)
     t_step -= t_step[0]
 
@@ -72,11 +73,11 @@ def create_models(ui=62.5e-12, gbw=40e9, npts=4, func_numel=512, dt_width=32, dt
         ('unfm', UniformRandom, dict(real_type=real_type)),
         ('osc', OscillatorModel, dict(
             dt_width=dt_width, dt_scale=dt_scale, init=int(floor(ui/dt_scale)), real_type=real_type)),
-        ('ctle1', CTLEModel, dict(fz=0.8e9, fp1=1.6e9, gbw=gbw, num_spline=npts, dtmax=ui, real_type=real_type)),
-        ('ctle2', CTLEModel, dict(fz=3.5e9, fp1=7e9, gbw=gbw, num_spline=npts, dtmax=ui, real_type=real_type)),
-        ('ctle3', CTLEModel, dict(fz=5e9, fp1=10e9, gbw=gbw, num_spline=npts, dtmax=ui, real_type=real_type)),
+        ('ctle1', CTLEModel, dict(fz=0.8e9, fp1=1.6e9, gbw=gbw, num_spline=npts, spline_order=spline_order, dtmax=dtmax, real_type=real_type)),
+        ('ctle2', CTLEModel, dict(fz=3.5e9, fp1=7e9, gbw=gbw, num_spline=npts, spline_order=spline_order, dtmax=dtmax, real_type=real_type)),
+        ('ctle3', CTLEModel, dict(fz=5e9, fp1=10e9, gbw=gbw, num_spline=npts, spline_order=spline_order, dtmax=dtmax, real_type=real_type)),
         ('nonlin', SaturationModel, dict(compr=-1, units='dB', veval=1.0, numel=64, real_type=real_type)),
-        ('channel', ChannelModel, dict(t_step=t_step, v_step=v_step, dtmax=ui, num_spline=npts, num_terms=num_terms,
+        ('channel', ChannelModel, dict(t_step=t_step, v_step=v_step, dtmax=dtmax, num_spline=npts, num_terms=num_terms,
                                        func_order=1, func_numel=func_numel, real_type=real_type))
     ]
 
