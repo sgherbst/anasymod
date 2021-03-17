@@ -1,0 +1,17 @@
+verilog_sources:
+  sim_ctrl:
+    files: "sim_ctrl.sv"
+    fileset: "sim"
+  ams_models:
+    files:
+      - "build/channel/channel.sv"
+      - "build/ctle1/ctle1.sv"
+      - "build/ctle2/ctle2.sv"
+      - "build/ctle3/ctle3.sv"
+      - "build/nonlin/nonlin.sv"
+      - "build/unfm/unfm.sv"
+      - "build/osc/osc.sv"
+defines:
+  DT_MSDSL:
+    name: DT_MSDSL
+    value: 62.5e-12

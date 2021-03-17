@@ -1,0 +1,10 @@
+PROJECT:
+  dt: 0.1e-6
+  board_name: ZC706
+  plugins: ['msdsl']
+  emu_clk_freq: 10e6
+  flatten_hierarchy': 'none'
+  vivado_stack: 2000
+  ila_depth: 4096
+# cpu_debug_mode: 1
+# cpu_debug_hierarchies: [[0, "top"]]

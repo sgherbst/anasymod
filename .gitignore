@@ -7,6 +7,7 @@
 *.log
 *.str
 *.egg-info
+*.s4p
 __pycache__
 build
 dist/
