@@ -1,39 +1,35 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Wed Apr 10 04:31:21 2019
+[*] Wed Mar 24 18:05:52 2021
 [*]
-[dumpfile] "/home/sgherbst/Code/anasymod/tests/buck/build/vcd/top_sim.vcd"
-[dumpfile_mtime] "Wed Apr 10 04:31:13 2019"
-[dumpfile_size] 169661
-[savefile] "/home/sgherbst/Code/anasymod/tests/buck/view.gtkw"
+[dumpfile] "/home/steven/Code/anasymod/unittests/buck/build/sim/vcd/top_sim.vcd"
+[dumpfile_mtime] "Wed Mar 24 18:05:18 2021"
+[dumpfile_size] 190863
+[savefile] "/home/steven/Code/anasymod/unittests/buck/view.gtkw"
 [timestart] 0
-[size] 1000 600
+[size] 858 452
 [pos] -1 -1
-*-25.066996 26800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-35.320881 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
-[treeopen] top.tb_i.
 [sst_width] 223
-[signals_width] 182
+[signals_width] 118
 [sst_expanded] 1
-[sst_vpaned_height] 153
+[sst_vpaned_height] 102
+@8028
+top.trace_port_gen_i.v_out_probe
+@20000
+-
+-
+-
+@8028
+top.trace_port_gen_i.i_ind_probe
+@20000
+-
+-
+-
+-
 @28
-top.tb_i.hs_probe
-top.tb_i.ls_probe
-@8028
-top.v_out_probe
-@20000
--
--
-@8028
-top.i_ind_probe
-@20000
--
--
-@8028
-top.v_snub_probe
-@20000
--
--
--
+top.trace_port_gen_i.hs_probe
+top.trace_port_gen_i.ls_probe
 [pattern_trace] 1
 [pattern_trace] 0
