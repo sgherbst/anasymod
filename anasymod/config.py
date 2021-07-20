@@ -110,6 +110,8 @@ class EmuConfig:
             return ZCU102()
         elif self.cfg.board_name == BoardNames.ZCU106:
             return ZCU106()
+        elif self.cfg.board_name == BoardNames.ZCU111:
+            return ZCU111()
         elif self.cfg.board_name == BoardNames.ARTY_200T_CUSTOM_LIDAR:
             return ARTY_200T_CUSTOM_LIDAR()
         else:
