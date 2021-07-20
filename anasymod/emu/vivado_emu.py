@@ -43,6 +43,10 @@ class VivadoEmulation(VivadoTCLGenerator):
 
         scfg = self.target.str_cfg
         """ type : StructureConfig """
+
+        pcfg = self.target.prj_cfg
+        """ type : EmuConfig """
+
         project_root = self.target.project_root
         # under Windows there is the problem with path length more than 146 characters, that's why we have to use
         # subst command to substitute project directory to a drive letter
@@ -63,6 +67,10 @@ class VivadoEmulation(VivadoTCLGenerator):
         # add all source files to the project (including header files)
         self.add_project_sources(content=self.target.content)
 
+        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
+        if pcfg.cfg.treat_v_as_sv:
+            self.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
+
         # define the top module
         self.set_property('top', f"{{{self.target.cfg.top_module}}}", '[current_fileset]')
 
@@ -76,14 +84,27 @@ class VivadoEmulation(VivadoTCLGenerator):
             '[get_runs synth_1]'
         )
 
-        # append user constraints
+        # append user constraints.  for flexibility and backwards compatibility, three modes are provided:
+        # 1. "read_xdc": XDC file is read in using the "read_xdc" command (default)
+        # 2. "pre_constrs": XDC file is prepended to the contents of constrs.xdc
+        # 3. "post_constrs": XDC file is appended to the contents of constrs.xdc
         for xdc_file in self.target.content.xdc_files:
-            for file in xdc_file.files:
-                self.writeln(f'read_xdc "{back2fwd(file)}"')
+            if xdc_file.xdc_mode == 'read_xdc':
+                for file in xdc_file.files:
+                    self.writeln(f'read_xdc "{back2fwd(file)}"')
 
         if not self.target.cfg.custom_top:
             # write constraints to file
             constrs = CodeGenerator()
+
+            # read in "pre_constr" XDC files
+            for xdc_file in self.target.content.xdc_files:
+                if xdc_file.xdc_mode == 'pre_constr':
+                    for file in xdc_file.files:
+                        constrs.writeln(f'# pre_constr: {file}')
+                        constrs.read_from_file(file)
+                        constrs.writeln()
+
             # generate constraints for external clk
             constrs.use_templ(TemplExtClk(target=self.target))
             # generate clock wizard IP core
@@ -113,6 +134,14 @@ class VivadoEmulation(VivadoTCLGenerator):
             # in firmware with handshaking and very short delays.
             if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
                 constrs.writeln('set_false_path -through [get_pins sim_ctrl_gen_i/zynq_gpio_i/*]')
+
+            # read in "post_constr" XDC files
+            for xdc_file in self.target.content.xdc_files:
+                if xdc_file.xdc_mode == 'post_constr':
+                    for file in xdc_file.files:
+                        constrs.writeln(f'# post_constr: {file}')
+                        constrs.read_from_file(file)
+                        constrs.writeln()
 
             # write master constraints to file and add to project
             master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')

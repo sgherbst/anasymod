@@ -435,6 +435,10 @@ class Config(BaseConfig):
             to emu_clk.  This can help the design run at higher frequencies, if no time management
             is required. """
 
+        self.treat_v_as_sv = False
+        """ type(bool) : If True, treat Verilog (*.v) files as SystemVerilog (*.sv) in Vivado.
+            This option requires there to be at least one *.v file in the project sources. """
+
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults
     if hints is None:

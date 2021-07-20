@@ -165,7 +165,8 @@ class Filesets():
                 self._xdc_files.append(XDCFile(files=cfg['xdc_files'][xdc_file]['files'],
                                                fileset=cfg['xdc_files'][xdc_file]['fileset'] if 'fileset' in cfg['xdc_files'][xdc_file].keys() else 'default',
                                                config_path=cfg_path,
-                                               name=xdc_file))
+                                               name=xdc_file,
+                                               xdc_mode=cfg['xdc_files'][xdc_file].get('xdc_mode', None)))
         if 'mem_files' in cfg.keys():  # Add mem files to filesets
             print(f'Mem Files: {[key for key in cfg["mem_files"].keys()]}')
             for mem_file in cfg['mem_files'].keys():
