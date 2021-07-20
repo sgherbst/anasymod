@@ -44,9 +44,6 @@ class VivadoEmulation(VivadoTCLGenerator):
         scfg = self.target.str_cfg
         """ type : StructureConfig """
 
-        pcfg = self.target.prj_cfg
-        """ type : EmuConfig """
-
         project_root = self.target.project_root
         # under Windows there is the problem with path length more than 146 characters, that's why we have to use
         # subst command to substitute project directory to a drive letter
@@ -68,7 +65,7 @@ class VivadoEmulation(VivadoTCLGenerator):
         self.add_project_sources(content=self.target.content)
 
         # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
-        if pcfg.cfg.treat_v_as_sv:
+        if self.target.prj_cfg.cfg.treat_v_as_sv:
             self.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
 
         # define the top module

@@ -15,6 +15,10 @@ class VivadoSimulator(Simulator):
         # add all source files to the project (including header files)
         v.add_project_sources(content=self.target.content)
 
+        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
+        if self.target.prj_cfg.cfg.treat_v_as_sv:
+            v.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
+
         # define the top module
         v.set_property('top', f"{{{self.target.cfg.top_module}}}", '[get_filesets {sim_1 sources_1}]')
 
