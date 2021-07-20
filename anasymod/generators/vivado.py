@@ -154,6 +154,24 @@ class VivadoTCLGenerator(CodeGenerator):
         cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
         self.writeln(' '.join(cmd))
 
+    def add_include_dirs(self, content, objects):
+        # do nothing if there are no include directories
+        if len(content.include_dirs) == 0:
+            return
+
+        # otherwise, generate list of all include directories
+        inc_dirs = []
+        for include_dir in content.include_dirs:
+            inc_dirs += include_dir.files
+
+        # format into a TCL argument
+        inc_dirs = ['"' + str(inc_dir) + '"' for inc_dir in inc_dirs]  # add quotes
+        inc_dirs = ' '.join(inc_dirs)  # separate by spaces
+        inc_dirs = '{ ' + inc_dirs + ' }'  # surround with curly braces
+
+        # then set the include_dirs property
+        self.set_property(name='include_dirs', value=inc_dirs, objects=objects)
+
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 

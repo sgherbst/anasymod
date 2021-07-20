@@ -15,15 +15,18 @@ class VivadoSimulator(Simulator):
         # add all source files to the project (including header files)
         v.add_project_sources(content=self.target.content)
 
-        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
-        if self.target.prj_cfg.cfg.treat_v_as_sv:
-            v.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
-
         # define the top module
         v.set_property('top', f"{{{self.target.cfg.top_module}}}", '[get_filesets {sim_1 sources_1}]')
 
         # set define variables
         v.add_project_defines(content=self.target.content, fileset='[get_filesets {sim_1 sources_1}]')
+
+        # add include directories
+        v.add_include_dirs(content=self.target.content, objects='[get_filesets {sim_1 sources_1}]')
+
+        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
+        if self.target.prj_cfg.cfg.treat_v_as_sv:
+            v.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
 
         # launch the simulation
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')

@@ -88,6 +88,10 @@ class VHDLSource(Sources):
     def generate(self):
         self.dump()
 
+class IncludeDir(Sources):
+    def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None):
+        super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)
+
 class EDIFFile(Sources):
     def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)

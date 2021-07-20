@@ -279,6 +279,8 @@ class Content():
         """:type : List[VerilogHeader]"""
         self.vhdl_sources = []
         """:type : List[VHDLSource]"""
+        self.include_dirs = []
+        """:type : List[IncludeDir]"""
         self.defines = []
         """:type : List[Define]"""
         self.edif_files = []

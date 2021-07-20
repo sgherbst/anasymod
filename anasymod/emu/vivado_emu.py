@@ -64,15 +64,18 @@ class VivadoEmulation(VivadoTCLGenerator):
         # add all source files to the project (including header files)
         self.add_project_sources(content=self.target.content)
 
-        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
-        if self.target.prj_cfg.cfg.treat_v_as_sv:
-            self.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
-
         # define the top module
         self.set_property('top', f"{{{self.target.cfg.top_module}}}", '[current_fileset]')
 
         # set define variables
         self.add_project_defines(content=self.target.content, fileset='[current_fileset]')
+
+        # add include directories
+        self.add_include_dirs(content=self.target.content, objects='[current_fileset]')
+
+        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
+        if self.target.prj_cfg.cfg.treat_v_as_sv:
+            self.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
 
         # specify the level of flattening to use
         self.set_property(
