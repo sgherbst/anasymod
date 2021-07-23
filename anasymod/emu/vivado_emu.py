@@ -205,7 +205,9 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln('exec subst ' + self.subst + ' ' + self.old_subst)
 
         # run bitstream generation
-        ret_error = self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack, return_error=True)
+        err_str = 'The design failed to meet the timing requirements.'
+        ret_error = self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack,
+                             return_error=True, err_str=err_str)
         if os.name == 'nt':
             if ret_error:
                 #remove and restore drive substitutions
