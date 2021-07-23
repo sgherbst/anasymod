@@ -206,11 +206,11 @@ class VivadoEmulation(VivadoTCLGenerator):
 
         # run bitstream generation
         err_str = 'The design failed to meet the timing requirements.'
-        ret_error = self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack,
-                             return_error=True, err_str=err_str)
-        if os.name == 'nt':
-            if ret_error:
-                #remove and restore drive substitutions
+        try:
+            self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack, err_str=err_str)
+        except:
+            # remove and restore drive substitutions
+            if os.name == 'nt':
                 if self.subst:
                     try:
                         subprocess.call(f'subst {drive} /d', shell=True)
@@ -221,6 +221,9 @@ class VivadoEmulation(VivadoTCLGenerator):
                             subprocess.call(f'subst {drive} {self.old_subst}', shell=True)
                         except:
                             print(f'WARNING: Mapping of drive:{drive} to network path: {self.old_subst} did not work.')
+
+            # then re-raise the original exception
+            raise
 
 
     def run_FPGA(self, **kwargs):

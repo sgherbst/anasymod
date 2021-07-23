@@ -221,11 +221,7 @@ class VivadoTCLGenerator(CodeGenerator):
             cmd.append('-nojournal')
 
         # run the script
-        ret_error = call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
-        if return_error:
-            return ret_error
-        else:
-            return 0
+        return call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str, return_error=return_error)
 
     @property
     def version_year(self):
