@@ -88,6 +88,10 @@ class VHDLSource(Sources):
     def generate(self):
         self.dump()
 
+class IncludeDir(Sources):
+    def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None):
+        super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)
+
 class EDIFFile(Sources):
     def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None):
         super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)
@@ -105,7 +109,15 @@ class TCLFile(Sources):
         super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)
 
 class XDCFile(Sources):
-    def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None):
+    def __init__(self, files: Union[list, str], name, fileset=r"default", config_path=None, xdc_mode=None):
+        # set defaults
+        if xdc_mode is None:
+            xdc_mode = 'read_xdc'
+
+        # save custom settings
+        self.xdc_mode = xdc_mode
+
+        # call the super constructor
         super().__init__(files=files, fileset=fileset, config_path=config_path, name=name)
 
 class MEMFile(Sources):

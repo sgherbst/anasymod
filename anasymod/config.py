@@ -110,6 +110,8 @@ class EmuConfig:
             return ZCU102()
         elif self.cfg.board_name == BoardNames.ZCU106:
             return ZCU106()
+        elif self.cfg.board_name == BoardNames.ZCU111:
+            return ZCU111()
         elif self.cfg.board_name == BoardNames.ARTY_200T_CUSTOM_LIDAR:
             return ARTY_200T_CUSTOM_LIDAR()
         else:
@@ -434,6 +436,10 @@ class Config(BaseConfig):
             time manager, time control signals, and instead simply wire emu_clk_2x directly
             to emu_clk.  This can help the design run at higher frequencies, if no time management
             is required. """
+
+        self.treat_v_as_sv = False
+        """ type(bool) : If True, treat Verilog (*.v) files as SystemVerilog (*.sv) in Vivado.
+            This option requires there to be at least one *.v file in the project sources. """
 
 def find_tool(name, hints=None, sys_path_hint=True):
     # set defaults

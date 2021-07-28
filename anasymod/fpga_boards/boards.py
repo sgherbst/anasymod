@@ -160,3 +160,21 @@ class ZCU106(FPGA_Board):
     uart_zynq_pid = [60017]
     uart_suffix = '.0'  # needed since this board has four com ports under the same VID/PID
     is_ultrascale = True
+
+class ZCU111(FPGA_Board):
+    """
+    Container to store ZCU111 FPGA board specific properties.
+    """
+    clk_pin = ['AL17', 'AM17']  # from Table 3-17 in the user guide
+    clk_io = 'LVDS'
+    clk_freq = 125e6
+    board_part = 'xilinx.com:zcu111:part0:1.2'
+    full_part_name = 'xczu28dr-ffvg1517-2-e'
+    short_part_name = 'xczu28'
+    bram = 38e6
+    fpga_sim_ctrl = [FPGASimCtrl.UART_ZYNQ, FPGASimCtrl.VIVADO_VIO]
+    uart_zynq_vid = [1027]  # FT4232HL from Table 3-8 in the user guide
+    uart_zynq_pid = [24593]  # FT4232HL from Table 3-8 in the user guide
+    uart_suffix = '.1'  # needed since this board has four com ports under the same VID/PID
+    is_ultrascale = True
+    no_rev_check = True  # needed in case the FPGA is an engineering sample

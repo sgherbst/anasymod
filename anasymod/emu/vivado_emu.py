@@ -43,6 +43,7 @@ class VivadoEmulation(VivadoTCLGenerator):
 
         scfg = self.target.str_cfg
         """ type : StructureConfig """
+
         project_root = self.target.project_root
         # under Windows there is the problem with path length more than 146 characters, that's why we have to use
         # subst command to substitute project directory to a drive letter
@@ -69,6 +70,13 @@ class VivadoEmulation(VivadoTCLGenerator):
         # set define variables
         self.add_project_defines(content=self.target.content, fileset='[current_fileset]')
 
+        # add include directories
+        self.add_include_dirs(content=self.target.content, objects='[current_fileset]')
+
+        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
+        if self.target.prj_cfg.cfg.treat_v_as_sv:
+            self.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
+
         # specify the level of flattening to use
         self.set_property(
             'STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY',
@@ -76,14 +84,27 @@ class VivadoEmulation(VivadoTCLGenerator):
             '[get_runs synth_1]'
         )
 
-        # append user constraints
+        # append user constraints.  for flexibility and backwards compatibility, three modes are provided:
+        # 1. "read_xdc": XDC file is read in using the "read_xdc" command (default)
+        # 2. "pre_constrs": XDC file is prepended to the contents of constrs.xdc
+        # 3. "post_constrs": XDC file is appended to the contents of constrs.xdc
         for xdc_file in self.target.content.xdc_files:
-            for file in xdc_file.files:
-                self.writeln(f'read_xdc "{back2fwd(file)}"')
+            if xdc_file.xdc_mode == 'read_xdc':
+                for file in xdc_file.files:
+                    self.writeln(f'read_xdc "{back2fwd(file)}"')
 
         if not self.target.cfg.custom_top:
             # write constraints to file
             constrs = CodeGenerator()
+
+            # read in "pre_constr" XDC files
+            for xdc_file in self.target.content.xdc_files:
+                if xdc_file.xdc_mode == 'pre_constr':
+                    for file in xdc_file.files:
+                        constrs.writeln(f'# pre_constr: {file}')
+                        constrs.read_from_file(file)
+                        constrs.writeln()
+
             # generate constraints for external clk
             constrs.use_templ(TemplExtClk(target=self.target))
             # generate clock wizard IP core
@@ -113,6 +134,14 @@ class VivadoEmulation(VivadoTCLGenerator):
             # in firmware with handshaking and very short delays.
             if self.target.cfg.fpga_sim_ctrl == FPGASimCtrl.UART_ZYNQ:
                 constrs.writeln('set_false_path -through [get_pins sim_ctrl_gen_i/zynq_gpio_i/*]')
+
+            # read in "post_constr" XDC files
+            for xdc_file in self.target.content.xdc_files:
+                if xdc_file.xdc_mode == 'post_constr':
+                    for file in xdc_file.files:
+                        constrs.writeln(f'# post_constr: {file}')
+                        constrs.read_from_file(file)
+                        constrs.writeln()
 
             # write master constraints to file and add to project
             master_constr_path = os.path.join(self.target.prj_cfg.build_root, 'constrs.xdc')
@@ -176,10 +205,12 @@ class VivadoEmulation(VivadoTCLGenerator):
                 self.writeln('exec subst ' + self.subst + ' ' + self.old_subst)
 
         # run bitstream generation
-        ret_error = self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack, return_error=True)
-        if os.name == 'nt':
-            if ret_error:
-                #remove and restore drive substitutions
+        err_str = 'The design failed to meet the timing requirements.'
+        try:
+            self.run(filename=r"bitstream.tcl", stack=self.target.prj_cfg.cfg.vivado_stack, err_str=err_str)
+        except:
+            # remove and restore drive substitutions
+            if os.name == 'nt':
                 if self.subst:
                     try:
                         subprocess.call(f'subst {drive} /d', shell=True)
@@ -190,6 +221,9 @@ class VivadoEmulation(VivadoTCLGenerator):
                             subprocess.call(f'subst {drive} {self.old_subst}', shell=True)
                         except:
                             print(f'WARNING: Mapping of drive:{drive} to network path: {self.old_subst} did not work.')
+
+            # then re-raise the original exception
+            raise
 
 
     def run_FPGA(self, **kwargs):

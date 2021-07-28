@@ -22,6 +22,7 @@ class BoardNames:
     ZC706
     ZCU102
     ZCU106
+    ZCU111
     ULTRA96
     TE0720
 
@@ -33,6 +34,7 @@ class BoardNames:
     ZC706 = 'ZC706'
     ZCU102 = 'ZCU102'
     ZCU106 = 'ZCU106'
+    ZCU111 = 'ZCU111'
     ULTRA96 = 'ULTRA96'
     TE0720 = 'TE0720'
     ARTY_200T_CUSTOM_LIDAR = 'ARTY_200T_CUSTOM_LIDAR'

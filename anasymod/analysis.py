@@ -199,6 +199,8 @@ class Analysis():
                 self.filesets._verilog_headers.append(source)
             elif isinstance(source, VHDLSource):
                 self.filesets._vhdl_sources.append(source)
+            elif isinstance(source, IncludeDir):
+                self.filesets._include_dirs.append(source)
             elif isinstance(source, Define):
                 self.filesets._defines.append(source)
             elif isinstance(source, EDIFFile):

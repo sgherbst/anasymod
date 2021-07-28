@@ -154,6 +154,25 @@ class VivadoTCLGenerator(CodeGenerator):
         cmd.append('{ '+' '.join('"'+back2fwd(file)+'"' for file in files)+' }')
         self.writeln(' '.join(cmd))
 
+    def add_include_dirs(self, content, objects):
+        # otherwise, generate list of all include directories
+        inc_dirs = []
+        for include_dir in content.include_dirs:
+            inc_dirs += include_dir.files
+
+        # do nothing if there are no include directories
+        if len(inc_dirs) == 0:
+            return
+
+        # format into a TCL argument
+        inc_dirs = [back2fwd(inc_dir) for inc_dir in inc_dirs]  # fix backslashes
+        inc_dirs = ['"' + str(inc_dir) + '"' for inc_dir in inc_dirs]  # add quotes
+        inc_dirs = ' '.join(inc_dirs)  # separate by spaces
+        inc_dirs = '{ ' + inc_dirs + ' }'  # surround with curly braces
+
+        # then set the include_dirs property
+        self.set_property(name='include_dirs', value=inc_dirs, objects=objects)
+
     def set_property(self, name, value, objects):
         self.writeln(' '.join(['set_property', '-name', name, '-value', value, '-objects', objects]))
 
@@ -202,11 +221,7 @@ class VivadoTCLGenerator(CodeGenerator):
             cmd.append('-nojournal')
 
         # run the script
-        ret_error = call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str)
-        if return_error:
-            return ret_error
-        else:
-            return 0
+        return call(args=cmd, cwd=self.target.prj_cfg.build_root, err_str=err_str, return_error=return_error)
 
     @property
     def version_year(self):

@@ -21,6 +21,13 @@ class VivadoSimulator(Simulator):
         # set define variables
         v.add_project_defines(content=self.target.content, fileset='[get_filesets {sim_1 sources_1}]')
 
+        # add include directories
+        v.add_include_dirs(content=self.target.content, objects='[get_filesets {sim_1 sources_1}]')
+
+        # if desired, treat Verilog (*.v) files as SystemVerilog (*.sv)
+        if self.target.prj_cfg.cfg.treat_v_as_sv:
+            v.writeln('set_property file_type SystemVerilog [get_files -filter {FILE_TYPE == Verilog}]')
+
         # launch the simulation
         v.set_property('{xsim.simulate.runtime}', '{-all}', '[get_fileset sim_1]')
         v.writeln('launch_simulation')

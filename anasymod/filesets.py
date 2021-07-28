@@ -2,7 +2,7 @@ import os, yaml
 from anasymod.sources import (Sources, VerilogSource, VerilogHeader, VHDLSource,
                               SubConfig, XCIFile, XDCFile, MEMFile, BDFile,
                               FunctionalModel, IPRepo, EDIFFile, FirmwareFile,
-                              TCLFile)
+                              TCLFile, IncludeDir)
 from anasymod.defines import Define
 from anasymod.util import expand_searchpaths
 
@@ -23,6 +23,9 @@ class Filesets():
 
         self._vhdl_sources = []
         """:type : List[VHDLSource]"""
+
+        self._include_dirs = []
+        """:type : List[IncludeDir]"""
 
         self._edif_files = []
         """:type : List[EDIFFile]"""
@@ -131,6 +134,13 @@ class Filesets():
                                                      library=cfg['vhdl_sources'][vhdl_source]['library'] if 'library' in cfg['vhdl_sources'][vhdl_source].keys() else None,
                                                      version = cfg['vhdl_sources'][vhdl_source]['version'] if 'version' in cfg['vhdl_sources'][vhdl_source].keys() else None,
                                                      name=vhdl_source))
+        if 'include_dirs' in cfg.keys(): # Add include dirs to filesets
+            print(f'Include Dirs: {[key for key in cfg["include_dirs"].keys()]}')
+            for include_dir in cfg['include_dirs'].keys():
+                self._include_dirs.append(IncludeDir(files=cfg['include_dirs'][include_dir]['files'],
+                                                     fileset=cfg['include_dirs'][include_dir].get('fileset', 'default'),
+                                                     config_path=cfg_path,
+                                                     name=include_dir))
         if 'edif_files' in cfg.keys(): # Add EDIF files to filesets
             print(f'EDIF Files: {[key for key in cfg["edif_files"].keys()]}')
             for edif_file in cfg['edif_files'].keys():
@@ -165,7 +175,8 @@ class Filesets():
                 self._xdc_files.append(XDCFile(files=cfg['xdc_files'][xdc_file]['files'],
                                                fileset=cfg['xdc_files'][xdc_file]['fileset'] if 'fileset' in cfg['xdc_files'][xdc_file].keys() else 'default',
                                                config_path=cfg_path,
-                                               name=xdc_file))
+                                               name=xdc_file,
+                                               xdc_mode=cfg['xdc_files'][xdc_file].get('xdc_mode', None)))
         if 'mem_files' in cfg.keys():  # Add mem files to filesets
             print(f'Mem Files: {[key for key in cfg["mem_files"].keys()]}')
             for mem_file in cfg['mem_files'].keys():
@@ -240,6 +251,9 @@ class Filesets():
         # Read in vhdlsource objects to fileset dict
         self._add_to_fileset_dict(name='vhdl_sources', container=self._expand_source_paths(self._vhdl_sources))
 
+        # Read in include_dirs objects to fileset dict
+        self._add_to_fileset_dict(name='include_dirs', container=self._expand_source_paths(self._include_dirs))
+
         # Read in edif_files objects to fileset dict
         self._add_to_fileset_dict(name='edif_files', container=self._expand_source_paths(self._edif_files))
 
@@ -296,6 +310,9 @@ class Filesets():
 
     def add_define(self, define: Define):
         self._defines.append(define)
+
+    def add_include_dir(self, include_dir: IncludeDir):
+        self._include_dirs.append(include_dir)
 
     def add_edif_file(self, edif_file: EDIFFile):
         self._edif_files.append(edif_file)
